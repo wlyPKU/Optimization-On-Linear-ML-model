@@ -12,7 +12,7 @@ import java.util.List;
  */
 //http://www.tuicool.com/m/articles/RRZvYb
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
-public class SVMCD {
+public class SVM {
 
     public double SVMLoss(List<LabeledData> list, DenseVector model) {
         double loss = 0.0;
@@ -107,7 +107,7 @@ public class SVMCD {
 
     public static void train(List<LabeledData> corpus, double lambda) {
         int dim = corpus.get(0).data.dim;
-        SVMCD svmcd = new SVMCD();
+        SVM svmcd = new SVM();
         DenseVector model = new DenseVector(dim);
         long start = System.currentTimeMillis();
         svmcd.train(corpus, model, lambda);
@@ -124,10 +124,10 @@ public class SVMCD {
         long minHashTime = System.currentTimeMillis() - startMinHash;
 
         dim = hashedCorpus.get(0).data.dim;
-        System.out.println("Utils.MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
+        System.out.println("MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
 
         corpus = hashedCorpus;
-        SVMCD svmcd = new SVMCD();
+        SVM svmcd = new SVM();
         DenseVector model = new DenseVector(dim);
         long start = System.currentTimeMillis();
         svmcd.train(corpus, model, lambda);
@@ -137,7 +137,7 @@ public class SVMCD {
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: GradientDescent.SVM dim train_path lamda [true|false] K b");
+        System.out.println("Usage: CoordinateDescent.SVM dim train_path lamda [true|false] K b");
         int dim = Integer.parseInt(argv[0]);
         String path = argv[1];
         long startLoad = System.currentTimeMillis();

@@ -110,7 +110,7 @@ public class SVM {
     long minHashTime = System.currentTimeMillis() - startMinHash;
 
     dim = hashedCorpus.get(0).data.dim;
-    System.out.println("Utils.MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
+    System.out.println("MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
 
     corpus = hashedCorpus;
     SVM svm = new SVM();

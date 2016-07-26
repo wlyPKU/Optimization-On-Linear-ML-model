@@ -3,15 +3,16 @@ package CoordinateDescent;
 import it.unimi.dsi.fastutil.doubles.DoubleComparator;
 import math.DenseMap;
 import math.DenseVector;
-import Utils.*;
-
+import Utils.LabeledData;
+import Utils.Utils;
+import Utils.Sort;
 import java.util.List;
 
 /**
  * Created by 王羚宇 on 2016/7/26.
  */
 //Ref: http://www.csie.ntu.edu.tw/~cjlin/papers/l1_glmnet/long-glmnet.pdf
-public class LogisticRegressionCD {
+public class LogisticRegression {
     public double logLoss(List<LabeledData> list, DenseVector model) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
@@ -87,7 +88,7 @@ public class LogisticRegressionCD {
     public static void train(DenseMap[] corpus, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
         int dim = corpus.length;
-        LogisticRegressionCD lrCD = new LogisticRegressionCD();
+        LogisticRegression lrCD = new LogisticRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
         for(int i = 0; i < dim; i++){
@@ -154,7 +155,7 @@ public class LogisticRegressionCD {
         return auc;
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: GradientDescent.LogisticRegression FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: CoordinateDescent.SVM FeatureDim SampleDim train_path lamda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];

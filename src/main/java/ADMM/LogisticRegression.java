@@ -4,9 +4,10 @@ import Utils.LabeledData;
 import Utils.Utils;
 import math.DenseMap;
 import math.DenseVector;
-import GradientDescent.*;
+import GradientDescent.Lasso;
 import java.util.List;
 import Utils.ADMMState;
+import GradientDescent.SVM;
 
 //TODO: To be finished ...
 /**
@@ -18,7 +19,7 @@ import Utils.ADMMState;
 //https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
-public class LogisticRegressionADMM {
+public class LogisticRegression {
     public double test(List<LabeledData> list, DenseVector model) {
         double residual = 0;
         for (LabeledData labeledData : list) {
@@ -112,7 +113,7 @@ public class LogisticRegressionADMM {
     public static void train(DenseMap[] corpus, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
         int dim = corpus.length;
-        LogisticRegressionADMM lrADMM = new LogisticRegressionADMM();
+        LogisticRegression lrADMM = new LogisticRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         ADMMState model = new ADMMState(dim);
         long start = System.currentTimeMillis();
@@ -121,7 +122,7 @@ public class LogisticRegressionADMM {
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: GradientDescent.Lasso FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: ADMM.LogisticRegression FeatureDim SampleDim train_path lamda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];

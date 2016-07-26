@@ -3,7 +3,6 @@ package ADMM;
 import Utils.*;
 import math.DenseMap;
 import math.DenseVector;
-import GradientDescent.*;
 import java.util.List;
 
 //TODO: To be checked ...
@@ -11,7 +10,13 @@ import java.util.List;
  * Created by 王羚宇 on 2016/7/24.
  */
 //https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
-public class LinearRegressionADMM {
+//https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
+//https://web.stanford.edu/~boyd/papers/pdf/admm_slides.pdf
+//https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf
+//https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
+//http://www.simonlucey.com/lasso-using-admm/
+//http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
+public class Lasso {
     public double test(List<LabeledData> list, DenseVector model) {
         double residual = 0;
         for (LabeledData labeledData : list) {
@@ -21,25 +26,8 @@ public class LinearRegressionADMM {
 
         return residual;
     }
-    public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
-        int dim = corpus.get(0).data.dim;
-        long startMinHash = System.currentTimeMillis();
-        List<LabeledData> hashedCorpus = SVM.minhash(corpus, K, dim, b);
-        long minHashTime = System.currentTimeMillis() - startMinHash;
-        dim = hashedCorpus.get(0).data.dim;
-        corpus = hashedCorpus;
-        System.out.println("Utils.MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
-
-        Lasso lasso = new Lasso();
-        DenseVector modelOfU = new DenseVector(dim);
-        DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        lasso.train(corpus, modelOfU, modelOfV, lambda);
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
     public void train(DenseMap[] features, List<LabeledData> labeledData,
-                      ADMMState model, double trainRatio) {
+                      ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
@@ -52,6 +40,7 @@ public class LinearRegressionADMM {
         for (i = 0; i < 30; i ++) {
             //Initialize the second part of B
             double []part2OfB = new double[featureDim];
+            //Calculate (A^Tb+rho*C-L)
             for(int r = 0; r < featureDim; r++){
                 part2OfB[r] = rho * (model.C.values[r] - model.L.values[r]);
                 for(int ite = 0; ite < features[r].index.size(); ite++){
@@ -59,7 +48,6 @@ public class LinearRegressionADMM {
                     part2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
                 }
             }
-            System.out.println("Calculate Fininsh....");
             long startTrain = System.currentTimeMillis();
             //Update B;
             for(int j = 0; j < featureDim; j++){
@@ -76,11 +64,14 @@ public class LinearRegressionADMM {
 
             //Update C
             for(int j = 0; j < featureDim; j++) {
-                model.C.values[j] = model.B.values[j] + model.L.values[j];
+                //C=Soft_threshold(lambda/rho,B+L/rho);
+                model.C.values[j] = Utils.soft_threshold(lambda / rho, model.B.values[j]
+                        + model.L.values[j]);
             }
 
             //Update L
             for(int j = 0; j < featureDim; j++) {
+                //L=L+rho*(B-C)
                 model.L.values[j] +=  (model.B.values[j] - model.C.values[j]);
             }
             for(int id = 0; id < featureDim; id++){
@@ -99,24 +90,26 @@ public class LinearRegressionADMM {
     }
 
 
-    public static void train(DenseMap[] corpus, List<LabeledData> labeledData, double trainRatio) {
+    public static void train(DenseMap[] corpus, List<LabeledData> labeledData,
+                             double lambda, double trainRatio) {
         int dim = corpus.length;
-        LinearRegressionADMM lrADMM = new LinearRegressionADMM();
+        Lasso lassoADMM = new Lasso();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         ADMMState model = new ADMMState(dim);
         long start = System.currentTimeMillis();
-        lrADMM.train(corpus, labeledData, model, trainRatio);
+        lassoADMM.train(corpus, labeledData, model, lambda, trainRatio);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: ADMM.LinearRegressionADMM FeatureDim SampleDim train_path [trainRatio]");
+        System.out.println("Usage: ADMM.Lasso FeatureDim SampleDim train_path lamda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];
+        double lambda = Double.parseDouble(argv[3]);
         double trainRatio = 0.5;
-        if(argv.length >= 4){
-            trainRatio = Double.parseDouble(argv[3]);
+        if(argv.length >= 5){
+            trainRatio = Double.parseDouble(argv[4]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);
@@ -128,6 +121,6 @@ public class LinearRegressionADMM {
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         //TODO Need to think how to min hash numeric variables
-        train(features, labeledData, trainRatio);
+        train(features, labeledData, lambda, trainRatio);
     }
 }
