@@ -23,7 +23,7 @@ public class LinearRegression {
     public void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
         for (LabeledData labeledData: list) {
             double scala = labeledData.label - model.dot(labeledData.data);
-            model.plusBy(labeledData.data, scala * lr);
+            model.plusGradient(labeledData.data, + scala * lr);
         }
     }
     public double test(List<LabeledData> list, DenseVector model) {

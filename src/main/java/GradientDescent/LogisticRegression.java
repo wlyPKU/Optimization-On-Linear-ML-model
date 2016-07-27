@@ -39,19 +39,25 @@ public class LogisticRegression {
   }
 
   public void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
-                          DenseVector modelOfV, double lr) {
+                          DenseVector modelOfV, double lr, double lambda) {
     for (LabeledData labeledData: list) {
-      double scala = grad(modelOfU.dot(labeledData.data)
-              - modelOfV.dot(labeledData.data), labeledData.label);
-      modelOfU.plusBy(labeledData.data, scala * lr);
+      //Gradient=lamda+(1-1/(1+e^(-ywx))*y*xi
+      //scala=(1-1/(1+e^(-ywx))*y
+      double predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
+      double tmpValue = 1.0 - 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
+      double scala = tmpValue * labeledData.label;
+      modelOfU.plusGradient(labeledData.data, + scala * lr);
+      modelOfU.plusBy(labeledData.data, - lambda * lr);
       modelOfU.positiveValueOrZero(labeledData.data);
-      modelOfV.plusBy(labeledData.data, -scala * lr);
+      modelOfV.plusGradient(labeledData.data, - scala * lr);
+      modelOfU.plusBy(labeledData.data, - lambda * lr);
       modelOfV.positiveValueOrZero(labeledData.data);
     }
   }
 
 
-  public void train(List<LabeledData> corpus, DenseVector modelOfU, DenseVector modelOfV) {
+  public void train(List<LabeledData> corpus, DenseVector modelOfU,
+                    DenseVector modelOfV, double lambda) {
     Collections.shuffle(corpus);
     int size = corpus.size();
     int end = (int) (size * 0.5);
@@ -61,7 +67,7 @@ public class LogisticRegression {
     for (int i = 0; i < 30; i ++) {
       long startTrain = System.currentTimeMillis();
       //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
-      sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005);
+      sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005, lambda);
       long trainTime = System.currentTimeMillis() - startTrain;
       long startTest = System.currentTimeMillis();
 
@@ -79,19 +85,20 @@ public class LogisticRegression {
     }
   }
 
-  public static void train(List<LabeledData> corpus) {
+  public static void train(List<LabeledData> corpus, double lambda) {
     int dim = corpus.get(0).data.dim;
     LogisticRegression lr = new LogisticRegression();
     //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
     DenseVector modelOfU = new DenseVector(dim);
     DenseVector modelOfV = new DenseVector(dim);
     long start = System.currentTimeMillis();
-    lr.train(corpus, modelOfU, modelOfV);
+    lr.train(corpus, modelOfU, modelOfV, lambda);
     long cost = System.currentTimeMillis() - start;
     System.out.println(cost + " ms");
   }
 
-  public static void trainWithMinHash(List<LabeledData> corpus, int K, int b) {
+  public static void trainWithMinHash(List<LabeledData> corpus,
+                                      int K, int b, double lambda) {
     int dim = corpus.get(0).data.dim;
     long startMinHash = System.currentTimeMillis();
     List<LabeledData> hashedCorpus = SVM.minhash(corpus, K, dim, b);
@@ -104,7 +111,7 @@ public class LogisticRegression {
     DenseVector modelOfU = new DenseVector(dim);
     DenseVector modelOfV = new DenseVector(dim);
     long start = System.currentTimeMillis();
-    lr.train(corpus, modelOfU, modelOfV);
+    lr.train(corpus, modelOfU, modelOfV, lambda);
     long cost = System.currentTimeMillis() - start;
     System.out.println(cost + " ms");
   }
@@ -186,14 +193,16 @@ public class LogisticRegression {
     long loadTime = System.currentTimeMillis() - startLoad;
     System.out.println("Loading corpus completed, takes " + loadTime + " ms");
 
-    boolean minhash = Boolean.parseBoolean(argv[2]);
+    double lamda = Double.parseDouble(argv[2]);
+
+    boolean minhash = Boolean.parseBoolean(argv[3]);
     if (minhash) {
       System.out.println("Training with minhash method.");
-      int K = Integer.parseInt(argv[3]);
-      int b = Integer.parseInt(argv[4]);
-      trainWithMinHash(corpus, K, b);
+      int K = Integer.parseInt(argv[4]);
+      int b = Integer.parseInt(argv[5]);
+      trainWithMinHash(corpus, K, b, lamda);
     } else {
-      train(corpus);
+      train(corpus, lamda);
     }
   }
 }

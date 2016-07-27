@@ -53,39 +53,19 @@ public class LogisticRegression {
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         int featureDim = features.length - 1;
+        int sampleNum = trainCorpus.size();
         int i;
         double rho = 1e-4;
         double maxRho = 5;
 
         for (i = 0; i < 30; i ++) {
-            //Initialize the second part of B
-            double []part2OfB = new double[featureDim];
-                //Calculate (A^Tb+rho*C-L)
-            for(int r = 0; r < featureDim; r++){
-                part2OfB[r] = rho * (model.C.values[r] - model.L.values[r]);
-                for(int ite = 0; ite < features[r].index.size(); ite++){
-                    int idx = features[r].index.get(ite);
-                    part2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
-                }
-            }
             long startTrain = System.currentTimeMillis();
             //Update B;
-            for(int j = 0; j < featureDim; j++){
-                model.B.values[j] = 0;
-                for(int ite = 0; ite < featureDim; ite++){
-                        //Calculate (A^T*A+rho*I)_j_ite
-                    double part1OfB_j_ite = features[j].mutilply(features[ite]);
-                    if(j == ite){
-                        part1OfB_j_ite += rho * 1;
-                    }
-                    model.B.values[j] += part1OfB_j_ite * part2OfB[ite];
-                }
-            }
 
             //Update C
             for(int j = 0; j < featureDim; j++) {
-                //C=Soft_threshold(lambda/rho,B+L/rho);
-                model.C.values[j] = Utils.soft_threshold(lambda / rho, model.B.values[j]
+                //C=Soft_threshold(lambda/(rho*N),B+L);
+                model.C.values[j] = Utils.soft_threshold(lambda / (rho * sampleNum), model.B.values[j]
                         + model.L.values[j]);
             }
 
@@ -94,10 +74,6 @@ public class LogisticRegression {
                 //L=L+rho*(B-C)
                 model.L.values[j] +=  (model.B.values[j] - model.C.values[j]);
             }
-            for(int id = 0; id < featureDim; id++){
-                System.out.print(model.B.values[id] + " ");
-            }
-            System.out.println();
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 

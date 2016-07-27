@@ -9,10 +9,11 @@ public class ADMMState {
     public DenseVector B;
     public DenseVector C;
     public DenseVector L;
+    public int featureNum;
     public ADMMState(int dimension){
         B = new DenseVector(dimension);
         C = new DenseVector(dimension);
         L = new DenseVector(dimension);
-
+        featureNum = dimension;
     }
 }

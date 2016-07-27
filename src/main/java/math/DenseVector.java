@@ -44,4 +44,14 @@ public class DenseVector {
       }
     }
   }
+  public void plusGradient(SparseVector other, double scala){
+    for(int i = 0; i <  other.indices.length; i++){
+      int idx = other.indices[i];
+      if(other.values != null){
+        values[idx] += scala * other.values[i];
+      }else{
+        values[idx] += scala;
+      }
+    }
+  }
 }

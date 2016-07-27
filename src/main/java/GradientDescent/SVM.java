@@ -24,7 +24,7 @@ public class SVM {
     return loss / list.size();
   }
 
-  public double sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr, double lamda) {
+  public double sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr, double lambda) {
     int N_UPDATES = 0;
     int N_TOTAL = 0;
 
@@ -32,12 +32,12 @@ public class SVM {
       N_TOTAL++;
       //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
       /* Model pennalty */
-      model.plusBy(labeledData.data, -lr);
+      model.plusBy(labeledData.data, -lr * lambda);
 
       double dotProd = model.dot(labeledData.data);
       if (1 - dotProd * labeledData.label > 0) {
         /* residual pennalty */
-        model.plusBy(labeledData.data, lr * labeledData.label);
+        model.plusGradient(labeledData.data, lr * labeledData.label);
         N_UPDATES++;
       }
     }
@@ -91,18 +91,18 @@ public class SVM {
     return hashedCorpus;
   }
 
-  public static void train(List<LabeledData> corpus, double lamda) {
+  public static void train(List<LabeledData> corpus, double lambda) {
     int dim = corpus.get(0).data.dim;
     SVM svm = new SVM();
     DenseVector model = new DenseVector(dim);
     long start = System.currentTimeMillis();
-    svm.train(corpus, model, lamda);
+    svm.train(corpus, model, lambda);
 
     long cost = System.currentTimeMillis() - start;
     System.out.println(cost + " ms");
   }
 
-  public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lamda) {
+  public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
 
     int dim = corpus.get(0).data.dim;
     long startMinHash = System.currentTimeMillis();
@@ -116,7 +116,7 @@ public class SVM {
     SVM svm = new SVM();
     DenseVector model = new DenseVector(dim);
     long start = System.currentTimeMillis();
-    svm.train(corpus, model, lamda);
+    svm.train(corpus, model, lambda);
 
     long cost = System.currentTimeMillis() - start;
     System.out.println(cost + " ms");

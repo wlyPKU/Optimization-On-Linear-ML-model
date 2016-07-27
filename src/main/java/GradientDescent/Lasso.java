@@ -27,8 +27,10 @@ public class Lasso {
         for (LabeledData labeledData: list) {
             double scala = labeledData.label - modelOfU.dot(labeledData.data)
                     + modelOfV.dot(labeledData.data);
-            modelOfU.plusBy(labeledData.data, (-lambda + scala) * lr);
-            modelOfV.plusBy(labeledData.data, (-lambda - scala) * lr);
+            modelOfU.plusGradient(labeledData.data, scala * lr);
+            modelOfU.plusBy(labeledData.data, -lambda * lr);
+            modelOfV.plusGradient(labeledData.data, - scala * lr);
+            modelOfV.plusBy(labeledData.data, -lambda * lr);
             modelOfU.positiveValueOrZero(labeledData.data);
             modelOfV.positiveValueOrZero(labeledData.data);
         }
@@ -40,7 +42,6 @@ public class Lasso {
             double dot_prod = model.dot(labeledData.data);
             residual += Math.pow(labeledData.label - dot_prod, 2);
         }
-
         return residual;
     }
     public void train(List<LabeledData> corpus, DenseVector modelOfU,
@@ -65,7 +66,7 @@ public class Lasso {
             double loss = lassoLoss(trainCorpus, model, lambda);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " testAuc=" + accuracy +
+            System.out.println("loss=" + loss + " Test Loss =" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
         }
     }
