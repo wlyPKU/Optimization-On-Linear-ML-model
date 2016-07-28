@@ -14,7 +14,7 @@ import java.util.List;
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 public class SVM {
 
-    public double SVMLoss(List<LabeledData> list, DenseVector model) {
+    private double SVMLoss(List<LabeledData> list, DenseVector model) {
         double loss = 0.0;
         for (LabeledData labeledData : list) {
             double dotProd = model.dot(labeledData.data);
@@ -92,7 +92,7 @@ public class SVM {
         return 1.0 * N_RIGHT / N_TOTAL;
     }
 
-    public static List<LabeledData> minhash(List<LabeledData> trainCorpus, int K, int dim, int b) {
+    private static List<LabeledData> minhash(List<LabeledData> trainCorpus, int K, int dim, int b) {
         MinHash hash = new MinHash(K, dim, b);
         int hashedDim = hash.getHashedDim();
         List<LabeledData> hashedCorpus = new ArrayList<LabeledData>();
@@ -116,7 +116,7 @@ public class SVM {
         System.out.println(cost + " ms");
     }
 
-    public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
+    private static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
 
         int dim = corpus.get(0).data.dim;
         long startMinHash = System.currentTimeMillis();
