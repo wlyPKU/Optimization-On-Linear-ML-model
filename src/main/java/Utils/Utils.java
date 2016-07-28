@@ -29,7 +29,7 @@ public class Utils {
     return list;
   }
 
-  public static LabeledData parseOneLineLibSVM(String line, int dim) {
+  private static LabeledData parseOneLineLibSVM(String line, int dim) {
     String[] parts = line.split(" ");
     int label = Integer.parseInt(parts[0]);
     if (label == 0)

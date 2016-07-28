@@ -30,9 +30,9 @@ public class MinHash {
       int[] permutation = permutations[i];
       int minIdx = Integer.MAX_VALUE;
       int[] indices = data.indices;
-      for (int j = 0; j < indices.length; j ++) {
-        if (permutation[indices[j]] < minIdx) {
-          minIdx = permutation[indices[j]];
+      for (int j : indices) {
+        if (permutation[j] < minIdx) {
+          minIdx = permutation[j];
         }
       }
       integersTempArray[i] = minIdx;
@@ -58,7 +58,7 @@ public class MinHash {
     return bitIdx;
   }
 
-  public static void printBits(int num) {
+  private static void printBits(int num) {
     byte[] bits = new byte[32];
 
     for (int i = 0; i < 32; i ++) {
@@ -68,7 +68,7 @@ public class MinHash {
         bits[i] = 0;
     }
 
-    StringBuffer sb = new StringBuffer(32);
+    StringBuilder sb = new StringBuilder(32);
     for (int i = 0; i < 32; i ++) {
       sb.append(bits[i]);
     }

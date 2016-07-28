@@ -1,7 +1,6 @@
 package Utils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import Utils.LabeledData;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -19,7 +18,8 @@ public class LBFGS {
                              double rhoADMM,
                              double[] z,
                              int iterationADMM,
-                             List<LabeledData> trainCorpus) {
+                             List<LabeledData> trainCorpus,
+                             String algorithm) {
 
         int localFeatureNum = state.featureNum;
 
@@ -40,17 +40,18 @@ public class LBFGS {
 
         int iter = 1;
 
-        double loss = getGradientLoss(state, xx, rhoADMM, g, z, trainCorpus);
+        double loss = 0;
+        getGradientLoss(state, xx, rhoADMM, g, z, trainCorpus, algorithm);
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
 
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
-            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z, trainCorpus);
+            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z, trainCorpus, algorithm);
 
             String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss;
-            //LOG.info(infoMsg);
+            ////LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
 
@@ -61,12 +62,13 @@ public class LBFGS {
 
     }
 
-    static double getGradientLoss(ADMMState state,
+    private static double getGradientLoss(ADMMState state,
                                   double[] localX,
                                   double rhoADMM,
                                   double[] g,
                                   double[] z,
-                                  List<LabeledData> trainCorpus) {
+                                  List<LabeledData> trainCorpus,
+                                  String algorithm) {
         double loss = 0.0;
 
         int localFeatureNum = state.featureNum;
@@ -77,39 +79,59 @@ public class LBFGS {
             loss += 0.5 * rhoADMM * temp * temp;
         }
 
-        Iterator<LabeledData> iter = trainCorpus.iterator();
-        while (iter.hasNext()) {
-            LabeledData l = iter.next();
-
-            double score = 0;
-            for (int i = 0; i < l.data.indices.length; i ++) {
-                if(l.data.values != null){
-                    score += localX[l.data.indices[i]] * l.data.values[i];
-                }else{
-                    score += localX[l.data.indices[i]];
+        for (LabeledData l : trainCorpus) {
+            if(algorithm.equals("logisticRegression")) {
+                double score = 0;
+                int index[] = l.data.indices;
+                for (int i = 0; i < index.length; i++) {
+                    if (l.data.values != null) {
+                        score += localX[index[i]] * l.data.values[i];
+                    } else {
+                        score += localX[index[i]];
+                    }
                 }
-            }
-            score *= l.label;
-            double temp = Math.log(1.0 + Math.exp(-score));
-            loss += temp;
-            //TODO: LOSS and g? How should we compute it?
-            double gradient = (1.0 /(1.0 + Math.exp(-score)) - 1.0) * l.label;
-            for (int i = 0; i < l.data.indices.length; i ++) {
-                if(l.data.values == null){
-                    g[l.data.indices[i]] += gradient;
-                }else{
-                    g[l.data.indices[i]] += gradient * l.data.values[i];
+                score *= l.label;
+                double temp = Math.log(1.0 + Math.exp(-score));
+                loss += temp;
+                //TODO: LOSS and g? How should we compute it?
+                double gradient = (1.0 / (1.0 + Math.exp(-score)) - 1.0) * l.label;
+                for (int i = 0; i < l.data.indices.length; i++) {
+                    if (l.data.values == null) {
+                        g[l.data.indices[i]] += gradient;
+                    } else {
+                        g[l.data.indices[i]] += gradient * l.data.values[i];
+                    }
+                }
+            }else if(algorithm.equals("SVM")){
+                double score = 0;
+                for (int i = 0; i < l.data.indices.length; i++) {
+                    if (l.data.values != null) {
+                        score += localX[l.data.indices[i]] * l.data.values[i];
+                    } else {
+                        score += localX[l.data.indices[i]];
+                    }
+                }
+                score = l.label * score;
+                loss += Math.max(1 - score, 0);
+                //TODO: LOSS and g? How should we compute it?
+                for (int i = 0; i < l.data.indices.length; i++) {
+                    if (l.data.values == null) {
+                        g[l.data.indices[i]] += - l.label;
+                    } else {
+                        g[l.data.indices[i]] += - l.label * l.data.values[i];
+                    }
                 }
             }
         }
         return loss;
     }
 
-    static double getLoss(ADMMState state,
+    private static double getLoss(ADMMState state,
                           double[] localX,
                           double rhoADMM,
                           double[] z,
-                          List<LabeledData> trainCorpus) {
+                          List<LabeledData> trainCorpus,
+                          String algorithm) {
         double loss = 0.0;
 
         int localFeatureNum = state.featureNum;
@@ -121,24 +143,38 @@ public class LBFGS {
 
         Iterator<LabeledData> iter = trainCorpus.iterator();
         while (iter.hasNext()) {
-            LabeledData l = iter.next();
-            double score = 0;
-            int[] indices = l.data.indices;
-            for (int i = 0; i < indices.length; i ++) {
-                if(l.data.values != null){
-                    score += localX[indices[i]] * l.data.values[i];
-                }else{
-                    score += localX[indices[i]];
+            if(algorithm.equals("logisticRegression")) {
+                LabeledData l = iter.next();
+                double score = 0;
+                int[] indices = l.data.indices;
+                for (int i = 0; i < indices.length; i++) {
+                    if (l.data.values != null) {
+                        score += localX[indices[i]] * l.data.values[i];
+                    } else {
+                        score += localX[indices[i]];
+                    }
                 }
+                score *= l.label;
+                double temp = Math.log(1.0 + Math.exp(-score));
+                loss += temp;
+            }else if(algorithm.equals("SVM")){
+                LabeledData l = iter.next();
+                double score = 0;
+                for (int i = 0; i < l.data.indices.length; i++) {
+                    if (l.data.values != null) {
+                        score += localX[l.data.indices[i]] * l.data.values[i];
+                    } else {
+                        score += localX[l.data.indices[i]];
+                    }
+                }
+                score = l.label * score;
+                loss += Math.max(1 - score, 0);
             }
-            score *= l.label;
-            double temp = Math.log(1.0 + Math.exp(-score));
-            loss += temp;
         }
         return loss;
     }
 
-    static void twoLoop(ArrayList<double[]> s,
+    private static void twoLoop(ArrayList<double[]> s,
                         ArrayList<double[]> y,
                         ArrayList<Double> rhoLBFGS,
                         double[] g,
@@ -167,7 +203,7 @@ public class LBFGS {
 
     }
 
-    static double linearSearch(double[] x,
+    private static double linearSearch(double[] x,
                                double[] xNew,
                                double[] dir,
                                double[] gNew,
@@ -176,7 +212,8 @@ public class LBFGS {
                                ADMMState state,
                                double rhoADMM,
                                double[] z,
-                               List<LabeledData> trainCorpus) {
+                               List<LabeledData> trainCorpus,
+                               String algorithm) {
 
         int localFeatureNum = state.featureNum;
 
@@ -186,7 +223,7 @@ public class LBFGS {
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
         if (origDirDeriv >= 0) {
-            LOG.error(String.format("L-BFGS chose a non-descent direction, check your gradient!"));
+            //LOG.error(String.format("L-BFGS chose a non-descent direction, check your gradient!"));
             return 0.0;
         }
 
@@ -202,21 +239,21 @@ public class LBFGS {
 
         while ((loss > oldLoss + c1 * origDirDeriv * alpha) && (step > 0)) {
             timesBy(xNew, x, dir, alpha, localFeatureNum);
-            loss = getLoss(state, xNew, rhoADMM, z, trainCorpus);
+            loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm);
             String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha);
-            //LOG.info(infoMsg);
+            ////LOG.info(infoMsg);
             alpha *= backoff;
             i ++;
             step -= 1;
         }
 
-        getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus);
+        getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
         return loss;
     }
 
-    static void shift(int localFeatureNum,
+    private static void shift(int localFeatureNum,
                       int lbfgsHistory,
                       double[] x,
                       double[] xNew,
@@ -250,27 +287,27 @@ public class LBFGS {
         System.arraycopy(gNew, 0, g, 0, localFeatureNum);
     }
 
-    static void times(double [] a, double [] b, double x, int length) {
+    private static void times(double [] a, double [] b, double x, int length) {
         for (int i = 0; i < length; i ++)
             a[i] = b[i] * x;
     }
 
-    static void timesBy(double [] a, double [] b, double x, int length) {
+    private static void timesBy(double [] a, double [] b, double x, int length) {
         for (int i = 0; i < length; i ++)
             a[i] += b[i] * x;
     }
 
-    static void timesBy(double [] a, double [] b, double [] c, double x, int length) {
+    private static void timesBy(double [] a, double [] b, double [] c, double x, int length) {
         for (int i = 0; i < length; i ++)
             a[i] = b[i] + c[i] * x;
     }
 
-    static void timesBy(double [] a, double x, int length) {
+    private static void timesBy(double [] a, double x, int length) {
         for (int i = 0; i < length; i ++)
             a[i] *= x;
     }
 
-    static double dot(double [] a, double [] b, int length) {
+    private static double dot(double [] a, double [] b, int length) {
         double ret = 0.0;
         for (int i = 0; i < length; i ++)
             ret += a[i] * b[i];
