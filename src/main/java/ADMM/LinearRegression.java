@@ -60,14 +60,13 @@ public class LinearRegression {
                     part2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
                 }
             }
-            System.out.println("Calculate Fininsh....");
             long startTrain = System.currentTimeMillis();
             //Update B;
             for(int j = 0; j < featureDim; j++){
                 model.x.values[j] = 0;
                 for(int ite = 0; ite < featureDim; ite++){
                     //Calculate (A^T*A+rho*I)_j_ite
-                    double part1OfB_j_ite = features[j].mutilply(features[ite]);
+                    double part1OfB_j_ite = features[j].multiply(features[ite]);
                     if(j == ite){
                         part1OfB_j_ite += rho * 1;
                     }

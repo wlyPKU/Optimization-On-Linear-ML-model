@@ -55,7 +55,7 @@ public class Lasso {
                 model.x.values[j] = 0;
                 for(int ite = 0; ite < featureDim; ite++){
                     //Calculate (A^T*A+rho*I)_j_ite
-                    double part1OfB_j_ite = features[j].mutilply(features[ite]);
+                    double part1OfB_j_ite = features[j].multiply(features[ite]);
                     if(j == ite){
                         part1OfB_j_ite += rho * 1;
                     }
