@@ -10,7 +10,7 @@ import java.util.List;
  * Created by leleyu on 2016/7/1.
  */
 public class LogisticRegression {
-
+  @SuppressWarnings("unused")
   public double grad(double pre, double y) {
     double z = pre * y;
     if (z > 18) {
@@ -22,7 +22,7 @@ public class LogisticRegression {
     }
   }
 
-  public double logLoss(List<LabeledData> list, DenseVector model) {
+  private double logLoss(List<LabeledData> list, DenseVector model) {
     double loss = 0.0;
     for (LabeledData labeledData: list) {
       double p = model.dot(labeledData.data);
@@ -38,13 +38,13 @@ public class LogisticRegression {
     return loss;
   }
 
-  public void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
+  private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                           DenseVector modelOfV, double lr, double lambda) {
     for (LabeledData labeledData: list) {
       //Gradient=lamda+(1-1/(1+e^(-ywx))*y*xi
       //scala=(1-1/(1+e^(-ywx))*y
       double predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
-      double tmpValue = 1.0 - 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
+      double tmpValue = 1.0 - 1.0 / (1.0 + Math.exp(- labeledData.label * predictValue));
       double scala = tmpValue * labeledData.label;
       modelOfU.plusGradient(labeledData.data, + scala * lr);
       modelOfU.plusBy(labeledData.data, - lambda * lr);
@@ -97,7 +97,7 @@ public class LogisticRegression {
     System.out.println(cost + " ms");
   }
 
-  public static void trainWithMinHash(List<LabeledData> corpus,
+  private static void trainWithMinHash(List<LabeledData> corpus,
                                       int K, int b, double lambda) {
     int dim = corpus.get(0).data.dim;
     long startMinHash = System.currentTimeMillis();
@@ -131,7 +131,7 @@ public class LogisticRegression {
     return 1.0 * N_RIGHT / N_TOTAL;
   }
 
-  public double auc(List<LabeledData> list, DenseVector model) {
+  private double auc(List<LabeledData> list, DenseVector model) {
     int length = list.size();
     double[] scores = new double[length];
     double[] labels = new double[length];
@@ -186,6 +186,7 @@ public class LogisticRegression {
   }
 
   public static void main(String[] argv) throws Exception {
+    System.out.println("Usage: CoordinateDescent.Lasso FeatureDim train_path lamda [true|false] K b");
     int dim = Integer.parseInt(argv[0]);
     String path = argv[1];
     long startLoad = System.currentTimeMillis();

@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class SVM {
 
-  public double SVMLoss(List<LabeledData> list, DenseVector model) {
+  private double SVMLoss(List<LabeledData> list, DenseVector model) {
     double loss = 0.0;
     for (LabeledData labeledData : list) {
       double dotProd = model.dot(labeledData.data);
@@ -24,7 +24,7 @@ public class SVM {
     return loss / list.size();
   }
 
-  public double sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr, double lambda) {
+  private double sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr, double lambda) {
     int N_UPDATES = 0;
     int N_TOTAL = 0;
 
@@ -102,7 +102,7 @@ public class SVM {
     System.out.println(cost + " ms");
   }
 
-  public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
+  private static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
 
     int dim = corpus.get(0).data.dim;
     long startMinHash = System.currentTimeMillis();

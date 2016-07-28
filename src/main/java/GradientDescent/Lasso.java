@@ -11,18 +11,18 @@ import java.util.List;
  * Created by 王羚宇 on 2016/7/20.
  */
 public class Lasso {
-    public double lassoLoss(List<LabeledData> list, DenseVector model, double lamda) {
+    private double lassoLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double predictValue = model.dot(labeledData.data);
             loss += 1 / 2 * Math.pow(labeledData.label - predictValue, 2);
         }
         for(Double v: model.values){
-            loss += lamda * (v > 0? v : -v);
+            loss += lambda * (v > 0? v : -v);
         }
         return loss;
     }
-    public void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
+    private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                             DenseVector modelOfV, double lr, double lambda) {
         for (LabeledData labeledData: list) {
             double scala = labeledData.label - modelOfU.dot(labeledData.data)
@@ -85,7 +85,7 @@ public class Lasso {
         System.out.println(cost + " ms");
     }
 
-    public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
+    private static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
         int dim = corpus.get(0).data.dim;
         long startMinHash = System.currentTimeMillis();
         List<LabeledData> hashedCorpus = SVM.minhash(corpus, K, dim, b);

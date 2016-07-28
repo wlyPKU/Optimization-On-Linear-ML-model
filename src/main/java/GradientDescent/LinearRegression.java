@@ -11,7 +11,7 @@ import java.util.List;
  * Created by 王羚宇 on 2016/7/20.
  */
 public class LinearRegression {
-    public double linearLoss(List<LabeledData> list, DenseVector model) {
+    private double linearLoss(List<LabeledData> list, DenseVector model) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double predictValue = model.dot(labeledData.data);
@@ -20,7 +20,7 @@ public class LinearRegression {
         return loss;
     }
 
-    public void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
+    private void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
         for (LabeledData labeledData: list) {
             double scala = labeledData.label - model.dot(labeledData.data);
             model.plusGradient(labeledData.data, + scala * lr);
@@ -68,7 +68,7 @@ public class LinearRegression {
         System.out.println(cost + " ms");
     }
 
-    public static void trainWithMinHash(List<LabeledData> corpus, int K, int b) {
+    private static void trainWithMinHash(List<LabeledData> corpus, int K, int b) {
         int dim = corpus.get(0).data.dim;
         long startMinHash = System.currentTimeMillis();
         List<LabeledData> hashedCorpus = SVM.minhash(corpus, K, dim, b);
