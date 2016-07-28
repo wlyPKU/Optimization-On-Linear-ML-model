@@ -25,8 +25,8 @@ public class DenseVector {
         ret += values[indices[i]] * other.values[i];
       }
     } else {
-      for (int i = 0; i < indices.length; i ++) {
-        ret += values[indices[i]];
+      for (int i: indices) {
+        ret += values[i];
       }
     }
     return ret;
@@ -34,19 +34,14 @@ public class DenseVector {
 
   public void plusBy(SparseVector other, double x) {
     int[] indices = other.indices;
-    for (int i = 0; i < indices.length; i ++) {
-      values[indices[i]] += x;
+    for (int i: indices) {
+      values[i] += x;
     }
-  }
-  public void set(int idx, double value){
-
   }
   public void positiveValueOrZero(SparseVector other) {
     int[] indices = other.indices;
-    for(int i = 0; i < indices.length; i ++){
-      if(values[indices[i]] < 0){
-        values[indices[i]] = 0;
-      }
+    for (int i: indices) {
+      values[i] = Math.max(0, values[i]);
     }
   }
   public void plusGradient(SparseVector other, double scala){

@@ -13,12 +13,13 @@ public class SparseVector {
     this.dim = dim;
     this.indices = indices;
   }
-
+  @SuppressWarnings("unused")
   public SparseVector(int dim, int[] indices, double[] values) {
     this(dim, indices);
     this.values = values;
   }
-  public double mutilply(SparseVector other){
+  @SuppressWarnings("unused")
+  public double multiply(SparseVector other){
     assert(dim == other.dim);
     double result = 0;
     int ite1 = 0, ite2 = 0;
