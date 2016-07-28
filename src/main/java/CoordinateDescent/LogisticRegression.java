@@ -29,6 +29,27 @@ public class LogisticRegression {
         return loss;
     }
 
+    public double lossFunctionvalue(List<LabeledData> labeledData,
+                                DenseVector model, double lambda){
+        double result = 0;
+        for(LabeledData l: labeledData){
+            double exp = Math.exp(- l.label * model.dot(l.data));
+            double loss = Math.log(1 + exp);
+            result += loss;
+        }
+        for(Double w : model.values){
+            result += lambda * Math.abs(w);
+        }
+        return result;
+    }
+
+    public double getVectorLength(DenseVector model){
+        double length = 0;
+        for(Double w: model.values){
+            length += w * w;
+        }
+        return Math.sqrt(length);
+    }
     public void train(DenseMap[] features, List<LabeledData> labeledData,
                       DenseVector model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
@@ -49,7 +70,7 @@ public class LogisticRegression {
                     double predictValue = model.dot(l.data);
                     double Dii = (1 / (1 + Math.exp( -l.label * predictValue)))
                             * (1 - (1 / (1 + Math.exp( -l.label * predictValue))));
-                    secondOrderL += Dii * features[fIdx].value.get(j);
+                    secondOrderL += Dii * features[fIdx].value.get(j) * features[fIdx].value.get(j);
                 }
                 secondOrderL *= 1 / lambda;
                 //First Order L:
@@ -62,12 +83,33 @@ public class LogisticRegression {
                     firstOrderL += l.label * features[fIdx].value.get(j) * (tao - 1);
                 }
                 firstOrderL *= 1 / lambda;
+                double d = 0;
                 if(firstOrderL + 1 <= secondOrderL * model.values[fIdx]){
-                    model.values[fIdx] = - (firstOrderL + 1) / secondOrderL;
+                    d = - (firstOrderL + 1) / secondOrderL;
                 }else if(firstOrderL - 1 >= secondOrderL * model.values[fIdx]){
-                    model.values[fIdx] = - (firstOrderL - 1) / secondOrderL;
+                    d = - (firstOrderL - 1) / secondOrderL;
                 }else{
-                    model.values[fIdx] = 0;
+                    d = 0;
+                }
+                double TOLERANCE = 1e-5;
+                if(Math.abs(d) < TOLERANCE){
+                    continue;
+                }
+                boolean findSolution = false;
+                double BETA = 0.2;
+                double step = 1;
+                double SIGMA = 0.8;
+                while(!findSolution){
+                    DenseVector plusModel = new DenseVector(model);
+                    plusModel.values[fIdx] +=  d * step;
+                    double deltaFunctionValue = lossFunctionvalue(trainCorpus, plusModel, lambda)
+                            -lossFunctionvalue(trainCorpus, model, lambda);
+                    double compareValue = step * SIGMA *(firstOrderL * d+ getVectorLength(plusModel) - getVectorLength(model));
+                    if(compareValue >= deltaFunctionValue){
+                        findSolution = true;
+                        model.values[fIdx] += step * d;
+                    }
+                    step *= BETA;
                 }
             }
             long trainTime = System.currentTimeMillis() - startTrain;

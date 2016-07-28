@@ -12,6 +12,11 @@ public class DenseVector {
     this.values = new double[dim];
   }
 
+  public DenseVector(DenseVector a){
+    this.dim = a.dim;
+    this.values = new double[dim];
+    System.arraycopy(a.values, 0, values, 0, dim);
+  }
   public double dot(SparseVector other) {
     int[] indices = other.indices;
     double ret = 0.0;

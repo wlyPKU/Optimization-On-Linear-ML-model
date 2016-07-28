@@ -7,9 +7,11 @@ import math.DenseVector;
 import GradientDescent.Lasso;
 import java.util.List;
 import Utils.ADMMState;
+import Utils.LBFGS;
 import GradientDescent.SVM;
 
-//TODO: To be finished ...
+//TODO: To be checked...
+//According to the angel ADMM logistic regression
 /**
  * Created by 王羚宇 on 2016/7/24.
  */
@@ -57,28 +59,30 @@ public class LogisticRegression {
         int i;
         double rho = 1e-4;
         double maxRho = 5;
-
+        //Parameter:
+        int lbfgsNumIteration = 50;
+        int lbfgsHistory = 10;
         for (i = 0; i < 30; i ++) {
             long startTrain = System.currentTimeMillis();
-            //Update B;
-
-            //Update C
+            //Update x;
+            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus);
+            //Update z
             for(int j = 0; j < featureDim; j++) {
-                //C=Soft_threshold(lambda/(rho*N),B+L);
-                model.C.values[j] = Utils.soft_threshold(lambda / (rho * sampleNum), model.B.values[j]
-                        + model.L.values[j]);
+                //Z=Soft_threshold(lambda/(rho*N),x+u);
+                model.z.values[j] = Utils.soft_threshold(lambda / (rho * sampleNum), model.x.values[j]
+                        + model.u.values[j]);
             }
 
-            //Update L
+            //Update u
             for(int j = 0; j < featureDim; j++) {
-                //L=L+rho*(B-C)
-                model.L.values[j] +=  (model.B.values[j] - model.C.values[j]);
+                //u=u+(B-C)
+                model.u.values[j] = model.u.values[j] + (model.x.values[j] - model.z.values[j]);
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = test(trainCorpus, model.B);
-            double accuracy = test(testCorpus, model.B);
+            double loss = test(trainCorpus, model.x);
+            double accuracy = test(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);

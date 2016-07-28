@@ -6,6 +6,7 @@ import math.DenseVector;
 import java.util.List;
 
 //TODO: To be checked ...
+//According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
 /**
  * Created by 王羚宇 on 2016/7/24.
  */
@@ -42,47 +43,43 @@ public class Lasso {
             double []part2OfB = new double[featureDim];
             //Calculate (A^Tb+rho*C-L)
             for(int r = 0; r < featureDim; r++){
-                part2OfB[r] = rho * (model.C.values[r] - model.L.values[r]);
+                part2OfB[r] = rho * (model.z.values[r] - model.u.values[r]);
                 for(int ite = 0; ite < features[r].index.size(); ite++){
                     int idx = features[r].index.get(ite);
                     part2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
                 }
             }
             long startTrain = System.currentTimeMillis();
-            //Update B;
+            //Update x;
             for(int j = 0; j < featureDim; j++){
-                model.B.values[j] = 0;
+                model.x.values[j] = 0;
                 for(int ite = 0; ite < featureDim; ite++){
                     //Calculate (A^T*A+rho*I)_j_ite
                     double part1OfB_j_ite = features[j].mutilply(features[ite]);
                     if(j == ite){
                         part1OfB_j_ite += rho * 1;
                     }
-                    model.B.values[j] += part1OfB_j_ite * part2OfB[ite];
+                    model.x.values[j] += part1OfB_j_ite * part2OfB[ite];
                 }
             }
 
-            //Update C
+            //Update z
             for(int j = 0; j < featureDim; j++) {
-                //C=Soft_threshold(lambda/rho,B+L/rho);
-                model.C.values[j] = Utils.soft_threshold(lambda / rho, model.B.values[j]
-                        + model.L.values[j]);
+                //z=Soft_threshold(lambda/rho,x+u);
+                model.z.values[j] = Utils.soft_threshold(lambda / rho, model.x.values[j]
+                        + model.u.values[j]);
             }
 
-            //Update L
+            //Update u
             for(int j = 0; j < featureDim; j++) {
-                //L=L+rho*(B-C)
-                model.L.values[j] +=  (model.B.values[j] - model.C.values[j]);
+                //u=u+(B-C)
+                model.u.values[j] +=  (model.x.values[j] - model.z.values[j]);
             }
-            for(int id = 0; id < featureDim; id++){
-                System.out.print(model.B.values[id] + " ");
-            }
-            System.out.println();
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = test(trainCorpus, model.B);
-            double accuracy = test(testCorpus, model.B);
+            double loss = test(trainCorpus, model.x);
+            double accuracy = test(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
@@ -94,7 +91,6 @@ public class Lasso {
                              double lambda, double trainRatio) {
         int dim = corpus.length;
         Lasso lassoADMM = new Lasso();
-        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         ADMMState model = new ADMMState(dim);
         long start = System.currentTimeMillis();
         lassoADMM.train(corpus, labeledData, model, lambda, trainRatio);

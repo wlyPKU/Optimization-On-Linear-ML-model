@@ -1,15 +1,16 @@
 package Utils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import Utils.LabeledData;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by leleyu on 2015/9/24.
  */
 public class LBFGS {
-/*
+
     private static final Log LOG = LogFactory.getLog(LBFGS.class);
 
     public static void train(ADMMState state,
@@ -17,14 +18,15 @@ public class LBFGS {
                              int lbfgshistory,
                              double rhoADMM,
                              double[] z,
-                             int iterationADMM) {
+                             int iterationADMM,
+                             List<LabeledData> trainCorpus) {
 
         int localFeatureNum = state.featureNum;
 
 
         double[] xx    = new double[localFeatureNum];
         double[] xNew  = new double[localFeatureNum];
-        System.arraycopy(state.B.values, 0, xx, 0, localFeatureNum);
+        System.arraycopy(state.x.values, 0, xx, 0, localFeatureNum);
         System.arraycopy(xx, 0, xNew, 0, localFeatureNum);
 
         double[] g     = new double[localFeatureNum];
@@ -38,24 +40,24 @@ public class LBFGS {
 
         int iter = 1;
 
-        double loss = getGradientLoss(state, xx, rhoADMM, g, z);
+        double loss = getGradientLoss(state, xx, rhoADMM, g, z, trainCorpus);
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
 
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
-            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z);
+            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z, trainCorpus);
 
             String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss;
-            LOG.info(infoMsg);
+            //LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
 
             iter ++;
         }
 
-        System.arraycopy(xx, 0, state.B.values, 0, localFeatureNum);
+        System.arraycopy(xx, 0, state.x.values, 0, localFeatureNum);
 
     }
 
@@ -63,57 +65,41 @@ public class LBFGS {
                                   double[] localX,
                                   double rhoADMM,
                                   double[] g,
-                                  double[] z) {
+                                  double[] z,
+                                  List<LabeledData> trainCorpus) {
         double loss = 0.0;
 
         int localFeatureNum = state.featureNum;
 
         for (int i = 0; i < localFeatureNum; i ++) {
-            double temp = localX[i] - z[i] + state.L.values[i];
+            double temp = localX[i] - z[i] + state.u.values[i];
             g[i] = rhoADMM * temp;
             loss += 0.5 * rhoADMM * temp * temp;
         }
 
-        Iterator<LabeledData> iter = state.instances.iterator();
+        Iterator<LabeledData> iter = trainCorpus.iterator();
         while (iter.hasNext()) {
-            LabeledData data = iter.next();
-            SparseDummyVector sample = (SparseDummyVector) data.getX();
-            double neg = data.getY();
-            double pos = data.getY1();
+            LabeledData l = iter.next();
 
-            double score = 0.0;
-            int[] indices = sample.getIndices();
-            for (int i = 0; i < sample.getNonzero(); i ++) {
-                score += localX[indices[i]];
+            double score = 0;
+            for (int i = 0; i < l.data.indices.length; i ++) {
+                if(l.data.values != null){
+                    score += localX[l.data.indices[i]] * l.data.values[i];
+                }else{
+                    score += localX[l.data.indices[i]];
+                }
             }
-
-            double clkProb;
-            double clkLoss;
-
-            double nonclkProb;
-            double nonclkLoss;
-
-            if (score < -30) {
-                clkLoss = -score;
-                clkProb = 0;
-                nonclkLoss = 0;
-                nonclkProb = 1;
-            } else if (score > 30) {
-                clkLoss = 0;
-                clkProb = 1;
-                nonclkLoss = score;
-                nonclkProb = 0;
-            } else {
-                double temp = 1.0 + Math.exp(-score);
-                clkLoss = Math.log(temp);
-                clkProb = 1.0 / temp;
-                nonclkLoss = score + clkLoss;
-                nonclkProb = 1 - clkProb;
-            }
-            loss += pos * clkLoss + neg * nonclkLoss;
-            double mul = neg * clkProb - pos * nonclkProb;
-            for (int i = 0; i < sample.getNonzero(); i ++) {
-                g[indices[i]] += mul;
+            score *= l.label;
+            double temp = Math.log(1.0 + Math.exp(-score));
+            loss += temp;
+            //TODO: LOSS and g? How should we compute it?
+            double gradient = (1.0 /(1.0 + Math.exp(-score)) - 1.0) * l.label;
+            for (int i = 0; i < l.data.indices.length; i ++) {
+                if(l.data.values == null){
+                    g[l.data.indices[i]] += gradient;
+                }else{
+                    g[l.data.indices[i]] += gradient * l.data.values[i];
+                }
             }
         }
         return loss;
@@ -122,46 +108,33 @@ public class LBFGS {
     static double getLoss(ADMMState state,
                           double[] localX,
                           double rhoADMM,
-                          double[] z) {
+                          double[] z,
+                          List<LabeledData> trainCorpus) {
         double loss = 0.0;
 
         int localFeatureNum = state.featureNum;
 
         for (int i = 0; i < localFeatureNum; i ++) {
-            double temp = localX[i] - z[i] + state.B.values[i];
+            double temp = localX[i] - z[i] + state.u.values[i];
             loss += 0.5 * rhoADMM * temp * temp;
         }
 
-        Iterator<LabeledData> iter = state.instances.iterator();
+        Iterator<LabeledData> iter = trainCorpus.iterator();
         while (iter.hasNext()) {
-            LabeledData data = iter.next();
-            SparseDummyVector sample = (SparseDummyVector) data.getX();
-            double neg = data.getY();
-            double pos = data.getY1();
-
-            double score = 0.0;
-            int [] indices = sample.getIndices();
-            for (int i = 0; i < sample.getNonzero(); i ++) {
-                score += localX[indices[i]];
+            LabeledData l = iter.next();
+            double score = 0;
+            int[] indices = l.data.indices;
+            for (int i = 0; i < indices.length; i ++) {
+                if(l.data.values != null){
+                    score += localX[indices[i]] * l.data.values[i];
+                }else{
+                    score += localX[indices[i]];
+                }
             }
-
-            double clkLoss;
-            double nonclkLoss;
-
-            if (score < -30) {
-                clkLoss = -score;
-                nonclkLoss = 0;
-            } else if (score > 30) {
-                clkLoss = 0;
-                nonclkLoss = score;
-            } else {
-                double temp = 1.0 + Math.exp(-score);
-                clkLoss = Math.log(temp);
-                nonclkLoss = score + clkLoss;
-            }
-            loss += pos * clkLoss + neg * nonclkLoss;
+            score *= l.label;
+            double temp = Math.log(1.0 + Math.exp(-score));
+            loss += temp;
         }
-
         return loss;
     }
 
@@ -202,7 +175,8 @@ public class LBFGS {
                                int iteration,
                                ADMMState state,
                                double rhoADMM,
-                               double[] z) {
+                               double[] z,
+                               List<LabeledData> trainCorpus) {
 
         int localFeatureNum = state.featureNum;
 
@@ -228,17 +202,17 @@ public class LBFGS {
 
         while ((loss > oldLoss + c1 * origDirDeriv * alpha) && (step > 0)) {
             timesBy(xNew, x, dir, alpha, localFeatureNum);
-            loss = getLoss(state, xNew, rhoADMM, z);
+            loss = getLoss(state, xNew, rhoADMM, z, trainCorpus);
             String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha);
-            LOG.info(infoMsg);
+            //LOG.info(infoMsg);
             alpha *= backoff;
             i ++;
             step -= 1;
         }
 
-        getGradientLoss(state, xNew, rhoADMM, gNew, z);
+        getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus);
         return loss;
     }
 
@@ -302,5 +276,4 @@ public class LBFGS {
             ret += a[i] * b[i];
         return ret;
     }
-    */
 }

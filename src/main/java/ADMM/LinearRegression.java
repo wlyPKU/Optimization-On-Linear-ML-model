@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Created by 王羚宇 on 2016/7/24.
  */
-//https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
+//According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
 public class LinearRegression {
     public double test(List<LabeledData> list, DenseVector model) {
         double residual = 0;
@@ -54,7 +54,7 @@ public class LinearRegression {
             //Initialize the second part of B
             double []part2OfB = new double[featureDim];
             for(int r = 0; r < featureDim; r++){
-                part2OfB[r] = rho * (model.C.values[r] - model.L.values[r]);
+                part2OfB[r] = rho * (model.z.values[r] - model.u.values[r]);
                 for(int ite = 0; ite < features[r].index.size(); ite++){
                     int idx = features[r].index.get(ite);
                     part2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
@@ -64,35 +64,31 @@ public class LinearRegression {
             long startTrain = System.currentTimeMillis();
             //Update B;
             for(int j = 0; j < featureDim; j++){
-                model.B.values[j] = 0;
+                model.x.values[j] = 0;
                 for(int ite = 0; ite < featureDim; ite++){
                     //Calculate (A^T*A+rho*I)_j_ite
                     double part1OfB_j_ite = features[j].mutilply(features[ite]);
                     if(j == ite){
                         part1OfB_j_ite += rho * 1;
                     }
-                    model.B.values[j] += part1OfB_j_ite * part2OfB[ite];
+                    model.x.values[j] += part1OfB_j_ite * part2OfB[ite];
                 }
             }
 
             //Update C
             for(int j = 0; j < featureDim; j++) {
-                model.C.values[j] = model.B.values[j] + model.L.values[j];
+                model.z.values[j] = model.x.values[j] + model.u.values[j];
             }
 
             //Update L
             for(int j = 0; j < featureDim; j++) {
-                model.L.values[j] +=  (model.B.values[j] - model.C.values[j]);
+                model.u.values[j] +=  (model.x.values[j] - model.z.values[j]);
             }
-            for(int id = 0; id < featureDim; id++){
-                System.out.print(model.B.values[id] + " ");
-            }
-            System.out.println();
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = test(trainCorpus, model.B);
-            double accuracy = test(testCorpus, model.B);
+            double loss = test(trainCorpus, model.x);
+            double accuracy = test(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
