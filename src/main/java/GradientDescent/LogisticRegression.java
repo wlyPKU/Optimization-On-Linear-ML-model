@@ -47,10 +47,10 @@ public class LogisticRegression {
       double tmpValue = 1.0 - 1.0 / (1.0 + Math.exp(- labeledData.label * predictValue));
       double scala = tmpValue * labeledData.label;
       modelOfU.plusGradient(labeledData.data, + scala * lr);
-      modelOfU.plusBy(labeledData.data, - lambda * lr);
+      modelOfU.allPlusBy(- lr * lambda);
       modelOfU.positiveValueOrZero(labeledData.data);
       modelOfV.plusGradient(labeledData.data, - scala * lr);
-      modelOfU.plusBy(labeledData.data, - lambda * lr);
+      modelOfV.allPlusBy(- lr * lambda);
       modelOfV.positiveValueOrZero(labeledData.data);
     }
   }
@@ -186,7 +186,7 @@ public class LogisticRegression {
   }
 
   public static void main(String[] argv) throws Exception {
-    System.out.println("Usage: CoordinateDescent.Lasso FeatureDim train_path lamda [true|false] K b");
+    System.out.println("Usage: GradientDescent.LogisticRegression FeatureDim train_path lamda [true|false] K b");
     int dim = Integer.parseInt(argv[0]);
     String path = argv[1];
     long startLoad = System.currentTimeMillis();

@@ -1,5 +1,6 @@
 package CoordinateDescent;
 
+import it.unimi.dsi.fastutil.doubles.DoubleComparator;
 import math.DenseVector;
 import math.SparseVector;
 import Utils.*;
@@ -13,7 +14,59 @@ import java.util.List;
 //http://www.tuicool.com/m/articles/RRZvYb
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 public class SVM {
+    private double auc(List<LabeledData> list, DenseVector model) {
+        int length = list.size();
+        System.out.println(length);
+        double[] scores = new double[length];
+        double[] labels = new double[length];
 
+        int cnt = 0;
+        for (LabeledData labeledData: list) {
+            double score = model.dot(labeledData.data);
+
+            scores[cnt] = score;
+            labels[cnt] = labeledData.label;
+            cnt ++;
+        }
+
+        Sort.quickSort(scores, labels, 0, length, new DoubleComparator() {
+
+            public int compare(double i, double i1) {
+                if (Math.abs(i - i1) < 10e-12) {
+                    return 0;
+                } else {
+                    return i - i1 > 10e-12 ? 1 : -1;
+                }
+            }
+
+            public int compare(Double o1, Double o2) {
+                if (Math.abs(o1 - o2) < 10e-12) {
+                    return 0;
+                } else {
+                    return o1 - o2 > 10e-12 ? 1 : -1;
+                }
+            }
+        });
+
+        long M = 0, N = 0;
+        for (int i = 0; i < scores.length; i ++) {
+            if (labels[i] == 1.0)
+                M ++;
+            else
+                N ++;
+        }
+
+        double sigma = 0.0;
+        for (long i = M + N - 1; i >= 0; i --) {
+            if (labels[(int) i] == 1.0) {
+                sigma += i;
+            }
+        }
+
+        double auc = (sigma - (M + 1) * M / 2) / (M * N);
+        System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
+        return auc;
+    }
     private double SVMLoss(List<LabeledData> list, DenseVector model) {
         double loss = 0.0;
         for (LabeledData labeledData : list) {
@@ -52,7 +105,8 @@ public class SVM {
             alpha[j] = 0;
         }
         double C = 1 / (2 * lambda);
-        for (int i = 0; i < 30; i ++) {
+        for (int i = 0; i < 500; i ++) {
+            long startTrain = System.currentTimeMillis();
             //Coordinate Descent
             int j = 0;
             for (LabeledData labeledData : trainCorpus) {
@@ -70,9 +124,14 @@ public class SVM {
                     }
                 }
             }
+            long trainTime = System.currentTimeMillis() - startTrain;
+            long startTest = System.currentTimeMillis();
             double loss = SVMLoss(trainCorpus, model);
-            double accuracy = test(testCorpus, model);
-            System.out.println( "loss = " + loss + " accuracy = " + accuracy);
+            double trainAuc = auc(trainCorpus, model);
+            double testAuc = auc(testCorpus, model);
+            long testTime = System.currentTimeMillis() - startTest;
+            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
+                    " trainTime=" + trainTime + " testTime=" + testTime);
         }
     }
 

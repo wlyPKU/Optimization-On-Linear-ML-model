@@ -31,22 +31,22 @@ public class Utils {
 
   private static LabeledData parseOneLineLibSVM(String line, int dim) {
     String[] parts = line.split(" ");
-    int label = Integer.parseInt(parts[0]);
+    double label = Double.parseDouble(parts[0]);
     if (label == 0)
       label = -1;
     int length = parts.length - 1;
     int[] indices = new int[length];
-//    double[] values = new double[length];
+    double[] values = new double[length];
     for (int i = 0; i < length; i ++) {
       String kv = parts[i + 1];
       String[] kvParts = kv.split(":");
       int idx = Integer.parseInt(kvParts[0]);
-//      double value = Double.parseDouble(kvParts[1]);
+      double value = Double.parseDouble(kvParts[1]);
       indices[i] = idx;
-//      values[i]  = value;
+      values[i]  = value;
     }
 
-    SparseVector data = new SparseVector(dim, indices);
+    SparseVector data = new SparseVector(dim, indices, values);
     return new LabeledData(data, label);
   }
 
@@ -77,8 +77,8 @@ public class Utils {
         String kv = parts[i + 1];
         String[] kvParts = kv.split(":");
         int idx = Integer.parseInt(kvParts[0]);
-//       double value = Double.parseDouble(kvParts[1]);
-        features[idx].add(cnt, 1);
+       double value = Double.parseDouble(kvParts[1]);
+        features[idx].add(cnt, value);
       }
       cnt++;
     }

@@ -38,6 +38,12 @@ public class DenseVector {
       values[i] += x;
     }
   }
+
+  public void allPlusBy(double x){
+    for(int i = 0; i < values.length; i++){
+      values[i] += x;
+    }
+  }
   public void positiveValueOrZero(SparseVector other) {
     int[] indices = other.indices;
     for (int i: indices) {

@@ -17,7 +17,6 @@ public class Lasso {
             double dot_prod = model.dot(labeledData.data);
             residual += Math.pow(labeledData.label - dot_prod, 2);
         }
-
         return residual;
     }
 
@@ -32,6 +31,7 @@ public class Lasso {
         double featureSquare[] = new double[featureDim];
         double residual[] = new double[sampleSize];
         for(int i = 0; i < featureDim; i++){
+            featureSquare[i] = 0;
             for(Double v: features[i].value){
                 featureSquare[i] += v * v;
             }
@@ -52,11 +52,11 @@ public class Lasso {
                 for(int k = 0; k < features[j].index.size(); k++){
                     int idx = features[j].index.get(k);
                     double xj = features[j].value.get(k);
-                    updateValue += xj * residual[idx];
+                    updateValue += xj * (xj * model.values[j] + residual[idx]);
                 }
                 updateValue /= featureSquare[j];
-                model.values[j] += updateValue;
-                model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], updateValue);
+                model.values[j] = updateValue;
+                model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
                 for(int k = 0; k < features[j].index.size(); k++){
                     int idx = features[j].index.get(k);
                     residual[idx] -= (model.values[j] - oldValue) * features[j].value.get(k);

@@ -28,9 +28,9 @@ public class Lasso {
             double scala = labeledData.label - modelOfU.dot(labeledData.data)
                     + modelOfV.dot(labeledData.data);
             modelOfU.plusGradient(labeledData.data, scala * lr);
-            modelOfU.plusBy(labeledData.data, -lambda * lr);
+            modelOfU.allPlusBy(- lr * lambda);
             modelOfV.plusGradient(labeledData.data, - scala * lr);
-            modelOfV.plusBy(labeledData.data, -lambda * lr);
+            modelOfV.allPlusBy(- lr * lambda);
             modelOfU.positiveValueOrZero(labeledData.data);
             modelOfV.positiveValueOrZero(labeledData.data);
         }

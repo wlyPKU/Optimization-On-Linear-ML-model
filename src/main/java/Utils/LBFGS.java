@@ -94,7 +94,7 @@ public class LBFGS {
                 double temp = Math.log(1.0 + Math.exp(-score));
                 loss += temp;
                 //TODO: LOSS and g? How should we compute it?
-                double gradient = (1.0 / (1.0 + Math.exp(-score)) - 1.0) * l.label;
+                double gradient = - 1.0 / (1.0 + Math.exp(score)) * l.label;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values == null) {
                         g[l.data.indices[i]] += gradient;
@@ -113,7 +113,6 @@ public class LBFGS {
                 }
                 score = l.label * score;
                 loss += Math.max(1 - score, 0);
-                //TODO: LOSS and g? How should we compute it?
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values == null) {
                         g[l.data.indices[i]] += - l.label;

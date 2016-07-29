@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.doubles.DoubleComparator;
 import math.DenseMap;
 import math.DenseVector;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -20,8 +21,7 @@ public class SVM {
 
         int cnt = 0;
         for (LabeledData labeledData: list) {
-            double z = model.dot(labeledData.data);
-            double score = 1.0 / (1.0 + Math.exp(-z));
+            double score = model.dot(labeledData.data);
 
             scores[cnt] = score;
             labels[cnt] = labeledData.label;
@@ -87,6 +87,8 @@ public class SVM {
     */
     public void train(int featureDim, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
+        Collections.shuffle(labeledData);
+
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
@@ -94,9 +96,9 @@ public class SVM {
         double rho = 1e-4;
         double maxRho = 5;
         //Parameter:
-        int lbfgsNumIteration = 50;
+        int lbfgsNumIteration = 10;
         int lbfgsHistory = 10;
-        for (int i = 0; i < 30; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus, "SVM");
@@ -114,9 +116,10 @@ public class SVM {
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
             double loss = SVMLoss(trainCorpus, model.x);
-            double accuracy = test(testCorpus, model.x);
+            double trainAuc = auc(trainCorpus, model.x);
+            double testAuc = auc(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss = " + loss + " accuracy = " + accuracy +
+            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
         }
     }
@@ -155,7 +158,7 @@ public class SVM {
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: ADMM.SVM FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: ADMM.SVM FeatureDim train_path lamda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         String path = argv[1];
         double lambda = Double.parseDouble(argv[2]);

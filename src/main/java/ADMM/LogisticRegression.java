@@ -19,6 +19,8 @@ import GradientDescent.SVM;
 //https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
+
+//https://web.stanford.edu/~boyd/papers/admm/logreg-l1/logreg.html
 public class LogisticRegression {
     private double auc(List<LabeledData> list, DenseVector model) {
         int length = list.size();
@@ -117,7 +119,7 @@ public class LogisticRegression {
         double rho = 1e-4;
         double maxRho = 5;
         //Parameter:
-        int lbfgsNumIteration = 500;
+        int lbfgsNumIteration = 10;
         int lbfgsHistory = 10;
         for (int i = 0; i < 30; i ++) {
             long startTrain = System.currentTimeMillis();

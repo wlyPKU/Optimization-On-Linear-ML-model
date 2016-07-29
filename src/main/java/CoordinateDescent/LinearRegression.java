@@ -51,10 +51,11 @@ public class LinearRegression {
                 for(int k = 0; k < features[j].index.size(); k++){
                     int idx = features[j].index.get(k);
                     double xj = features[j].value.get(k);
-                    updateValue += xj * residual[idx];
+                    double tmpValue = xj * (residual[idx] + xj * model.values[j]);
+                    updateValue += tmpValue;
                 }
                 updateValue /= featureSquare[j];
-                model.values[j] += updateValue;
+                model.values[j] = updateValue;
                 for(int k = 0; k < features[j].index.size(); k++){
                     int idx = features[j].index.get(k);
                     residual[idx] -= (model.values[j] - oldValue) * features[j].value.get(k);
