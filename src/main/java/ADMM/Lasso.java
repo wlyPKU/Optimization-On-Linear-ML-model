@@ -27,6 +27,13 @@ public class Lasso {
 
         return residual;
     }
+    public int Convert2Dto1D(int i, int j){
+        if(i <= j){
+            return (j - 1) * (j - 1) + i;
+        }else{
+            return (i - 1) * (i - 1) + j;
+        }
+    }
     public void train(DenseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
@@ -37,26 +44,38 @@ public class Lasso {
         int i;
         double rho = 1e-4;
         double maxRho = 5;
-
+        //Initialize the second part of B
+        //Calculate (A^Tb)
+        double []part2OfB = new double[featureDim];
+        double []tmpPart2OfB = new double[featureDim];
+        double [][]tmpPart1OfB = new double[featureDim][featureDim];
+        for(int r = 0; r < featureDim; r++){
+            tmpPart2OfB[r] = 0;
+            for(int ite = 0; ite < features[r].index.size(); ite++){
+                int idx = features[r].index.get(ite);
+                tmpPart2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
+            }
+        }
+        //Store A^T*A
+        for(i = 0; i < featureDim; i++){
+            for(int j = 0; j < featureDim; j++){
+                tmpPart1OfB[i][j] = features[j].multiply(features[i]);
+            }
+        }
         for (i = 0; i < 30; i ++) {
-            //Initialize the second part of B
-            double []part2OfB = new double[featureDim];
             //Calculate (A^Tb+rho*C-L)
-            for(int r = 0; r < featureDim; r++){
-                part2OfB[r] = rho * (model.z.values[r] - model.u.values[r]);
-                for(int ite = 0; ite < features[r].index.size(); ite++){
-                    int idx = features[r].index.get(ite);
-                    part2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
-                }
+            for(int r = 0; r < featureDim; r++) {
+                part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);
             }
             long startTrain = System.currentTimeMillis();
             //Update x;
             for(int j = 0; j < featureDim; j++){
                 model.x.values[j] = 0;
-                for(int ite = 0; ite < featureDim; ite++){
+                for (int ite = 0; ite < featureDim; ite++) {
                     //Calculate (A^T*A+rho*I)_j_ite
-                    double part1OfB_j_ite = features[j].multiply(features[ite]);
-                    if(j == ite){
+                    //double part1OfB_j_ite = features[j].multiply(features[ite]);
+                    double part1OfB_j_ite = tmpPart1OfB[i][j];
+                    if (j == ite) {
                         part1OfB_j_ite += rho * 1;
                     }
                     model.x.values[j] += part1OfB_j_ite * part2OfB[ite];

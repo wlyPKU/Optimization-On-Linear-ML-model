@@ -44,7 +44,7 @@ public class LogisticRegression {
       //Gradient=lamda+(1-1/(1+e^(-ywx))*y*xi
       //scala=(1-1/(1+e^(-ywx))*y
       double predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
-      double tmpValue = 1.0 - 1.0 / (1.0 + Math.exp(- labeledData.label * predictValue));
+      double tmpValue = 1.0 / (1.0 + Math.exp( labeledData.label * predictValue));
       double scala = tmpValue * labeledData.label;
       modelOfU.plusGradient(labeledData.data, + scala * lr);
       modelOfU.allPlusBy(- lr * lambda);

@@ -58,6 +58,11 @@ public class LogisticRegressionSCD {
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         int featureDim = features.length - 1;
 
+        double predictValue[] = new double[labeledData.size()];
+        for(int i = 0; i < labeledData.size(); i++){
+            LabeledData l = labeledData.get(i);
+            predictValue[i] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
+        }
         DenseVector model = new DenseVector(featureDim);
         for (int i = 0; i < 30; i ++) {
             long startTrain = System.currentTimeMillis();
@@ -65,11 +70,11 @@ public class LogisticRegressionSCD {
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
+                double oldValue = modelOfU.values[fIdx];
                 for(int j = 0; j < features[fIdx].index.size(); j++){
                     int idx = features[fIdx].index.get(j);
                     LabeledData l = labeledData.get(idx);
-                    double predictValue = modelOfU.dot(l.data) - modelOfV.dot(l.data);
-                    double tao = 1 / (1 + Math.exp( -l.label * predictValue));
+                    double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
                     firstOrderL += l.label * features[fIdx].value.get(j) * (tao - 1);
                 }
                 double Uj = 0.25 * 1 / lambda * trainCorpus.size();
@@ -79,16 +84,21 @@ public class LogisticRegressionSCD {
                 }else{
                     modelOfU.values[fIdx] -= updateValue;
                 }
+                //Update predictValue
+                for(int j = 0; j < features[fIdx].index.size(); j++){
+                    int idx = features[fIdx].index.get(j);
+                    predictValue[idx] += features[fIdx].value.get(j) * (modelOfU.values[fIdx] - oldValue);
+                }
             }
             //Update w-
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
+                double oldValue = modelOfV.values[fIdx];
                 for(int j = 0; j < features[fIdx].index.size(); j++){
                     int idx = features[fIdx].index.get(j);
                     LabeledData l = labeledData.get(idx);
-                    double predictValue = modelOfU.dot(l.data) - modelOfV.dot(l.data);
-                    double tao = 1 / (1 + Math.exp( -l.label * predictValue));
+                    double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
                     firstOrderL += l.label * features[fIdx].value.get(j) * (tao - 1);
                 }
                 double Uj = 0.25 * 1 / lambda * trainCorpus.size();
@@ -97,6 +107,10 @@ public class LogisticRegressionSCD {
                     modelOfV.values[fIdx] = 0;
                 }else{
                     modelOfV.values[fIdx] -= updateValue;
+                }
+                for(int j = 0; j < features[fIdx].index.size(); j++){
+                    int idx = features[fIdx].index.get(j);
+                    predictValue[idx] -= features[fIdx].value.get(j) * (modelOfV.values[fIdx] - oldValue);
                 }
             }
             for(int fIdx = 0; fIdx < featureDim; fIdx ++){
