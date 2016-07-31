@@ -10,7 +10,17 @@ import java.util.*;
  * Created by 王羚宇 on 2016/7/20.
  */
 public class Lasso {
-
+    private double lassoLoss(List<LabeledData> list, DenseVector model, double lambda) {
+        double loss = 0.0;
+        for (LabeledData labeledData: list) {
+            double predictValue = model.dot(labeledData.data);
+            loss += 1 / 2 * Math.pow(labeledData.label - predictValue, 2);
+        }
+        for(Double v: model.values){
+            loss += lambda * (v > 0? v : -v);
+        }
+        return loss;
+    }
     public double test(List<LabeledData> list, DenseVector model) {
         double residual = 0;
         for (LabeledData labeledData : list) {
@@ -65,7 +75,7 @@ public class Lasso {
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = test(trainCorpus, model);
+            double loss = lassoLoss(trainCorpus, model, lambda);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +

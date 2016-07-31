@@ -67,13 +67,16 @@ public class SVM {
         System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
         return auc;
     }
-    private double SVMLoss(List<LabeledData> list, DenseVector model) {
+    private double SVMLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData : list) {
             double dotProd = model.dot(labeledData.data);
             loss += Math.max(0, 1 - dotProd * labeledData.label);
         }
-        return loss / list.size();
+        for(Double v: model.values){
+            loss += lambda * v * v;
+        }
+        return loss;
     }
 
     public void train(List<LabeledData> corpus, DenseVector model, double lambda) {
@@ -126,7 +129,7 @@ public class SVM {
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
-            double loss = SVMLoss(trainCorpus, model);
+            double loss = SVMLoss(trainCorpus, model, lambda);
             double trainAuc = auc(trainCorpus, model);
             double testAuc = auc(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;

@@ -22,7 +22,7 @@ public class LogisticRegression {
     }
   }
 
-  private double logLoss(List<LabeledData> list, DenseVector model) {
+  private double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
     double loss = 0.0;
     for (LabeledData labeledData: list) {
       double p = model.dot(labeledData.data);
@@ -34,6 +34,9 @@ public class LogisticRegression {
       } else {
         loss += Math.log(1 + Math.exp(-z));
       }
+    }
+    for(Double v : model.values){
+      loss += lambda * (v > 0? v : -v);
     }
     return loss;
   }
@@ -74,8 +77,7 @@ public class LogisticRegression {
       for(int j = 0; j < model.dim; j++){
         model.values[j] = modelOfU.values[j] - modelOfV.values[j];
       }
-      double loss = logLoss(trainCorpus, model);
-//      double accuracy = test(testCorpus, model);
+      double loss = logLoss(trainCorpus, model, lambda);
 
       double trainAuc = auc(trainCorpus, model);
       double testAuc = auc(testCorpus, model);

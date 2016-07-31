@@ -18,13 +18,23 @@ import java.util.List;
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 public class Lasso {
+    private double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
+        double loss = 0.0;
+        for (LabeledData labeledData: list) {
+            double predictValue = model_x.dot(labeledData.data);
+            loss += 1 / 2 * Math.pow(labeledData.label - predictValue, 2);
+        }
+        for(Double v: model_z.values){
+            loss += lambda * (v > 0? v : -v);
+        }
+        return loss;
+    }
     public double test(List<LabeledData> list, DenseVector model) {
         double residual = 0;
         for (LabeledData labeledData : list) {
             double dot_prod = model.dot(labeledData.data);
             residual += Math.pow(labeledData.label - dot_prod, 2);
         }
-
         return residual;
     }
     public int Convert2Dto1D(int i, int j){
@@ -62,8 +72,9 @@ public class Lasso {
                 tmpPart1OfB[i][j] = features[j].multiply(features[i]);
             }
         }
+        double x_hat[] = new double[model.featureNum];
         for (i = 0; i < 30; i ++) {
-            //Calculate (A^Tb+rho*C-L)
+            //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);
             }
@@ -74,30 +85,34 @@ public class Lasso {
                 for (int ite = 0; ite < featureDim; ite++) {
                     //Calculate (A^T*A+rho*I)_j_ite
                     //double part1OfB_j_ite = features[j].multiply(features[ite]);
-                    double part1OfB_j_ite = tmpPart1OfB[i][j];
+                    double part1OfB_j_ite = tmpPart1OfB[ite][j];
                     if (j == ite) {
                         part1OfB_j_ite += rho * 1;
                     }
                     model.x.values[j] += part1OfB_j_ite * part2OfB[ite];
                 }
             }
-
+            //https://github.com/afbujan/admm_lasso/blob/master/lasso_admm.py
+            double rel_par = 1.0;
+            for(int id = 0; id < featureDim; id++){
+                x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
+            }
             //Update z
             for(int j = 0; j < featureDim; j++) {
                 //z=Soft_threshold(lambda/rho,x+u);
-                model.z.values[j] = Utils.soft_threshold(lambda / rho, model.x.values[j]
+                model.z.values[j] = Utils.soft_threshold(lambda / rho, x_hat[j]
                         + model.u.values[j]);
             }
 
             //Update u
             for(int j = 0; j < featureDim; j++) {
-                //u=u+(B-C)
-                model.u.values[j] +=  (model.x.values[j] - model.z.values[j]);
+                //u=u+(x_hat-z)
+                model.u.values[j] += (x_hat[j] - model.z.values[j]);
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = test(trainCorpus, model.x);
+            double loss = lassoLoss(trainCorpus, model.x, model.z, lambda);
             double accuracy = test(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +

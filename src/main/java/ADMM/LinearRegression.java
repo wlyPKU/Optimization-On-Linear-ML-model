@@ -19,7 +19,6 @@ public class LinearRegression {
             double dot_prod = model.dot(labeledData.data);
             residual += Math.pow(labeledData.label - dot_prod, 2);
         }
-
         return residual;
     }
     public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
@@ -55,6 +54,8 @@ public class LinearRegression {
         double []part2OfB = new double[featureDim];
         double []tmpPart2OfB = new double[featureDim];
         double [][]tmpPart1OfB = new double[featureDim][featureDim];
+        double rel_par = 1.0;
+        double x_hat[] = new double[model.featureNum];
         for(int r = 0; r < featureDim; r++){
             tmpPart2OfB[r] = 0;
             for(int ite = 0; ite < features[r].index.size(); ite++){
@@ -69,7 +70,7 @@ public class LinearRegression {
             }
         }
         for (i = 0; i < 30; i ++) {
-            //Calculate (A^Tb+rho*C-L)
+            //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);
             }
@@ -80,7 +81,7 @@ public class LinearRegression {
                 for (int ite = 0; ite < featureDim; ite++) {
                     //Calculate (A^T*A+rho*I)_j_ite
                     //double part1OfB_j_ite = features[j].multiply(features[ite]);
-                    double part1OfB_j_ite = tmpPart1OfB[i][j];
+                    double part1OfB_j_ite = tmpPart1OfB[ite][j];
                     if (j == ite) {
                         part1OfB_j_ite += rho * 1;
                     }
@@ -88,14 +89,15 @@ public class LinearRegression {
                 }
             }
 
-            //Update C
+            //Update z
             for(int j = 0; j < featureDim; j++) {
-                model.z.values[j] = model.x.values[j] + model.u.values[j];
+                x_hat[j] = rel_par * model.x.values[j] + (1 - rel_par) * model.z.values[j];
+                model.z.values[j] = x_hat[j] + model.u.values[j];
             }
 
-            //Update L
+            //Update u
             for(int j = 0; j < featureDim; j++) {
-                model.u.values[j] +=  (model.x.values[j] - model.z.values[j]);
+                model.u.values[j] +=  (x_hat[j] - model.z.values[j]);
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();

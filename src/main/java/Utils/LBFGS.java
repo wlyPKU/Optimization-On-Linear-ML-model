@@ -112,12 +112,12 @@ public class LBFGS {
                     }
                 }
                 score = l.label * score;
-                loss += Math.max(1 - score, 0);
+                loss += Math.max(1 + score, 0);
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values == null) {
-                        g[l.data.indices[i]] += - l.label;
+                        g[l.data.indices[i]] += l.label;
                     } else {
-                        g[l.data.indices[i]] += - l.label * l.data.values[i];
+                        g[l.data.indices[i]] += l.label * l.data.values[i];
                     }
                 }
             }
@@ -167,7 +167,7 @@ public class LBFGS {
                     }
                 }
                 score = l.label * score;
-                loss += Math.max(1 - score, 0);
+                loss += Math.max(1 + score, 0);
             }
         }
         return loss;
@@ -222,7 +222,7 @@ public class LBFGS {
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
         if (origDirDeriv >= 0) {
-            //LOG.error(String.format("L-BFGS chose a non-descent direction, check your gradient!"));
+            LOG.error(String.format("L-BFGS chose a non-descent direction, check your gradient!"));
             return 0.0;
         }
 

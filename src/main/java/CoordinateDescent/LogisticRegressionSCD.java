@@ -13,7 +13,7 @@ import java.util.List;
  */
 //Ref: http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf Pg. 7,14,18
 public class LogisticRegressionSCD {
-    private double logLoss(List<LabeledData> list, DenseVector model) {
+    private double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double p = model.dot(labeledData.data);
@@ -25,6 +25,9 @@ public class LogisticRegressionSCD {
             } else {
                 loss += Math.log(1 + Math.exp(-z));
             }
+        }
+        for(Double v : model.values){
+            loss += lambda * (v > 0? v : -v);
         }
         return loss;
     }
@@ -119,7 +122,7 @@ public class LogisticRegressionSCD {
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = logLoss(trainCorpus, model);
+            double loss = logLoss(trainCorpus, model, lambda);
 
             double trainAuc = auc(trainCorpus, model);
             double testAuc = auc(testCorpus, model);

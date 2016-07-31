@@ -98,24 +98,27 @@ public class SVM {
         //Parameter:
         int lbfgsNumIteration = 10;
         int lbfgsHistory = 10;
+        double rel_par = 1.0;
+        double x_hat[] = new double[model.featureNum];
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus, "SVM");
-            //Update z
+            //Update z;
             for(int j = 0; j < featureDim; j++) {
+                x_hat[j] = rel_par * model.x.values[j] + (1 - rel_par) * model.z.values[j];
                 //Z=(1/(1/lambda + rho * N))*(x+u);
-                model.z.values[j] = (rho / (1.0 / lambda + rho * featureDim)) * (model.x.values[j] + model.u.values[j]);
+                model.z.values[j] = (rho / (1.0 / lambda + rho)) * (x_hat[j] + model.u.values[j]);
             }
 
             //Update u
             for(int j = 0; j < featureDim; j++) {
                 //u=u+(B-C)
-                model.u.values[j] = model.u.values[j] + (model.x.values[j] - model.z.values[j]);
+                model.u.values[j] = model.u.values[j] + (x_hat[j] - model.z.values[j]);
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
-            double loss = SVMLoss(trainCorpus, model.x);
+            double loss = SVMLoss(trainCorpus, model.x, model.z, lambda);
             double trainAuc = auc(trainCorpus, model.x);
             double testAuc = auc(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
@@ -124,13 +127,16 @@ public class SVM {
         }
     }
 
-    private double SVMLoss(List<LabeledData> list, DenseVector model) {
+    private double SVMLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData : list) {
-            double dotProd = model.dot(labeledData.data);
+            double dotProd = model_x.dot(labeledData.data);
             loss += Math.max(0, 1 - dotProd * labeledData.label);
         }
-        return loss / list.size();
+        for(Double v: model_z.values){
+            loss += lambda * v * v;
+        }
+        return loss;
     }
     public double test(List<LabeledData> list, DenseVector model) {
         int N_RIGHT = 0;

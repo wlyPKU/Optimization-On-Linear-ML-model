@@ -76,10 +76,10 @@ public class LogisticRegression {
         System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
         return auc;
     }
-    private double logLoss(List<LabeledData> list, DenseVector model) {
+    private double logLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
-            double p = model.dot(labeledData.data);
+            double p = model_x.dot(labeledData.data);
             double z = p * labeledData.label;
             if (z > 18) {
                 loss += Math.exp(-z);
@@ -88,6 +88,9 @@ public class LogisticRegression {
             } else {
                 loss += Math.log(1 + Math.exp(-z));
             }
+        }
+        for(Double v : model_z.values){
+            loss += lambda * (v > 0? v : -v);
         }
         return loss;
     }
@@ -121,27 +124,29 @@ public class LogisticRegression {
         //Parameter:
         int lbfgsNumIteration = 10;
         int lbfgsHistory = 10;
+        double rel_par = 1.0;
+        double x_hat[] = new double[model.featureNum];
         for (int i = 0; i < 30; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus, "logisticRegression");
             //Update z
             for(int j = 0; j < featureDim; j++) {
-                //Z=Soft_threshold(lambda/(rho*N),x+u);
-                model.z.values[j] = Utils.soft_threshold(lambda / (rho * featureDim), model.x.values[j]
-                        + model.u.values[j]);
+                //Z=Soft_threshold(lambda/(rho*N),x_hat+u);
+                x_hat[j] = rel_par * model.x.values[j] + (1 - rel_par) * model.z.values[j];
+                model.z.values[j] = Utils.soft_threshold(lambda / rho, x_hat[j] + model.u.values[j]);
             }
 
             //Update u
             for(int j = 0; j < featureDim; j++) {
-                //u=u+(B-C)
-                model.u.values[j] = model.u.values[j] + (model.x.values[j] - model.z.values[j]);
+                //u=u+(x_hat-z)
+                model.u.values[j] = model.u.values[j] + (x_hat[j] - model.z.values[j]);
             }
             rho = Math.min(maxRho, rho * 1.1);
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = logLoss(trainCorpus, model.x);
+            double loss = logLoss(trainCorpus, model.x, model.z, lambda);
             double trainAuc = auc(trainCorpus, model.x);
             double testAuc = auc(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
