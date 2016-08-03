@@ -22,7 +22,6 @@ public class SVM {
         int cnt = 0;
         for (LabeledData labeledData: list) {
             double score = model.dot(labeledData.data);
-
             scores[cnt] = score;
             labels[cnt] = labeledData.label;
             cnt ++;
@@ -96,11 +95,11 @@ public class SVM {
         double rho = 1e-4;
         double maxRho = 5;
         //Parameter:
-        int lbfgsNumIteration = 10;
+        int lbfgsNumIteration = 200;
         int lbfgsHistory = 10;
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 500; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus, "SVM");

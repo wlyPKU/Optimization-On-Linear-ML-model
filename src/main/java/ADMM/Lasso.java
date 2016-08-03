@@ -37,13 +37,6 @@ public class Lasso {
         }
         return residual;
     }
-    public int Convert2Dto1D(int i, int j){
-        if(i <= j){
-            return (j - 1) * (j - 1) + i;
-        }else{
-            return (i - 1) * (i - 1) + j;
-        }
-    }
     public void train(DenseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);

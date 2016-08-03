@@ -62,12 +62,13 @@ public class LogisticRegressionSCD {
         int featureDim = features.length - 1;
 
         double predictValue[] = new double[labeledData.size()];
-        for(int i = 0; i < labeledData.size(); i++){
-            LabeledData l = labeledData.get(i);
-            predictValue[i] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
-        }
+
         DenseVector model = new DenseVector(featureDim);
         for (int i = 0; i < 30; i ++) {
+            for(int idx = 0; idx < labeledData.size(); idx++){
+                LabeledData l = labeledData.get(idx);
+                predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
+            }
             long startTrain = System.currentTimeMillis();
             //Update w+
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
@@ -210,6 +211,10 @@ public class LogisticRegressionSCD {
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];
         double lambda = Double.parseDouble(argv[3]);
+        if(lambda <= 0){
+            System.out.println("Please input a correct lambda (>0)");
+            System.exit(2);
+        }
         double trainRatio = 0.5;
         if(argv.length >= 5){
             trainRatio = Double.parseDouble(argv[4]);

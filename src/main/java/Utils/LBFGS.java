@@ -112,12 +112,32 @@ public class LBFGS {
                     }
                 }
                 score = l.label * score;
-                loss += Math.max(1 + score, 0);
+                loss += Math.max(1 - score, 0);
+                if(1 - score > 0){
+                    for (int i = 0; i < l.data.indices.length; i++) {
+                        if (l.data.values == null) {
+                            g[l.data.indices[i]] -= 1 * l.label;
+                        } else {
+                            g[l.data.indices[i]] -= l.data.values[i] * l.label;
+                        }
+                    }
+                }
+            }else if(algorithm.equals("lasso") || algorithm.equals("LinearRegression")){
+                double score = 0;
+                for (int i = 0; i < l.data.indices.length; i++) {
+                    if (l.data.values != null) {
+                        score += localX[l.data.indices[i]] * l.data.values[i];
+                    } else {
+                        score += localX[l.data.indices[i]];
+                    }
+                }
+                score = l.label - score;
+                loss += 0.5 * score * score;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values == null) {
-                        g[l.data.indices[i]] += l.label;
+                        g[l.data.indices[i]] += score;
                     } else {
-                        g[l.data.indices[i]] += l.label * l.data.values[i];
+                        g[l.data.indices[i]] += l.data.values[i] * score;
                     }
                 }
             }
@@ -167,7 +187,19 @@ public class LBFGS {
                     }
                 }
                 score = l.label * score;
-                loss += Math.max(1 + score, 0);
+                loss += Math.max(1 - score, 0);
+            }else if(algorithm.equals("lasso") || algorithm.equals("LinearRegression")){
+                LabeledData l = iter.next();
+                double score = 0;
+                for (int i = 0; i < l.data.indices.length; i++) {
+                    if (l.data.values != null) {
+                        score += localX[l.data.indices[i]] * l.data.values[i];
+                    } else {
+                        score += localX[l.data.indices[i]];
+                    }
+                }
+                score = l.label - score;
+                loss += 0.5 * score * score;
             }
         }
         return loss;

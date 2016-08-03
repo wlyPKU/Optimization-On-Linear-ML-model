@@ -86,8 +86,9 @@ public class SVM {
       N_TOTAL++;
       //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
       /* Model pennalty */
-      //
-      model.allPlusBy(- lr * lambda);
+      for(int i = 0; i < model.values.length; i++){
+        model.values[i] -= 2 * lr * lambda * model.values[i];
+      }
       double dotProd = model.dot(labeledData.data);
       if (1 - dotProd * labeledData.label > 0) {
         /* residual pennalty */
