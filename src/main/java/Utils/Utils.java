@@ -1,7 +1,7 @@
 package Utils;
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
-import math.DenseMap;
+import math.SparseMap;
 import math.SparseVector;
 
 import java.io.*;
@@ -59,12 +59,12 @@ public class Utils {
   }
 
 
-  public static DenseMap[] LoadLibSVMByFeature(String path, int featureDim,
-                                               int sampleDim, double trainRatio) throws IOException{
+  public static SparseMap[] LoadLibSVMByFeature(String path, int featureDim,
+                                                int sampleDim, double trainRatio) throws IOException{
     //Feature and Label(dimension: featureDim+1)
-    DenseMap [] features = new DenseMap[featureDim + 1];
+    SparseMap[] features = new SparseMap[featureDim + 1];
     for(int i = 0; i <= featureDim; i++){
-      features[i] = new DenseMap();
+      features[i] = new SparseMap();
     }
     BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
     String line;

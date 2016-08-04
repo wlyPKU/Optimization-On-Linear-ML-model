@@ -2,11 +2,9 @@ package ADMM;
 
 import Utils.*;
 import it.unimi.dsi.fastutil.doubles.DoubleComparator;
-import math.DenseMap;
 import math.DenseVector;
-import GradientDescent.Lasso;
+
 import java.util.List;
-import GradientDescent.SVM;
 
 //TODO: To be checked...
 //According to the angel ADMM logistic regression
@@ -22,6 +20,18 @@ import GradientDescent.SVM;
 
 //https://web.stanford.edu/~boyd/papers/admm/logreg-l1/logreg.html
 public class LogisticRegression {
+    private double logLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
+        double loss = 0.0;
+        for (LabeledData labeledData: list) {
+            double p = model_x.dot(labeledData.data);
+            double z = p * labeledData.label;
+            loss += Math.log(1 + Math.exp(-z));
+        }
+        for(Double v : model_z.values){
+            loss += lambda * (v > 0? v : -v);
+        }
+        return loss;
+    }
     private double auc(List<LabeledData> list, DenseVector model) {
         int length = list.size();
         System.out.println(length);
@@ -76,24 +86,6 @@ public class LogisticRegression {
         System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
         return auc;
     }
-    private double logLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
-        double loss = 0.0;
-        for (LabeledData labeledData: list) {
-            double p = model_x.dot(labeledData.data);
-            double z = p * labeledData.label;
-            if (z > 18) {
-                loss += Math.exp(-z);
-            } else if (z < -18) {
-                loss += -z;
-            } else {
-                loss += Math.log(1 + Math.exp(-z));
-            }
-        }
-        for(Double v : model_z.values){
-            loss += lambda * (v > 0? v : -v);
-        }
-        return loss;
-    }
     /*
     public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
         int dim = corpus.get(0).data.dim;
@@ -129,7 +121,7 @@ public class LogisticRegression {
         for (int i = 0; i < 30; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
-            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus, "logisticRegression");
+            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "logisticRegression");
             //Update z
             for(int j = 0; j < featureDim; j++) {
                 //Z=Soft_threshold(lambda/(rho*N),x_hat+u);
@@ -146,7 +138,7 @@ public class LogisticRegression {
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = logLoss(trainCorpus, model.x, model.z, lambda);
+            double loss = logLoss(trainCorpus, model.x, model.z,lambda);
             double trainAuc = auc(trainCorpus, model.x);
             double testAuc = auc(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;

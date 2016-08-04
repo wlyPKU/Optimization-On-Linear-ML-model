@@ -1,12 +1,13 @@
 package CoordinateDescent;
 
 import it.unimi.dsi.fastutil.doubles.DoubleComparator;
-import math.DenseMap;
+import math.SparseMap;
 import math.DenseVector;
 import Utils.LabeledData;
 import Utils.Utils;
 import Utils.Sort;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by 王羚宇 on 2016/7/26.
@@ -53,7 +54,7 @@ public class LogisticRegressionSCD {
         }
         return Math.sqrt(length);
     }
-    public void train(DenseMap[] features, List<LabeledData> labeledData,
+    public void train(SparseMap[] features, List<LabeledData> labeledData,
                       DenseVector modelOfU, DenseVector modelOfV, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
@@ -75,12 +76,20 @@ public class LogisticRegressionSCD {
                 //First Order L:
                 double firstOrderL = 0;
                 double oldValue = modelOfU.values[fIdx];
+                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
+                    int idx = m.getKey();
+                    LabeledData l = labeledData.get(idx);
+                    double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
+                    firstOrderL += l.label * m.getValue() * (tao - 1);
+                }
+                /*
                 for(int j = 0; j < features[fIdx].index.size(); j++){
                     int idx = features[fIdx].index.get(j);
                     LabeledData l = labeledData.get(idx);
                     double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
                     firstOrderL += l.label * features[fIdx].value.get(j) * (tao - 1);
                 }
+                */
                 double Uj = 0.25 * 1 / lambda * trainCorpus.size();
                 double updateValue = (1 + firstOrderL) / Uj;
                 if(updateValue > modelOfU.values[fIdx]){
@@ -89,22 +98,29 @@ public class LogisticRegressionSCD {
                     modelOfU.values[fIdx] -= updateValue;
                 }
                 //Update predictValue
+                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
+                    int idx = m.getKey();
+                    predictValue[idx] += m.getValue() * (modelOfU.values[fIdx] - oldValue);
+                }
+                /*
                 for(int j = 0; j < features[fIdx].index.size(); j++){
                     int idx = features[fIdx].index.get(j);
                     predictValue[idx] += features[fIdx].value.get(j) * (modelOfU.values[fIdx] - oldValue);
                 }
+                */
             }
             //Update w-
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
                 double oldValue = modelOfV.values[fIdx];
-                for(int j = 0; j < features[fIdx].index.size(); j++){
-                    int idx = features[fIdx].index.get(j);
+                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
+                    int idx = m.getKey();
                     LabeledData l = labeledData.get(idx);
                     double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
-                    firstOrderL += l.label * features[fIdx].value.get(j) * (tao - 1);
+                    firstOrderL += l.label * m.getValue() * (tao - 1);
                 }
+
                 double Uj = 0.25 * 1 / lambda * trainCorpus.size();
                 double updateValue = (1 - firstOrderL) / Uj;
                 if(updateValue > modelOfU.values[fIdx]){
@@ -112,10 +128,11 @@ public class LogisticRegressionSCD {
                 }else{
                     modelOfV.values[fIdx] -= updateValue;
                 }
-                for(int j = 0; j < features[fIdx].index.size(); j++){
-                    int idx = features[fIdx].index.get(j);
-                    predictValue[idx] -= features[fIdx].value.get(j) * (modelOfV.values[fIdx] - oldValue);
+                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
+                    int idx = m.getKey();
+                    predictValue[idx] -= m.getValue() * (modelOfV.values[fIdx] - oldValue);
                 }
+
             }
             for(int fIdx = 0; fIdx < featureDim; fIdx ++){
                 model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
@@ -134,7 +151,7 @@ public class LogisticRegressionSCD {
     }
 
 
-    public static void train(DenseMap[] corpus, List<LabeledData> labeledData,
+    public static void train(SparseMap[] corpus, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
         int dim = corpus.length;
         LogisticRegressionSCD lrSCD = new LogisticRegressionSCD();
@@ -224,7 +241,7 @@ public class LogisticRegressionSCD {
             }
         }
         long startLoad = System.currentTimeMillis();
-        DenseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
+        SparseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");

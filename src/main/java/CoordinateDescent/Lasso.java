@@ -1,6 +1,7 @@
 package CoordinateDescent;
 
-import math.DenseMap;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
+import math.SparseMap;
 import math.DenseVector;
 import Utils.LabeledData;
 import Utils.Utils;
@@ -30,19 +31,19 @@ public class Lasso {
         return residual;
     }
 
-    public void train(DenseMap[] features, List<LabeledData> labeledData,
+    public void train(SparseMap[] features, List<LabeledData> labeledData,
                       DenseVector model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         int featureDim = features.length - 1;
-        int sampleSize = features[featureDim].value.size();
+        int sampleSize = features[featureDim].map.size();
         double featureSquare[] = new double[featureDim];
         double residual[] = new double[sampleSize];
         for(int i = 0; i < featureDim; i++){
             featureSquare[i] = 0;
-            for(Double v: features[i].value){
+            for(Double v: features[i].map.values()){
                 featureSquare[i] += v * v;
             }
             if(featureSquare[i] == 0){
@@ -50,7 +51,7 @@ public class Lasso {
             }
         }
         int i = 0;
-        for(Double y : features[featureDim].value){
+        for(Double y : features[featureDim].map.values()){
             residual[i] = y;
             i++;
         }
@@ -59,17 +60,17 @@ public class Lasso {
             for(int j = 0; j < featureDim; j++){
                 double oldValue = model.values[j];
                 double updateValue = 0;
-                for(int k = 0; k < features[j].index.size(); k++){
-                    int idx = features[j].index.get(k);
-                    double xj = features[j].value.get(k);
+                for(Map.Entry<Integer, Double> m: features[j].map.entrySet()){
+                    int idx = m.getKey();
+                    double xj = m.getValue();
                     updateValue += xj * (xj * model.values[j] + residual[idx]);
                 }
+
                 updateValue /= featureSquare[j];
                 model.values[j] = updateValue;
                 model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
-                for(int k = 0; k < features[j].index.size(); k++){
-                    int idx = features[j].index.get(k);
-                    residual[idx] -= (model.values[j] - oldValue) * features[j].value.get(k);
+                for(Map.Entry<Integer, Double> m: features[j].map.entrySet()){
+                    residual[m.getKey()] -= (model.values[j] - oldValue) * m.getValue();
                 }
             }
             long trainTime = System.currentTimeMillis() - startTrain;
@@ -84,8 +85,8 @@ public class Lasso {
     }
 
 
-    public static void train(DenseMap[] corpus, List<LabeledData> labeledData,
-            double lambda, double trainRatio) {
+    public static void train(SparseMap[] corpus, List<LabeledData> labeledData,
+                             double lambda, double trainRatio) {
         int dim = corpus.length;
         Lasso lassoCD = new Lasso();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
@@ -115,7 +116,7 @@ public class Lasso {
             }
         }
         long startLoad = System.currentTimeMillis();
-        DenseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
+        SparseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");

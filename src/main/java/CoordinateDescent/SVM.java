@@ -107,7 +107,7 @@ public class SVM {
         for(int j = 0; j < alpha.length;j++){
             alpha[j] = 0;
         }
-        double C = 1 / (2 * lambda);
+        double C = 1 / (2.0 * lambda);
         for (int i = 0; i < 500; i ++) {
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
@@ -126,6 +126,7 @@ public class SVM {
                         r++;
                     }
                 }
+                j++;
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();

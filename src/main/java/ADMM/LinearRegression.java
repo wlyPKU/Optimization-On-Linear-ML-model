@@ -1,11 +1,12 @@
 package ADMM;
 
 import Utils.*;
-import math.DenseMap;
+import math.SparseMap;
 import math.DenseVector;
 import GradientDescent.Lasso;
 import GradientDescent.SVM;
 import java.util.List;
+import java.util.Map;
 
 //TODO: To be checked ...
 /**
@@ -38,7 +39,7 @@ public class LinearRegression {
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
-    public void train(DenseMap[] features, List<LabeledData> labeledData,
+    public void train(SparseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
@@ -58,9 +59,9 @@ public class LinearRegression {
         double x_hat[] = new double[model.featureNum];
         for(int r = 0; r < featureDim; r++){
             tmpPart2OfB[r] = 0;
-            for(int ite = 0; ite < features[r].index.size(); ite++){
-                int idx = features[r].index.get(ite);
-                tmpPart2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
+            for(Map.Entry<Integer, Double> m: features[r].map.entrySet()){
+                int idx = m.getKey();
+                tmpPart2OfB[r] += m.getValue() * features[featureDim].map.get(idx);
             }
         }
         //Store A^T*A
@@ -111,7 +112,7 @@ public class LinearRegression {
     }
 
 
-    public static void train(DenseMap[] corpus, List<LabeledData> labeledData, double trainRatio) {
+    public static void train(SparseMap[] corpus, List<LabeledData> labeledData, double trainRatio) {
         int dim = corpus.length;
         LinearRegression lrADMM = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
@@ -135,7 +136,7 @@ public class LinearRegression {
             }
         }
         long startLoad = System.currentTimeMillis();
-        DenseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
+        SparseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");

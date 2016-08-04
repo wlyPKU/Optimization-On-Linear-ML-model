@@ -1,4 +1,5 @@
 package Utils;
+import math.DenseVector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import java.util.ArrayList;
@@ -16,13 +17,11 @@ public class LBFGS {
                              int maxIterNum,
                              int lbfgshistory,
                              double rhoADMM,
-                             double[] z,
                              int iterationADMM,
                              List<LabeledData> trainCorpus,
                              String algorithm) {
 
         int localFeatureNum = state.featureNum;
-
 
         double[] xx    = new double[localFeatureNum];
         double[] xNew  = new double[localFeatureNum];
@@ -40,14 +39,13 @@ public class LBFGS {
 
         int iter = 1;
 
-        double loss = 0;
-        getGradientLoss(state, xx, rhoADMM, g, z, trainCorpus, algorithm);
+        double loss = getGradientLoss(state, xx, rhoADMM, g, state.z.values, trainCorpus, algorithm);
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
 
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
-            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z, trainCorpus, algorithm);
+            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, state.z.values, trainCorpus, algorithm);
 
             String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss;
@@ -59,7 +57,6 @@ public class LBFGS {
         }
 
         System.arraycopy(xx, 0, state.x.values, 0, localFeatureNum);
-
     }
 
     private static double getGradientLoss(ADMMState state,
@@ -91,10 +88,8 @@ public class LBFGS {
                     }
                 }
                 score *= l.label;
-                double temp = Math.log(1.0 + Math.exp(-score));
-                loss += temp;
-                //TODO: LOSS and g? How should we compute it?
-                double gradient = - 1.0 / (1.0 + Math.exp(score)) * l.label;
+                loss += Math.log(1.0 + Math.exp(-score));
+                double gradient = - Math.exp(-score) / (1.0 + Math.exp(-score)) * l.label;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values == null) {
                         g[l.data.indices[i]] += gradient;
@@ -144,8 +139,7 @@ public class LBFGS {
         }
         return loss;
     }
-
-    private static double getLoss(ADMMState state,
+    public static double getLoss(ADMMState state,
                           double[] localX,
                           double rhoADMM,
                           double[] z,
@@ -174,8 +168,7 @@ public class LBFGS {
                     }
                 }
                 score *= l.label;
-                double temp = Math.log(1.0 + Math.exp(-score));
-                loss += temp;
+                loss += Math.log(1.0 + Math.exp(-score));
             }else if(algorithm.equals("SVM")){
                 LabeledData l = iter.next();
                 double score = 0;
@@ -274,7 +267,7 @@ public class LBFGS {
             String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha);
-            ////LOG.info(infoMsg);
+            //LOG.info(infoMsg);
             alpha *= backoff;
             i ++;
             step -= 1;

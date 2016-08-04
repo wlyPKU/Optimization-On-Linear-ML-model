@@ -1,7 +1,7 @@
 package ADMM;
 
 import Utils.*;
-import math.DenseMap;
+import math.SparseMap;
 import math.DenseVector;
 import GradientDescent.Lasso;
 import GradientDescent.SVM;
@@ -38,7 +38,7 @@ public class LinearRegressionLBFGS {
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
-    public void train(DenseMap[] features, List<LabeledData> labeledData,
+    public void train(SparseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
@@ -58,7 +58,7 @@ public class LinearRegressionLBFGS {
         for (i = 0; i < 30; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
-            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus, "LinearRegression");
+            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "LinearRegression");
 
             //Update z
             for(int j = 0; j < featureDim; j++) {
@@ -83,7 +83,7 @@ public class LinearRegressionLBFGS {
     }
 
 
-    public static void train(DenseMap[] corpus, List<LabeledData> labeledData, double trainRatio) {
+    public static void train(SparseMap[] corpus, List<LabeledData> labeledData, double trainRatio) {
         int dim = corpus.length;
         LinearRegressionLBFGS lrADMM = new LinearRegressionLBFGS();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
@@ -107,7 +107,7 @@ public class LinearRegressionLBFGS {
             }
         }
         long startLoad = System.currentTimeMillis();
-        DenseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
+        SparseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");

@@ -1,9 +1,7 @@
 package ADMM;
 
-import GradientDescent.*;
 import Utils.*;
 import it.unimi.dsi.fastutil.doubles.DoubleComparator;
-import math.DenseMap;
 import math.DenseVector;
 
 import java.util.Collections;
@@ -102,7 +100,7 @@ public class SVM {
         for (int i = 0; i < 500; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
-            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus, "SVM");
+            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "SVM");
             //Update z;
             for(int j = 0; j < featureDim; j++) {
                 x_hat[j] = rel_par * model.x.values[j] + (1 - rel_par) * model.z.values[j];

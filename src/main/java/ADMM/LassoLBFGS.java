@@ -1,7 +1,7 @@
 package ADMM;
 
 import Utils.*;
-import math.DenseMap;
+import math.SparseMap;
 import math.DenseVector;
 import java.util.List;
 
@@ -37,7 +37,7 @@ public class LassoLBFGS {
         }
         return residual;
     }
-    public void train(DenseMap[] features, List<LabeledData> labeledData,
+    public void train(SparseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
@@ -55,16 +55,15 @@ public class LassoLBFGS {
         for (i = 0; i < 30; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
-            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, model.z.values, i, trainCorpus, "lasso");
+            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "lasso");
             double rel_par = 1.0;
+
+            //Update z
             for(int id = 0; id < featureDim; id++){
                 x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
-            }
-            //Update z
-            for(int j = 0; j < featureDim; j++) {
                 //z=Soft_threshold(lambda/rho,x+u);
-                model.z.values[j] = Utils.soft_threshold(lambda / rho, x_hat[j]
-                        + model.u.values[j]);
+                model.z.values[id] = Utils.soft_threshold(lambda / rho, x_hat[id]
+                        + model.u.values[id]);
             }
 
             //Update u
@@ -84,7 +83,7 @@ public class LassoLBFGS {
         }
     }
 
-    public static void train(DenseMap[] corpus, List<LabeledData> labeledData,
+    public static void train(SparseMap[] corpus, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
         int dim = corpus.length;
         LassoLBFGS lassoLBFGS = new LassoLBFGS();
@@ -109,7 +108,7 @@ public class LassoLBFGS {
             }
         }
         long startLoad = System.currentTimeMillis();
-        DenseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
+        SparseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");

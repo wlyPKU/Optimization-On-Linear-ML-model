@@ -1,9 +1,10 @@
 package ADMM;
 
 import Utils.*;
-import math.DenseMap;
+import math.SparseMap;
 import math.DenseVector;
 import java.util.List;
+import java.util.Map;
 
 //TODO: To be checked ...
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
@@ -37,7 +38,7 @@ public class Lasso {
         }
         return residual;
     }
-    public void train(DenseMap[] features, List<LabeledData> labeledData,
+    public void train(SparseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
@@ -54,9 +55,9 @@ public class Lasso {
         double [][]tmpPart1OfB = new double[featureDim][featureDim];
         for(int r = 0; r < featureDim; r++){
             tmpPart2OfB[r] = 0;
-            for(int ite = 0; ite < features[r].index.size(); ite++){
-                int idx = features[r].index.get(ite);
-                tmpPart2OfB[r] += features[r].value.get(ite) * features[featureDim].value.get(idx);
+            for(Map.Entry<Integer, Double> m: features[r].map.entrySet()){
+                int idx = m.getKey();
+                tmpPart2OfB[r] += m.getValue() * features[featureDim].map.get(idx);
             }
         }
         //Store A^T*A
@@ -114,7 +115,7 @@ public class Lasso {
     }
 
 
-    public static void train(DenseMap[] corpus, List<LabeledData> labeledData,
+    public static void train(SparseMap[] corpus, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
         int dim = corpus.length;
         Lasso lassoADMM = new Lasso();
@@ -139,7 +140,7 @@ public class Lasso {
             }
         }
         long startLoad = System.currentTimeMillis();
-        DenseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
+        SparseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
