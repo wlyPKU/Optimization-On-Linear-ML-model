@@ -97,7 +97,7 @@ public class SVM {
         int lbfgsHistory = 10;
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
-        for (int i = 0; i < 500; i ++) {
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "SVM");
@@ -161,7 +161,7 @@ public class SVM {
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: ADMM.SVM FeatureDim train_path lamda trainRatio");
+        System.out.println("Usage: ADMM.SVM FeatureDim train_path lambda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         String path = argv[1];
         double lambda = Double.parseDouble(argv[2]);

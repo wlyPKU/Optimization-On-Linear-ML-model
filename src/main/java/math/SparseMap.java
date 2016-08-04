@@ -1,6 +1,8 @@
 package math;
 
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 import java.util.*;
 
@@ -17,18 +19,27 @@ public class SparseMap {
     }
     public double multiply(SparseMap other){
         double result = 0;
-        int ite1 = 0, ite2 = 0;
-        int []index1 = map.keySet().toIntArray();
-        int []index2 = other.map.keySet().toIntArray();
-        while(ite1 < index1.length && ite2 < index2.length){
-            if(index1[ite1] < index2[ite2]){
-                ite1++;
-            }else if(index1[ite1] > index2[ite2]){
-                ite2++;
-            }else if(index1[ite1] == index2[ite2]){
-                result += map.get(index1[ite1]) * other.map.get(index2[ite2]);
-                ite1++;
-                ite2++;
+        if(map.size() < other.map.size()){
+            ObjectIterator<Int2DoubleMap.Entry> iter =  map.int2DoubleEntrySet().iterator();
+            while (iter.hasNext()) {
+                Int2DoubleMap.Entry entry = iter.next();
+                int idx = entry.getIntKey();
+                double value = entry.getDoubleValue();
+                if(other.map.containsKey(idx)){
+                    double otherValue = other.map.get(idx);
+                    result += value * otherValue;
+                }
+            }
+        }else{
+            ObjectIterator<Int2DoubleMap.Entry> iter =  other.map.int2DoubleEntrySet().iterator();
+            while (iter.hasNext()) {
+                Int2DoubleMap.Entry entry = iter.next();
+                int idx = entry.getIntKey();
+                double otherValue = entry.getDoubleValue();
+                if(map.containsKey(idx)){
+                    double value = map.get(idx);
+                    result += value * otherValue;
+                }
             }
         }
         return result;

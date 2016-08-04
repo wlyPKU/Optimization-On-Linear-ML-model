@@ -1,6 +1,8 @@
 package ADMM;
 
 import Utils.*;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.SparseMap;
 import math.DenseVector;
 import java.util.List;
@@ -55,9 +57,12 @@ public class Lasso {
         double [][]tmpPart1OfB = new double[featureDim][featureDim];
         for(int r = 0; r < featureDim; r++){
             tmpPart2OfB[r] = 0;
-            for(Map.Entry<Integer, Double> m: features[r].map.entrySet()){
-                int idx = m.getKey();
-                tmpPart2OfB[r] += m.getValue() * features[featureDim].map.get(idx);
+            ObjectIterator<Int2DoubleMap.Entry> iter =  features[r].map.int2DoubleEntrySet().iterator();
+            while (iter.hasNext()) {
+                Int2DoubleMap.Entry entry = iter.next();
+                int idx = entry.getIntKey();
+                double value = entry.getDoubleValue();
+                tmpPart2OfB[r] += value * features[featureDim].map.get(idx);
             }
         }
         //Store A^T*A
@@ -67,7 +72,7 @@ public class Lasso {
             }
         }
         double x_hat[] = new double[model.featureNum];
-        for (i = 0; i < 30; i ++) {
+        for (i = 0; i < 300; i ++) {
             //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);

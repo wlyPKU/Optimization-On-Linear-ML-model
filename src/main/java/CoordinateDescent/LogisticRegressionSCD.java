@@ -1,6 +1,8 @@
 package CoordinateDescent;
 
 import it.unimi.dsi.fastutil.doubles.DoubleComparator;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.SparseMap;
 import math.DenseVector;
 import Utils.LabeledData;
@@ -65,7 +67,7 @@ public class LogisticRegressionSCD {
         double predictValue[] = new double[labeledData.size()];
 
         DenseVector model = new DenseVector(featureDim);
-        for (int i = 0; i < 30; i ++) {
+        for (int i = 0; i < 300; i ++) {
             for(int idx = 0; idx < labeledData.size(); idx++){
                 LabeledData l = labeledData.get(idx);
                 predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
@@ -76,20 +78,16 @@ public class LogisticRegressionSCD {
                 //First Order L:
                 double firstOrderL = 0;
                 double oldValue = modelOfU.values[fIdx];
-                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
-                    int idx = m.getKey();
+                ObjectIterator<Int2DoubleMap.Entry> iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                while (iter.hasNext()) {
+                    Int2DoubleMap.Entry entry = iter.next();
+                    int idx = entry.getIntKey();
+                    double xj = entry.getDoubleValue();
                     LabeledData l = labeledData.get(idx);
                     double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
-                    firstOrderL += l.label * m.getValue() * (tao - 1);
+                    firstOrderL += l.label * xj * (tao - 1);
                 }
-                /*
-                for(int j = 0; j < features[fIdx].index.size(); j++){
-                    int idx = features[fIdx].index.get(j);
-                    LabeledData l = labeledData.get(idx);
-                    double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
-                    firstOrderL += l.label * features[fIdx].value.get(j) * (tao - 1);
-                }
-                */
+
                 double Uj = 0.25 * 1 / lambda * trainCorpus.size();
                 double updateValue = (1 + firstOrderL) / Uj;
                 if(updateValue > modelOfU.values[fIdx]){
@@ -98,39 +96,46 @@ public class LogisticRegressionSCD {
                     modelOfU.values[fIdx] -= updateValue;
                 }
                 //Update predictValue
-                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
-                    int idx = m.getKey();
-                    predictValue[idx] += m.getValue() * (modelOfU.values[fIdx] - oldValue);
+                iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                while (iter.hasNext()) {
+                    Int2DoubleMap.Entry entry = iter.next();
+                    int idx = entry.getIntKey();
+                    double value = entry.getDoubleValue();
+                    predictValue[idx] += value * (modelOfU.values[fIdx] - oldValue);
+
                 }
-                /*
-                for(int j = 0; j < features[fIdx].index.size(); j++){
-                    int idx = features[fIdx].index.get(j);
-                    predictValue[idx] += features[fIdx].value.get(j) * (modelOfU.values[fIdx] - oldValue);
-                }
-                */
+
             }
             //Update w-
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
                 double oldValue = modelOfV.values[fIdx];
-                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
-                    int idx = m.getKey();
+                ObjectIterator<Int2DoubleMap.Entry> iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                while (iter.hasNext()) {
+                    Int2DoubleMap.Entry entry = iter.next();
+                    int idx = entry.getIntKey();
+                    double xj = entry.getDoubleValue();
                     LabeledData l = labeledData.get(idx);
                     double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
-                    firstOrderL += l.label * m.getValue() * (tao - 1);
+                    firstOrderL += l.label * xj * (tao - 1);
                 }
 
                 double Uj = 0.25 * 1 / lambda * trainCorpus.size();
                 double updateValue = (1 - firstOrderL) / Uj;
-                if(updateValue > modelOfU.values[fIdx]){
+                if(updateValue > modelOfV.values[fIdx]){
                     modelOfV.values[fIdx] = 0;
                 }else{
                     modelOfV.values[fIdx] -= updateValue;
                 }
-                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
-                    int idx = m.getKey();
-                    predictValue[idx] -= m.getValue() * (modelOfV.values[fIdx] - oldValue);
+
+                iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                while (iter.hasNext()) {
+                    Int2DoubleMap.Entry entry = iter.next();
+                    int idx = entry.getIntKey();
+                    double value = entry.getDoubleValue();
+                    predictValue[idx] -= value * (modelOfV.values[fIdx] - oldValue);
+
                 }
 
             }

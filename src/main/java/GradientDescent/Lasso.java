@@ -53,7 +53,7 @@ public class Lasso {
         List<LabeledData> testCorpus = corpus.subList(end, size);
         DenseVector model = new DenseVector(modelOfU.dim);
 
-        for (int i = 0; i < 30; i ++) {
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005, lambda);

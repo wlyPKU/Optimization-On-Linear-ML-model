@@ -108,7 +108,7 @@ public class SVM {
     List<LabeledData> trainCorpus = corpus.subList(0, end);
     List<LabeledData> testCorpus = corpus.subList(end, size);
 
-    for (int i = 0; i < 500; i ++) {
+    for (int i = 0; i < 300; i ++) {
       long startTrain = System.currentTimeMillis();
       //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
       double ratio = sgdOneEpoch(trainCorpus, model, 0.005, lambda);

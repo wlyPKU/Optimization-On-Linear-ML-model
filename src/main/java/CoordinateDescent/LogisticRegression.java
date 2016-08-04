@@ -1,6 +1,8 @@
 package CoordinateDescent;
 
 import it.unimi.dsi.fastutil.doubles.DoubleComparator;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.SparseMap;
 import math.DenseVector;
 import Utils.LabeledData;
@@ -62,31 +64,38 @@ public class LogisticRegression {
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         int featureDim = features.length - 1;
 
-        for (int i = 0; i < 30; i ++) {
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Cyclic Feature
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
                 double secondOrderL = 0;
                 //Sum X^T(jk)D(kk)X(kj)  k=1,2,3...,sampleSize
-                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
-                    int idx = m.getKey();
+                ObjectIterator<Int2DoubleMap.Entry> iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                while (iter.hasNext()) {
+                    Int2DoubleMap.Entry entry = iter.next();
+                    int idx = entry.getIntKey();
+                    double value = entry.getDoubleValue();
                     LabeledData l = labeledData.get(idx);
                     double predictValue = model.dot(l.data);
                     double Dii = (1 / (1 + Math.exp( -l.label * predictValue)))
                             * (1 - (1 / (1 + Math.exp( -l.label * predictValue))));
-                    secondOrderL += Dii * Math.pow(m.getValue(), 2);
+                    secondOrderL += Dii * Math.pow(value, 2);
                 }
                 secondOrderL *= 1 / lambda;
 
                 //First Order L:
                 double firstOrderL = 0;
-                for(Map.Entry<Integer, Double> m: features[fIdx].map.entrySet()){
-                    int idx = m.getKey();
+                iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                while (iter.hasNext()) {
+                    Int2DoubleMap.Entry entry = iter.next();
+                    int idx = entry.getIntKey();
+                    double value = entry.getDoubleValue();
                     LabeledData l = labeledData.get(idx);
                     double predictValue = model.dot(l.data);
                     double tao = 1 / (1 + Math.exp( -l.label * predictValue));
-                    firstOrderL += l.label * m.getValue() * (tao - 1);
+                    firstOrderL += l.label * value * (tao - 1);
                 }
+
                 firstOrderL *= 1.0 / lambda;
                 double d;
                 if(firstOrderL + 1 <= secondOrderL * model.values[fIdx]){

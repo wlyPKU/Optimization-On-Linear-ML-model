@@ -252,7 +252,7 @@ public class LBFGS {
         }
 
         double alpha = 1.0;
-        double backoff = 0.5;
+        double backoff = 0.3;
         if (iteration == 1) {
             alpha = 1 / Math.sqrt(dot(dir, dir, localFeatureNum));
             backoff = 0.1;

@@ -52,7 +52,7 @@ public class LassoLBFGS {
         int lbfgsHistory = 10;
 
         double x_hat[] = new double[model.featureNum];
-        for (i = 0; i < 30; i ++) {
+        for (i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "lasso");
@@ -71,6 +71,9 @@ public class LassoLBFGS {
                 //u=u+(x_hat-z)
                 model.u.values[j] += (x_hat[j] - model.z.values[j]);
             }
+
+            //rho = Math.min(rho * 1.1, maxRho);
+
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
@@ -94,7 +97,7 @@ public class LassoLBFGS {
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: ADMM.Lasso FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: ADMM.LassoLBFGS FeatureDim SampleDim train_path lambda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];

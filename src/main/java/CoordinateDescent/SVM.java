@@ -108,7 +108,7 @@ public class SVM {
             alpha[j] = 0;
         }
         double C = 1 / (2.0 * lambda);
-        for (int i = 0; i < 500; i ++) {
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
             int j = 0;
