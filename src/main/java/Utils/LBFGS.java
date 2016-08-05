@@ -130,9 +130,9 @@ public class LBFGS {
                 loss += 0.5 * score * score;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values == null) {
-                        g[l.data.indices[i]] += score;
+                        g[l.data.indices[i]] -= score;
                     } else {
-                        g[l.data.indices[i]] += l.data.values[i] * score;
+                        g[l.data.indices[i]] -= l.data.values[i] * score;
                     }
                 }
             }

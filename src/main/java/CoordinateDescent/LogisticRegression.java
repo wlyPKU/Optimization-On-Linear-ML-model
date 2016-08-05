@@ -64,7 +64,7 @@ public class LogisticRegression {
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         int featureDim = features.length - 1;
 
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Cyclic Feature
             for(int fIdx = 0; fIdx < featureDim; fIdx++){

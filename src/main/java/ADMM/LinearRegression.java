@@ -24,6 +24,7 @@ public class LinearRegression {
         }
         return residual;
     }
+    @SuppressWarnings("unused")
     public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
         int dim = corpus.get(0).data.dim;
         long startMinHash = System.currentTimeMillis();
@@ -75,7 +76,7 @@ public class LinearRegression {
                 tmpPart1OfB[i][j] = features[j].multiply(features[i]);
             }
         }
-        for (i = 0; i < 300; i ++) {
+        for (i = 0; i < 100; i ++) {
             //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);
@@ -113,6 +114,12 @@ public class LinearRegression {
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model.x);
+            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model.x);
+            System.out.println("Train Accuracy:");
+            Utils.printAccuracy(trainAccuracy);
+            System.out.println("Test Accuracy:");
+            Utils.printAccuracy(testAccuracy);
         }
     }
 

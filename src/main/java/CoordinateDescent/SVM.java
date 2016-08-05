@@ -14,6 +14,16 @@ import java.util.List;
 //http://www.tuicool.com/m/articles/RRZvYb
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 public class SVM {
+    public double accuracy(List<LabeledData> labeledData, DenseVector model){
+        double result = 0;
+        for(LabeledData l : labeledData) {
+            double predictValue = model.dot(l.data);
+            if (predictValue * l.label >= 0){
+                result ++;
+            }
+        }
+        return result / labeledData.size();
+    }
     private double auc(List<LabeledData> list, DenseVector model) {
         int length = list.size();
         System.out.println(length);
@@ -108,7 +118,7 @@ public class SVM {
             alpha[j] = 0;
         }
         double C = 1 / (2.0 * lambda);
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
             int j = 0;
@@ -133,9 +143,12 @@ public class SVM {
             double loss = SVMLoss(trainCorpus, model, lambda);
             double trainAuc = auc(trainCorpus, model);
             double testAuc = auc(testCorpus, model);
+            double trainAccuracy = accuracy(trainCorpus, model);
+            double testAccuracy = accuracy(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
-                    " trainTime=" + trainTime + " testTime=" + testTime);
+            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
+                    + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
+                    + " trainTime=" + trainTime + " testTime=" + testTime);
         }
     }
 

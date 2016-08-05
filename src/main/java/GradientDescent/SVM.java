@@ -13,6 +13,16 @@ import java.util.List;
  * Created by leleyu on 2016/6/30.
  */
 public class SVM {
+  public double accuracy(List<LabeledData> labeledData, DenseVector model){
+    double result = 0;
+    for(LabeledData l : labeledData) {
+      double predictValue = model.dot(l.data);
+      if (predictValue * l.label >= 0){
+        result ++;
+      }
+    }
+    return result / labeledData.size();
+  }
   private double auc(List<LabeledData> list, DenseVector model) {
     int length = list.size();
     System.out.println(length);
@@ -108,7 +118,7 @@ public class SVM {
     List<LabeledData> trainCorpus = corpus.subList(0, end);
     List<LabeledData> testCorpus = corpus.subList(end, size);
 
-    for (int i = 0; i < 300; i ++) {
+    for (int i = 0; i < 100; i ++) {
       long startTrain = System.currentTimeMillis();
       //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
       double ratio = sgdOneEpoch(trainCorpus, model, 0.005, lambda);
@@ -117,9 +127,12 @@ public class SVM {
       double loss = SVMLoss(trainCorpus, model, lambda);
       double trainAuc = auc(trainCorpus, model);
       double testAuc = auc(testCorpus, model);
+      double trainAccuracy = accuracy(trainCorpus, model);
+      double testAccuracy = accuracy(testCorpus, model);
       long testTime = System.currentTimeMillis() - startTest;
-      System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
-              " trainTime=" + trainTime + " testTime=" + testTime);
+      System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
+              + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
+              + " trainTime=" + trainTime + " testTime=" + testTime);
     }
   }
 

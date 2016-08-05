@@ -82,6 +82,16 @@ public class SVM {
         System.out.println(cost + " ms");
     }
     */
+    public double accuracy(List<LabeledData> labeledData, DenseVector model){
+        double result = 0;
+        for(LabeledData l : labeledData) {
+            double predictValue = model.dot(l.data);
+            if (predictValue * l.label >= 0){
+                result ++;
+            }
+        }
+        return result / labeledData.size();
+    }
     public void train(int featureDim, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         Collections.shuffle(labeledData);
@@ -97,7 +107,7 @@ public class SVM {
         int lbfgsHistory = 10;
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "SVM");
@@ -118,9 +128,12 @@ public class SVM {
             double loss = SVMLoss(trainCorpus, model.x, model.z, lambda);
             double trainAuc = auc(trainCorpus, model.x);
             double testAuc = auc(testCorpus, model.x);
+            double trainAccuracy = accuracy(trainCorpus, model.x);
+            double testAccuracy = accuracy(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
-                    " trainTime=" + trainTime + " testTime=" + testTime);
+            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
+                    + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
+                    + " trainTime=" + trainTime + " testTime=" + testTime);
         }
     }
 

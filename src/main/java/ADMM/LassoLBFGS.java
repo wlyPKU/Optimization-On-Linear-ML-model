@@ -4,6 +4,7 @@ import Utils.*;
 import math.SparseMap;
 import math.DenseVector;
 import java.util.List;
+import java.util.Map;
 
 //TODO: To be checked ...
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
@@ -22,7 +23,7 @@ public class LassoLBFGS {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double predictValue = model_x.dot(labeledData.data);
-            loss += 1 / 2 * Math.pow(labeledData.label - predictValue, 2);
+            loss += 1.0 / 2.0 * Math.pow(labeledData.label - predictValue, 2);
         }
         for(Double v: model_z.values){
             loss += lambda * (v > 0? v : -v);
@@ -52,7 +53,7 @@ public class LassoLBFGS {
         int lbfgsHistory = 10;
 
         double x_hat[] = new double[model.featureNum];
-        for (i = 0; i < 300; i ++) {
+        for (i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "lasso");
@@ -82,6 +83,12 @@ public class LassoLBFGS {
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model.x);
+            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model.x);
+            System.out.println("Train Accuracy:");
+            Utils.printAccuracy(trainAccuracy);
+            System.out.println("Test Accuracy:");
+            Utils.printAccuracy(testAccuracy);
             //rho = Math.min(rho * 1.1, maxRho);
         }
     }

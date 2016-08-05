@@ -1,6 +1,7 @@
 package Utils;
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
+import math.DenseVector;
 import math.SparseMap;
 import math.SparseVector;
 
@@ -93,5 +94,62 @@ public class Utils {
     }else{
       return 0;
     }
+  }
+  public static double[] LinearAccuracy(List<LabeledData> list, DenseVector model){
+    double []table = new double[10];
+    for(int i = 0; i < 10; i++){
+      table[i] = 0;
+    }
+    for(LabeledData l : list){
+      double predictValue = model.dot(l.data);
+      double delta = Math.abs(predictValue - l.label);
+      //delta [0] < 1
+      //delta [1] < 2
+      //delta [2] < 3
+      //delta [3] < 4
+      //delta [4] < 10
+      //delta [5] < 20
+      //delta [6] < 30
+      //delta [7] < 40
+      //delta [8] < 50
+      //delta [9] < 100
+      if(delta < 1){
+        table[0] ++;
+      }else if(delta < 2){
+        table[1] ++;
+      }else if(delta < 3){
+        table[2] ++;
+      }else if(delta < 4){
+        table[3] ++;
+      }else if(delta < 10){
+        table[4] ++;
+      }else if(delta < 20){
+        table[5] ++;
+      }else if(delta < 30){
+        table[6] ++;
+      }else if(delta < 40){
+        table[7] ++;
+      }else if(delta < 50){
+        table[8] ++;
+      }else if(delta < 100){
+        table[9] ++;
+      }
+    }
+    for(int i = 0; i < 10; i++){
+      table[i] /= list.size();
+    }
+    return table;
+  }
+  public static void printAccuracy(double[] accuracy){
+    System.out.println("-----Loss < 1: " + accuracy[0] * 100 + "%");
+    System.out.println("-----Loss < 2: " + accuracy[1] * 100 + "%");
+    System.out.println("-----Loss < 3: " + accuracy[2] * 100 + "%");
+    System.out.println("-----Loss < 4: " + accuracy[3] * 100 + "%");
+    System.out.println("-----Loss < 10: " + accuracy[4] * 100 + "%");
+    System.out.println("-----Loss < 20: " + accuracy[5] * 100 + "%");
+    System.out.println("-----Loss < 30: " + accuracy[6] * 100 + "%");
+    System.out.println("-----Loss < 40: " + accuracy[7] * 100 + "%");
+    System.out.println("-----Loss < 50: "  + accuracy[8] * 100 + "%");
+    System.out.println("-----Loss < 100: "  + accuracy[9] * 100 + "%");
   }
 }

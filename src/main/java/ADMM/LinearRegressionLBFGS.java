@@ -55,7 +55,7 @@ public class LinearRegressionLBFGS {
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
 
-        for (i = 0; i < 300; i ++) {
+        for (i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "LinearRegression");
@@ -78,6 +78,12 @@ public class LinearRegressionLBFGS {
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model.x);
+            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model.x);
+            System.out.println("Train Accuracy:");
+            Utils.printAccuracy(trainAccuracy);
+            System.out.println("Test Accuracy:");
+            Utils.printAccuracy(testAccuracy);
             //rho = Math.min(rho * 1.1, maxRho);
         }
     }

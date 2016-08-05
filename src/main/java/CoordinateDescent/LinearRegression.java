@@ -13,6 +13,7 @@ import java.util.Map;
  * Created by 王羚宇 on 2016/7/20.
  */
 public class LinearRegression {
+
     public double test(List<LabeledData> list, DenseVector model) {
         double residual = 0;
         for (LabeledData labeledData : list) {
@@ -37,21 +38,20 @@ public class LinearRegression {
             for(Double v: features[i].map.values()){
                 featureSquare[i] += v * v;
             }
-            if(featureSquare[i] == 0){
-                featureSquare[i] = Double.MAX_VALUE;
-            }
         }
-        int i = 0;
-        for(Double y : features[featureDim].map.values()){
-            residual[i] = y;
-            i++;
+        ObjectIterator<Int2DoubleMap.Entry> iter =  features[featureDim].map.int2DoubleEntrySet().iterator();
+        while (iter.hasNext()) {
+            Int2DoubleMap.Entry entry = iter.next();
+            int idx = entry.getIntKey();
+            double y = entry.getDoubleValue();
+            residual[idx] = y;
         }
-        for (i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             for(int j = 0; j < featureDim; j++){
                 double oldValue = model.values[j];
                 double updateValue = 0;
-                ObjectIterator<Int2DoubleMap.Entry> iter =  features[j].map.int2DoubleEntrySet().iterator();
+                iter =  features[j].map.int2DoubleEntrySet().iterator();
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
@@ -79,6 +79,12 @@ public class LinearRegression {
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
+            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
+            System.out.println("Train Accuracy:");
+            Utils.printAccuracy(trainAccuracy);
+            System.out.println("Test Accuracy:");
+            Utils.printAccuracy(testAccuracy);
         }
     }
 

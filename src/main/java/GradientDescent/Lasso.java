@@ -11,11 +11,12 @@ import java.util.List;
  * Created by 王羚宇 on 2016/7/20.
  */
 public class Lasso {
+
     private double lassoLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double predictValue = model.dot(labeledData.data);
-            loss += 1 / 2 * Math.pow(labeledData.label - predictValue, 2);
+            loss += 1.0 / 2.0 * Math.pow(labeledData.label - predictValue, 2);
         }
         for(Double v: model.values){
             loss += lambda * (v > 0? v : -v);
@@ -53,7 +54,7 @@ public class Lasso {
         List<LabeledData> testCorpus = corpus.subList(end, size);
         DenseVector model = new DenseVector(modelOfU.dim);
 
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005, lambda);
@@ -68,6 +69,12 @@ public class Lasso {
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " Test Loss =" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
+            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
+            System.out.println("Train Accuracy:");
+            Utils.printAccuracy(trainAccuracy);
+            System.out.println("Test Accuracy:");
+            Utils.printAccuracy(testAccuracy);
         }
     }
 

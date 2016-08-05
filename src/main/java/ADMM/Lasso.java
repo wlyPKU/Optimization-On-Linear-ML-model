@@ -25,7 +25,7 @@ public class Lasso {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double predictValue = model_x.dot(labeledData.data);
-            loss += 1 / 2 * Math.pow(labeledData.label - predictValue, 2);
+            loss += 1.0 / 2.0 * Math.pow(labeledData.label - predictValue, 2);
         }
         for(Double v: model_z.values){
             loss += lambda * (v > 0? v : -v);
@@ -72,7 +72,7 @@ public class Lasso {
             }
         }
         double x_hat[] = new double[model.featureNum];
-        for (i = 0; i < 300; i ++) {
+        for (i = 0; i < 100; i ++) {
             //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);
@@ -116,6 +116,12 @@ public class Lasso {
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model.x);
+            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model.x);
+            System.out.println("Train Accuracy:");
+            Utils.printAccuracy(trainAccuracy);
+            System.out.println("Test Accuracy:");
+            Utils.printAccuracy(testAccuracy);
         }
     }
 

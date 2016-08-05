@@ -17,7 +17,7 @@ public class Lasso {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double predictValue = model.dot(labeledData.data);
-            loss += 1 / 2 * Math.pow(labeledData.label - predictValue, 2);
+            loss += 1.0 / 2.0 * Math.pow(labeledData.label - predictValue, 2);
         }
         for(Double v: model.values){
             loss += lambda * (v > 0? v : -v);
@@ -52,28 +52,29 @@ public class Lasso {
                 featureSquare[i] = Double.MAX_VALUE;
             }
         }
-        int i = 0;
-        for(Double y : features[featureDim].map.values()){
-            residual[i] = y;
-            i++;
+        ObjectIterator<Int2DoubleMap.Entry> iter =  features[featureDim].map.int2DoubleEntrySet().iterator();
+        while (iter.hasNext()) {
+            Int2DoubleMap.Entry entry = iter.next();
+            int idx = entry.getIntKey();
+            double y = entry.getDoubleValue();
+            residual[idx] = y;
         }
-        for (i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             for(int j = 0; j < featureDim; j++){
                 double oldValue = model.values[j];
                 double updateValue = 0;
 
-                ObjectIterator<Int2DoubleMap.Entry> iter =  features[j].map.int2DoubleEntrySet().iterator();
+                iter =  features[j].map.int2DoubleEntrySet().iterator();
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
                     double xj = entry.getDoubleValue();
-                    updateValue += xj * (xj * model.values[j] + residual[idx]);
+                    updateValue += xj * residual[idx];
 
                 }
-
                 updateValue /= featureSquare[j];
-                model.values[j] = updateValue;
+                model.values[j] += updateValue;
                 model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
 
                 iter =  features[j].map.int2DoubleEntrySet().iterator();
@@ -94,6 +95,12 @@ public class Lasso {
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
+            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
+            System.out.println("Train Accuracy:");
+            Utils.printAccuracy(trainAccuracy);
+            System.out.println("Test Accuracy:");
+            Utils.printAccuracy(testAccuracy);
         }
     }
 
