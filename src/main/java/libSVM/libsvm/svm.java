@@ -2311,7 +2311,7 @@ public class svm {
 		return model.probA[0];
 		else
 		{
-			System.err.print("Model doesn't contain information for SVR probability inference\n");
+			System.err.print("model doesn't contain information for SVR probability inference\n");
 			return 0;
 		}
 	}

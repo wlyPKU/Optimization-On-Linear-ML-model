@@ -4,44 +4,15 @@ import Utils.*;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.SparseMap;
-import math.DenseVector;
-import GradientDescent.Lasso;
-import GradientDescent.SVM;
 import java.util.List;
-import java.util.Map;
 
 //TODO: To be checked ...
 /**
  * Created by 王羚宇 on 2016/7/24.
  */
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
-public class LinearRegression {
-    public double test(List<LabeledData> list, DenseVector model) {
-        double residual = 0;
-        for (LabeledData labeledData : list) {
-            double dot_prod = model.dot(labeledData.data);
-            residual += Math.pow(labeledData.label - dot_prod, 2);
-        }
-        return residual;
-    }
-    @SuppressWarnings("unused")
-    public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
-        int dim = corpus.get(0).data.dim;
-        long startMinHash = System.currentTimeMillis();
-        List<LabeledData> hashedCorpus = SVM.minhash(corpus, K, dim, b);
-        long minHashTime = System.currentTimeMillis() - startMinHash;
-        dim = hashedCorpus.get(0).data.dim;
-        corpus = hashedCorpus;
-        System.out.println("Utils.MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
+public class LinearRegression extends model.LinearRegression{
 
-        Lasso lasso = new Lasso();
-        DenseVector modelOfU = new DenseVector(dim);
-        DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        lasso.train(corpus, modelOfU, modelOfV, lambda);
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
     public void train(SparseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
@@ -49,7 +20,6 @@ public class LinearRegression {
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         int featureDim = features.length - 1;
-        int i;
         double rho = 1e-4;
         double maxRho = 5;
 
@@ -71,12 +41,12 @@ public class LinearRegression {
             }
         }
         //Store A^T*A
-        for(i = 0; i < featureDim; i++){
+        for(int i = 0; i < featureDim; i++){
             for(int j = 0; j < featureDim; j++){
                 tmpPart1OfB[i][j] = features[j].multiply(features[i]);
             }
         }
-        for (i = 0; i < 100; i ++) {
+        for (int i = 0; i < 100; i ++) {
             //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);
@@ -106,6 +76,8 @@ public class LinearRegression {
             for(int j = 0; j < featureDim; j++) {
                 model.u.values[j] +=  (x_hat[j] - model.z.values[j]);
             }
+
+            //rho = Math.min(rho * 1.1, maxRho);
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
@@ -125,10 +97,10 @@ public class LinearRegression {
 
 
     public static void train(SparseMap[] corpus, List<LabeledData> labeledData, double trainRatio) {
-        int dim = corpus.length;
+        int dimension = corpus.length;
         LinearRegression lrADMM = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        ADMMState model = new ADMMState(dim);
+        ADMMState model = new ADMMState(dimension);
         long start = System.currentTimeMillis();
         lrADMM.train(corpus, labeledData, model, trainRatio);
         long cost = System.currentTimeMillis() - start;
@@ -143,7 +115,7 @@ public class LinearRegression {
         if(argv.length >= 4){
             trainRatio = Double.parseDouble(argv[3]);
             if(trainRatio >= 1 || trainRatio <= 0){
-                System.out.println("Error Train Ratio!");
+                System.out.println("[ERROR]Error Train Ratio!");
                 System.exit(1);
             }
         }
@@ -152,7 +124,6 @@ public class LinearRegression {
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        //TODO Need to think how to min hash numeric variables
         train(features, labeledData, trainRatio);
     }
 }

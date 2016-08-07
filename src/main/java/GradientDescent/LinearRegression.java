@@ -3,14 +3,13 @@ package GradientDescent;
 import Utils.LabeledData;
 import Utils.Utils;
 import math.DenseVector;
-
 import java.util.Collections;
 import java.util.List;
 
 /**
  * Created by 王羚宇 on 2016/7/20.
  */
-public class LinearRegression {
+public class LinearRegression extends model.LinearRegression{
     private double linearLoss(List<LabeledData> list, DenseVector model) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
@@ -26,15 +25,6 @@ public class LinearRegression {
             model.plusGradient(labeledData.data, + scala * lr);
         }
     }
-    public double test(List<LabeledData> list, DenseVector model) {
-        double residual = 0;
-        for (LabeledData labeledData : list) {
-            double dot_prod = model.dot(labeledData.data);
-            residual += Math.pow(labeledData.label - dot_prod, 2);
-        }
-
-        return residual;
-    }
     public void train(List<LabeledData> corpus, DenseVector model) {
         Collections.shuffle(corpus);
         int size = corpus.size();
@@ -48,7 +38,7 @@ public class LinearRegression {
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = linearLoss(trainCorpus, model);
+            double loss = test(trainCorpus, model);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testAuc=" + accuracy +
@@ -74,25 +64,9 @@ public class LinearRegression {
         System.out.println(cost + " ms");
     }
 
-    private static void trainWithMinHash(List<LabeledData> corpus, int K, int b) {
-        int dim = corpus.get(0).data.dim;
-        long startMinHash = System.currentTimeMillis();
-        List<LabeledData> hashedCorpus = SVM.minhash(corpus, K, dim, b);
-        long minHashTime = System.currentTimeMillis() - startMinHash;
-        dim = hashedCorpus.get(0).data.dim;
-        corpus = hashedCorpus;
-        System.out.println("Utils.MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
-
-        LinearRegression lr = new LinearRegression();
-        DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        lr.train(corpus, model);
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: GradientDescent.LinearRegression dim train_path [true|false] K b");
+        System.out.println("Usage: GradientDescent.LinearRegression dim train_path");
         int dim = Integer.parseInt(argv[0]);
         String path = argv[1];
         long startLoad = System.currentTimeMillis();
@@ -100,14 +74,6 @@ public class LinearRegression {
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
 
-        boolean minhash = Boolean.parseBoolean(argv[2]);
-        if (minhash) {
-            System.out.println("Training with minhash method.");
-            int K = Integer.parseInt(argv[3]);
-            int b = Integer.parseInt(argv[4]);
-            trainWithMinHash(corpus, K, b);
-        } else {
-            train(corpus);
-        }
+        train(corpus);
     }
 }

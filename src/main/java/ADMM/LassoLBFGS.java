@@ -2,11 +2,8 @@ package ADMM;
 
 import Utils.*;
 import math.SparseMap;
-import math.DenseVector;
 import java.util.List;
-import java.util.Map;
 
-//TODO: To be checked ...
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
 /**
  * Created by 王羚宇 on 2016/7/24.
@@ -18,26 +15,7 @@ import java.util.Map;
 //https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
-public class LassoLBFGS {
-    private double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
-        double loss = 0.0;
-        for (LabeledData labeledData: list) {
-            double predictValue = model_x.dot(labeledData.data);
-            loss += 1.0 / 2.0 * Math.pow(labeledData.label - predictValue, 2);
-        }
-        for(Double v: model_z.values){
-            loss += lambda * (v > 0? v : -v);
-        }
-        return loss;
-    }
-    public double test(List<LabeledData> list, DenseVector model) {
-        double residual = 0;
-        for (LabeledData labeledData : list) {
-            double dot_prod = model.dot(labeledData.data);
-            residual += Math.pow(labeledData.label - dot_prod, 2);
-        }
-        return residual;
-    }
+public class LassoLBFGS extends model.Lasso{
     public void train(SparseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
@@ -45,7 +23,6 @@ public class LassoLBFGS {
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         int featureDim = features.length - 1;
-        int i;
         double rho = 1e-4;
         double maxRho = 5;
 
@@ -53,7 +30,7 @@ public class LassoLBFGS {
         int lbfgsHistory = 10;
 
         double x_hat[] = new double[model.featureNum];
-        for (i = 0; i < 100; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "lasso");
@@ -95,9 +72,9 @@ public class LassoLBFGS {
 
     public static void train(SparseMap[] corpus, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
-        int dim = corpus.length;
+        int dimension = corpus.length;
         LassoLBFGS lassoLBFGS = new LassoLBFGS();
-        ADMMState model = new ADMMState(dim);
+        ADMMState model = new ADMMState(dimension);
         long start = System.currentTimeMillis();
         lassoLBFGS.train(corpus, labeledData, model, lambda, trainRatio);
         long cost = System.currentTimeMillis() - start;
@@ -122,7 +99,6 @@ public class LassoLBFGS {
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        //TODO Need to think how to min hash numeric variables
         train(features, labeledData, lambda, trainRatio);
     }
 }

@@ -2,7 +2,6 @@ package CoordinateDescent;
 
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
 import math.SparseMap;
 import math.DenseVector;
 import Utils.LabeledData;
@@ -12,26 +11,7 @@ import java.util.*;
 /**
  * Created by 王羚宇 on 2016/7/20.
  */
-public class Lasso {
-    private double lassoLoss(List<LabeledData> list, DenseVector model, double lambda) {
-        double loss = 0.0;
-        for (LabeledData labeledData: list) {
-            double predictValue = model.dot(labeledData.data);
-            loss += 1.0 / 2.0 * Math.pow(labeledData.label - predictValue, 2);
-        }
-        for(Double v: model.values){
-            loss += lambda * (v > 0? v : -v);
-        }
-        return loss;
-    }
-    public double test(List<LabeledData> list, DenseVector model) {
-        double residual = 0;
-        for (LabeledData labeledData : list) {
-            double dot_prod = model.dot(labeledData.data);
-            residual += Math.pow(labeledData.label - dot_prod, 2);
-        }
-        return residual;
-    }
+public class Lasso extends model.Lasso{
 
     public void train(SparseMap[] features, List<LabeledData> labeledData,
                       DenseVector model, double lambda, double trainRatio) {
@@ -104,14 +84,13 @@ public class Lasso {
         }
     }
 
-
     public static void train(SparseMap[] corpus, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
-        int dim = corpus.length;
+        int dimension = corpus.length;
         Lasso lassoCD = new Lasso();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        DenseVector model = new DenseVector(dim);
-        for(int i = 0; i < dim; i++){
+        DenseVector model = new DenseVector(dimension);
+        for(int i = 0; i < dimension; i++){
             model.values[i] = 0;
         }
         long start = System.currentTimeMillis();
@@ -122,7 +101,7 @@ public class Lasso {
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: CoordinateDescent.Lasso FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: CoordinateDescent.Lasso FeatureDim SampleDim train_path lambda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];
@@ -140,7 +119,6 @@ public class Lasso {
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        //TODO Need to think how to min hash numeric variables
         train(features, labeledData, lambda, trainRatio);
     }
 }

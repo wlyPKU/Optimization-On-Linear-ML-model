@@ -1,5 +1,4 @@
 package Utils;
-import math.DenseVector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import java.util.ArrayList;

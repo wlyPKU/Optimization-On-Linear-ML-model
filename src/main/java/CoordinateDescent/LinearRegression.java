@@ -7,22 +7,11 @@ import math.DenseVector;
 import Utils.LabeledData;
 import Utils.Utils;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by 王羚宇 on 2016/7/20.
  */
-public class LinearRegression {
-
-    public double test(List<LabeledData> list, DenseVector model) {
-        double residual = 0;
-        for (LabeledData labeledData : list) {
-            double dot_prod = model.dot(labeledData.data);
-            residual += Math.pow(labeledData.label - dot_prod, 2);
-        }
-
-        return residual;
-    }
+public class LinearRegression extends model.LinearRegression{
 
     public void train(SparseMap[] features, List<LabeledData> labeledData,
                       DenseVector model, double trainRatio) {
@@ -90,11 +79,11 @@ public class LinearRegression {
 
 
     public static void train(SparseMap[] corpus, List<LabeledData> labeledData, double trainRatio) {
-        int dim = corpus.length;
+        int dimension = corpus.length;
         LinearRegression linearRegressionCD = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        DenseVector model = new DenseVector(dim);
-        for(int i = 0; i < dim; i++){
+        DenseVector model = new DenseVector(dimension);
+        for(int i = 0; i < dimension; i++){
             model.values[i] = 0;
         }
         long start = System.currentTimeMillis();
@@ -122,7 +111,6 @@ public class LinearRegression {
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        //TODO Need to think how to min hash numeric variables
         train(features, labeledData, trainRatio);
     }
 }

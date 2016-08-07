@@ -1,6 +1,5 @@
 package CoordinateDescent;
 
-import it.unimi.dsi.fastutil.doubles.DoubleComparator;
 import math.DenseVector;
 import math.SparseVector;
 import Utils.*;
@@ -13,81 +12,7 @@ import java.util.List;
  */
 //http://www.tuicool.com/m/articles/RRZvYb
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
-public class SVM {
-    public double accuracy(List<LabeledData> labeledData, DenseVector model){
-        double result = 0;
-        for(LabeledData l : labeledData) {
-            double predictValue = model.dot(l.data);
-            if (predictValue * l.label >= 0){
-                result ++;
-            }
-        }
-        return result / labeledData.size();
-    }
-    private double auc(List<LabeledData> list, DenseVector model) {
-        int length = list.size();
-        System.out.println(length);
-        double[] scores = new double[length];
-        double[] labels = new double[length];
-
-        int cnt = 0;
-        for (LabeledData labeledData: list) {
-            double score = model.dot(labeledData.data);
-
-            scores[cnt] = score;
-            labels[cnt] = labeledData.label;
-            cnt ++;
-        }
-
-        Sort.quickSort(scores, labels, 0, length, new DoubleComparator() {
-
-            public int compare(double i, double i1) {
-                if (Math.abs(i - i1) < 10e-12) {
-                    return 0;
-                } else {
-                    return i - i1 > 10e-12 ? 1 : -1;
-                }
-            }
-
-            public int compare(Double o1, Double o2) {
-                if (Math.abs(o1 - o2) < 10e-12) {
-                    return 0;
-                } else {
-                    return o1 - o2 > 10e-12 ? 1 : -1;
-                }
-            }
-        });
-
-        long M = 0, N = 0;
-        for (int i = 0; i < scores.length; i ++) {
-            if (labels[i] == 1.0)
-                M ++;
-            else
-                N ++;
-        }
-
-        double sigma = 0.0;
-        for (long i = M + N - 1; i >= 0; i --) {
-            if (labels[(int) i] == 1.0) {
-                sigma += i;
-            }
-        }
-
-        double auc = (sigma - (M + 1) * M / 2) / (M * N);
-        System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
-        return auc;
-    }
-    private double SVMLoss(List<LabeledData> list, DenseVector model, double lambda) {
-        double loss = 0.0;
-        for (LabeledData labeledData : list) {
-            double dotProd = model.dot(labeledData.data);
-            loss += Math.max(0, 1 - dotProd * labeledData.label);
-        }
-        for(Double v: model.values){
-            loss += lambda * v * v;
-        }
-        return loss;
-    }
+public class SVM extends model.SVM{
 
     public void train(List<LabeledData> corpus, DenseVector model, double lambda) {
         Collections.shuffle(corpus);
@@ -152,22 +77,6 @@ public class SVM {
         }
     }
 
-    public double test(List<LabeledData> list, DenseVector model) {
-        int N_RIGHT = 0;
-        int N_TOTAL = 0;
-        for (LabeledData labeledData : list) {
-            double dot_prod = model.dot(labeledData.data);
-
-            if (dot_prod * labeledData.label >= 0) {
-                N_RIGHT++;
-            }
-
-            N_TOTAL++;
-        }
-
-        return 1.0 * N_RIGHT / N_TOTAL;
-    }
-
     private static List<LabeledData> minhash(List<LabeledData> trainCorpus, int K, int dim, int b) {
         MinHash hash = new MinHash(K, dim, b);
         int hashedDim = hash.getHashedDim();
@@ -183,10 +92,10 @@ public class SVM {
 
     public static void train(List<LabeledData> corpus, double lambda) {
         int dim = corpus.get(0).data.dim;
-        SVM svmcd = new SVM();
+        SVM svmCD = new SVM();
         DenseVector model = new DenseVector(dim);
         long start = System.currentTimeMillis();
-        svmcd.train(corpus, model, lambda);
+        svmCD.train(corpus, model, lambda);
 
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
@@ -194,17 +103,17 @@ public class SVM {
 
     private static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
 
-        int dim = corpus.get(0).data.dim;
+        int dimension = corpus.get(0).data.dim;
         long startMinHash = System.currentTimeMillis();
-        List<LabeledData> hashedCorpus = minhash(corpus, K, dim, b);
+        List<LabeledData> hashedCorpus = minhash(corpus, K, dimension, b);
         long minHashTime = System.currentTimeMillis() - startMinHash;
 
-        dim = hashedCorpus.get(0).data.dim;
-        System.out.println("MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
+        dimension = hashedCorpus.get(0).data.dim;
+        System.out.println("MinHash takes " + minHashTime + " ms" + " the dimension is " + dimension);
 
         corpus = hashedCorpus;
         SVM svmcd = new SVM();
-        DenseVector model = new DenseVector(dim);
+        DenseVector model = new DenseVector(dimension);
         long start = System.currentTimeMillis();
         svmcd.train(corpus, model, lambda);
 

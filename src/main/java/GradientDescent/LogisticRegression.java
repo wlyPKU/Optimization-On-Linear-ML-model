@@ -1,7 +1,6 @@
 package GradientDescent;
 
 import Utils.*;
-import it.unimi.dsi.fastutil.doubles.DoubleComparator;
 import math.DenseVector;
 import java.util.Collections;
 import java.util.List;
@@ -9,37 +8,7 @@ import java.util.List;
 /**
  * Created by leleyu on 2016/7/1.
  */
-public class LogisticRegression {
-  @SuppressWarnings("unused")
-  public double grad(double pre, double y) {
-    double z = pre * y;
-    if (z > 18) {
-      return y * Math.exp(-z);
-    } else if (z < -18) {
-      return y;
-    } else {
-      return y / (1.0 + Math.exp(z));
-    }
-  }
-
-  private double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
-    double loss = 0.0;
-    for (LabeledData labeledData: list) {
-      double p = model.dot(labeledData.data);
-      double z = p * labeledData.label;
-      if (z > 18) {
-        loss += Math.exp(-z);
-      } else if (z < -18) {
-        loss += -z;
-      } else {
-        loss += Math.log(1 + Math.exp(-z));
-      }
-    }
-    for(Double v : model.values){
-      loss += lambda * (v > 0? v : -v);
-    }
-    return loss;
-  }
+public class LogisticRegression extends model.LogisticRegression{
 
   private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                           DenseVector modelOfV, double lr, double lambda) {
@@ -88,107 +57,19 @@ public class LogisticRegression {
   }
 
   public static void train(List<LabeledData> corpus, double lambda) {
-    int dim = corpus.get(0).data.dim;
+    int dimension = corpus.get(0).data.dim;
     LogisticRegression lr = new LogisticRegression();
     //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-    DenseVector modelOfU = new DenseVector(dim);
-    DenseVector modelOfV = new DenseVector(dim);
+    DenseVector modelOfU = new DenseVector(dimension);
+    DenseVector modelOfV = new DenseVector(dimension);
     long start = System.currentTimeMillis();
     lr.train(corpus, modelOfU, modelOfV, lambda);
     long cost = System.currentTimeMillis() - start;
     System.out.println(cost + " ms");
-  }
-
-  private static void trainWithMinHash(List<LabeledData> corpus,
-                                      int K, int b, double lambda) {
-    int dim = corpus.get(0).data.dim;
-    long startMinHash = System.currentTimeMillis();
-    List<LabeledData> hashedCorpus = SVM.minhash(corpus, K, dim, b);
-    long minHashTime = System.currentTimeMillis() - startMinHash;
-    dim = hashedCorpus.get(0).data.dim;
-    corpus = hashedCorpus;
-    System.out.println("Utils.MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
-
-    LogisticRegression lr = new LogisticRegression();
-    DenseVector modelOfU = new DenseVector(dim);
-    DenseVector modelOfV = new DenseVector(dim);
-    long start = System.currentTimeMillis();
-    lr.train(corpus, modelOfU, modelOfV, lambda);
-    long cost = System.currentTimeMillis() - start;
-    System.out.println(cost + " ms");
-  }
-
-  public double test(List<LabeledData> list, DenseVector model) {
-    int N_RIGHT = 0;
-    int N_TOTAL = 0;
-    for (LabeledData labeledData: list) {
-      double z = model.dot(labeledData.data);
-      double score = 1.0 / (1.0 + Math.exp(-z));
-      if (score >= 0.5 && labeledData.label == 1)
-        N_RIGHT ++;
-      if (score < 0.5 && labeledData.label == -1)
-        N_RIGHT ++;
-      N_TOTAL ++;
-    }
-    return 1.0 * N_RIGHT / N_TOTAL;
-  }
-
-  private double auc(List<LabeledData> list, DenseVector model) {
-    int length = list.size();
-    double[] scores = new double[length];
-    double[] labels = new double[length];
-
-    int cnt = 0;
-    for (LabeledData labeledData: list) {
-      double z = model.dot(labeledData.data);
-      double score = 1.0 / (1.0 + Math.exp(-z));
-
-      scores[cnt] = score;
-      labels[cnt] = labeledData.label;
-      cnt ++;
-    }
-
-    Sort.quickSort(scores, labels, 0, length, new DoubleComparator() {
-
-      public int compare(double i, double i1) {
-        if (Math.abs(i - i1) < 10e-12) {
-          return 0;
-        } else {
-          return i - i1 > 10e-12 ? 1 : -1;
-        }
-      }
-
-      public int compare(Double o1, Double o2) {
-        if (Math.abs(o1 - o2) < 10e-12) {
-          return 0;
-        } else {
-          return o1 - o2 > 10e-12 ? 1 : -1;
-        }
-      }
-    });
-
-    long M = 0, N = 0;
-    for (int i = 0; i < scores.length; i ++) {
-      if (labels[i] == 1.0)
-        M ++;
-      else
-        N ++;
-    }
-
-    double sigma = 0.0;
-    for (long i = M + N - 1; i >= 0; i --) {
-      if (labels[(int) i] == 1.0) {
-        sigma += i;
-      }
-    }
-
-    double auc = (sigma - (M + 1) * M / 2) / (M * N);
-    System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
-    return auc;
   }
 
   public static void main(String[] argv) throws Exception {
-    System.out.println("Usage: GradientDescent.LogisticRegression FeatureDim train_path lamda [true|false] K b");
+    System.out.println("Usage: GradientDescent.LogisticRegression FeatureDim train_path lambda");
     int dim = Integer.parseInt(argv[0]);
     String path = argv[1];
     long startLoad = System.currentTimeMillis();
@@ -196,16 +77,8 @@ public class LogisticRegression {
     long loadTime = System.currentTimeMillis() - startLoad;
     System.out.println("Loading corpus completed, takes " + loadTime + " ms");
 
-    double lamda = Double.parseDouble(argv[2]);
+    double lambda = Double.parseDouble(argv[2]);
 
-    boolean minhash = Boolean.parseBoolean(argv[3]);
-    if (minhash) {
-      System.out.println("Training with minhash method.");
-      int K = Integer.parseInt(argv[4]);
-      int b = Integer.parseInt(argv[5]);
-      trainWithMinHash(corpus, K, b, lamda);
-    } else {
-      train(corpus, lamda);
-    }
+    train(corpus, lambda);
   }
 }

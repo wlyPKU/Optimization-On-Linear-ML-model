@@ -4,9 +4,7 @@ import Utils.*;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.SparseMap;
-import math.DenseVector;
 import java.util.List;
-import java.util.Map;
 
 //TODO: To be checked ...
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
@@ -20,26 +18,8 @@ import java.util.Map;
 //https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
-public class Lasso {
-    private double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
-        double loss = 0.0;
-        for (LabeledData labeledData: list) {
-            double predictValue = model_x.dot(labeledData.data);
-            loss += 1.0 / 2.0 * Math.pow(labeledData.label - predictValue, 2);
-        }
-        for(Double v: model_z.values){
-            loss += lambda * (v > 0? v : -v);
-        }
-        return loss;
-    }
-    public double test(List<LabeledData> list, DenseVector model) {
-        double residual = 0;
-        for (LabeledData labeledData : list) {
-            double dot_prod = model.dot(labeledData.data);
-            residual += Math.pow(labeledData.label - dot_prod, 2);
-        }
-        return residual;
-    }
+public class Lasso extends model.Lasso{
+
     public void train(SparseMap[] features, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);

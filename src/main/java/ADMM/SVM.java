@@ -1,97 +1,14 @@
 package ADMM;
 
 import Utils.*;
-import it.unimi.dsi.fastutil.doubles.DoubleComparator;
 import math.DenseVector;
-
 import java.util.Collections;
 import java.util.List;
 
 /**
  * Created by 王羚宇 on 2016/7/26.
  */
-public class SVM {
-    public double auc(List<LabeledData> list, DenseVector model) {
-        int length = list.size();
-        System.out.println(length);
-        double[] scores = new double[length];
-        double[] labels = new double[length];
-
-        int cnt = 0;
-        for (LabeledData labeledData: list) {
-            double score = model.dot(labeledData.data);
-            scores[cnt] = score;
-            labels[cnt] = labeledData.label;
-            cnt ++;
-        }
-
-        Sort.quickSort(scores, labels, 0, length, new DoubleComparator() {
-
-            public int compare(double i, double i1) {
-                if (Math.abs(i - i1) < 10e-12) {
-                    return 0;
-                } else {
-                    return i - i1 > 10e-12 ? 1 : -1;
-                }
-            }
-
-            public int compare(Double o1, Double o2) {
-                if (Math.abs(o1 - o2) < 10e-12) {
-                    return 0;
-                } else {
-                    return o1 - o2 > 10e-12 ? 1 : -1;
-                }
-            }
-        });
-
-        long M = 0, N = 0;
-        for (int i = 0; i < scores.length; i ++) {
-            if (labels[i] == 1.0)
-                M ++;
-            else
-                N ++;
-        }
-
-        double sigma = 0.0;
-        for (long i = M + N - 1; i >= 0; i --) {
-            if (labels[(int) i] == 1.0) {
-                sigma += i;
-            }
-        }
-
-        double auc = (sigma - (M + 1) * M / 2) / (M * N);
-        System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
-        return auc;
-    }
-    /*
-    public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
-        int dim = corpus.get(0).data.dim;
-        long startMinHash = System.currentTimeMillis();
-        List<LabeledData> hashedCorpus = GradientDescent.SVM.minhash(corpus, K, dim, b);
-        long minHashTime = System.currentTimeMillis() - startMinHash;
-        dim = hashedCorpus.get(0).data.dim;
-        corpus = hashedCorpus;
-        System.out.println("Utils.MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
-
-        GradientDescent.Lasso lasso = new GradientDescent.Lasso();
-        DenseVector modelOfU = new DenseVector(dim);
-        DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        lasso.train(corpus, modelOfU, modelOfV, lambda);
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
-    */
-    public double accuracy(List<LabeledData> labeledData, DenseVector model){
-        double result = 0;
-        for(LabeledData l : labeledData) {
-            double predictValue = model.dot(l.data);
-            if (predictValue * l.label >= 0){
-                result ++;
-            }
-        }
-        return result / labeledData.size();
-    }
+public class SVM extends model.SVM {
     public void train(int featureDim, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         Collections.shuffle(labeledData);
@@ -120,9 +37,11 @@ public class SVM {
 
             //Update u
             for(int j = 0; j < featureDim; j++) {
-                //u=u+(B-C)
+                //u=u+(u-z)
                 model.u.values[j] = model.u.values[j] + (x_hat[j] - model.z.values[j]);
             }
+            //rho = Math.min(maxRho, rho * 1.1);
+
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
             double loss = SVMLoss(trainCorpus, model.x, model.z, lambda);
@@ -147,21 +66,6 @@ public class SVM {
             loss += lambda * v * v;
         }
         return loss;
-    }
-    public double test(List<LabeledData> list, DenseVector model) {
-        int N_RIGHT = 0;
-        int N_TOTAL = 0;
-        for (LabeledData labeledData : list) {
-            double dot_prod = model.dot(labeledData.data);
-
-            if (dot_prod * labeledData.label >= 0) {
-                N_RIGHT++;
-            }
-
-            N_TOTAL++;
-        }
-
-        return 1.0 * N_RIGHT / N_TOTAL;
     }
     public static void train(int featureDim, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
@@ -190,7 +94,6 @@ public class SVM {
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        //TODO Need to think how to min hash numeric variables
         train(featureDim, labeledData, lambda, trainRatio);
     }
 }

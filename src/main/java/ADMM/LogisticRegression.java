@@ -1,8 +1,6 @@
 package ADMM;
 
 import Utils.*;
-import it.unimi.dsi.fastutil.doubles.DoubleComparator;
-import math.DenseVector;
 
 import java.util.List;
 
@@ -19,92 +17,8 @@ import java.util.List;
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 
 //https://web.stanford.edu/~boyd/papers/admm/logreg-l1/logreg.html
-public class LogisticRegression {
-    private double logLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
-        double loss = 0.0;
-        for (LabeledData labeledData: list) {
-            double p = model_x.dot(labeledData.data);
-            double z = p * labeledData.label;
-            loss += Math.log(1 + Math.exp(-z));
-        }
-        for(Double v : model_z.values){
-            loss += lambda * (v > 0? v : -v);
-        }
-        return loss;
-    }
-    private double auc(List<LabeledData> list, DenseVector model) {
-        int length = list.size();
-        System.out.println(length);
-        double[] scores = new double[length];
-        double[] labels = new double[length];
+public class LogisticRegression extends model.LogisticRegression{
 
-        int cnt = 0;
-        for (LabeledData labeledData: list) {
-            double z = model.dot(labeledData.data);
-            double score = 1.0 / (1.0 + Math.exp(-z));
-
-            scores[cnt] = score;
-            labels[cnt] = labeledData.label;
-            cnt ++;
-        }
-
-        Sort.quickSort(scores, labels, 0, length, new DoubleComparator() {
-
-            public int compare(double i, double i1) {
-                if (Math.abs(i - i1) < 10e-12) {
-                    return 0;
-                } else {
-                    return i - i1 > 10e-12 ? 1 : -1;
-                }
-            }
-
-            public int compare(Double o1, Double o2) {
-                if (Math.abs(o1 - o2) < 10e-12) {
-                    return 0;
-                } else {
-                    return o1 - o2 > 10e-12 ? 1 : -1;
-                }
-            }
-        });
-
-        long M = 0, N = 0;
-        for (int i = 0; i < scores.length; i ++) {
-            if (labels[i] == 1.0)
-                M ++;
-            else
-                N ++;
-        }
-
-        double sigma = 0.0;
-        for (long i = M + N - 1; i >= 0; i --) {
-            if (labels[(int) i] == 1.0) {
-                sigma += i;
-            }
-        }
-
-        double auc = (sigma - (M + 1) * M / 2) / (M * N);
-        System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
-        return auc;
-    }
-    /*
-    public static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
-        int dim = corpus.get(0).data.dim;
-        long startMinHash = System.currentTimeMillis();
-        List<LabeledData> hashedCorpus = SVM.minhash(corpus, K, dim, b);
-        long minHashTime = System.currentTimeMillis() - startMinHash;
-        dim = hashedCorpus.get(0).data.dim;
-        corpus = hashedCorpus;
-        System.out.println("Utils.MinHash takes " + minHashTime + " ms" + " the dimension is " + dim);
-
-        Lasso lasso = new Lasso();
-        DenseVector modelOfU = new DenseVector(dim);
-        DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        lasso.train(corpus, modelOfU, modelOfV, lambda);
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
-    */
     public void train(int featureDim, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
@@ -134,7 +48,8 @@ public class LogisticRegression {
                 //u=u+(x_hat-z)
                 model.u.values[j] = model.u.values[j] + (x_hat[j] - model.z.values[j]);
             }
-            rho = Math.min(maxRho, rho * 1.1);
+            //rho = Math.min(maxRho, rho * 1.1);
+
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 

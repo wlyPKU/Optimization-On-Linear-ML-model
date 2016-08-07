@@ -168,7 +168,7 @@ class svm_predict {
 			{
 				if(svm.svm_check_probability_model(model)==0)
 				{
-					System.err.print("Model does not support probabiliy estimates\n");
+					System.err.print("model does not support probabiliy estimates\n");
 					System.exit(1);
 				}
 			}
@@ -176,7 +176,7 @@ class svm_predict {
 			{
 				if(svm.svm_check_probability_model(model)!=0)
 				{
-					svm_predict.info("Model supports probability estimates, but disabled in prediction.\n");
+					svm_predict.info("model supports probability estimates, but disabled in prediction.\n");
 				}
 			}
 			predict(input,output,model,predict_probability);
