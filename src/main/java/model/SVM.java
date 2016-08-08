@@ -97,4 +97,15 @@ public class SVM {
         }
         return loss;
     }
+    public double SVMLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
+        double loss = 0.0;
+        for (LabeledData labeledData : list) {
+            double dotProd = model_x.dot(labeledData.data);
+            loss += Math.max(0, 1 - dotProd * labeledData.label);
+        }
+        for(Double v: model_z.values){
+            loss += lambda * v * v;
+        }
+        return loss;
+    }
 }

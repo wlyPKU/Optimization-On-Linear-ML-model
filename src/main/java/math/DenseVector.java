@@ -49,6 +49,9 @@ public class DenseVector {
       values[i] = Math.max(0, values[i]);
     }
   }
+  public void copy(DenseVector other){
+    System.arraycopy(other.values, 0, values, 0, values.length);
+  }
   public void plusGradient(SparseVector other, double scala){
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];

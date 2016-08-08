@@ -50,7 +50,7 @@ public class LogisticRegression extends model.LogisticRegression{
       double trainAuc = auc(trainCorpus, model);
       double testAuc = auc(testCorpus, model);
       long testTime = System.currentTimeMillis() - startTest;
-      System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
+      System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
               " trainTime=" + trainTime + " testTime=" + testTime);
     }
   }

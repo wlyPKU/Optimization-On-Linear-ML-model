@@ -6,7 +6,6 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.SparseMap;
 import java.util.List;
 
-//TODO: To be checked ...
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
 /**
  * Created by 王羚宇 on 2016/7/24.
@@ -94,7 +93,7 @@ public class Lasso extends model.Lasso{
             double loss = lassoLoss(trainCorpus, model.x, model.z, lambda);
             double accuracy = test(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("Iter " + i +" loss=" + loss + " testResidual=" + accuracy +
+            System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model.x);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model.x);
@@ -135,7 +134,6 @@ public class Lasso extends model.Lasso{
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        //TODO Need to think how to min hash numeric variables
         train(features, labeledData, lambda, trainRatio);
     }
 }

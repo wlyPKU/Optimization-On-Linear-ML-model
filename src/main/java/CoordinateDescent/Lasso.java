@@ -71,7 +71,7 @@ public class Lasso extends model.Lasso{
             double loss = lassoLoss(trainCorpus, model, lambda);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("Iter " + i + " loss=" + loss + " testResidual=" + accuracy +
+            System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);

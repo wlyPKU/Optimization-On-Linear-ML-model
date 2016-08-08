@@ -50,7 +50,7 @@ public class SVM extends model.SVM{
       double trainAccuracy = accuracy(trainCorpus, model);
       double testAccuracy = accuracy(testCorpus, model);
       long testTime = System.currentTimeMillis() - startTest;
-      System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
+      System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
               + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
               + " trainTime=" + trainTime + " testTime=" + testTime);
     }
@@ -78,6 +78,4 @@ public class SVM extends model.SVM{
     double lambda = Double.parseDouble(argv[2]);
     train(corpus, lambda);
   }
-
-
 }

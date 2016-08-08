@@ -68,23 +68,10 @@ public class SVM extends model.SVM{
             double trainAccuracy = accuracy(trainCorpus, model);
             double testAccuracy = accuracy(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
+            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
         }
-    }
-
-    private static List<LabeledData> minhash(List<LabeledData> trainCorpus, int K, int dim, int b) {
-        MinHash hash = new MinHash(K, dim, b);
-        int hashedDim = hash.getHashedDim();
-        List<LabeledData> hashedCorpus = new ArrayList<LabeledData>();
-        for (LabeledData labeledData : trainCorpus) {
-            int[] bits = hash.generateMinHashBits(labeledData.data);
-            SparseVector vector = new SparseVector(hashedDim, bits);
-            LabeledData hashedData = new LabeledData(vector, labeledData.label);
-            hashedCorpus.add(hashedData);
-        }
-        return hashedCorpus;
     }
 
     public static void train(List<LabeledData> corpus, double lambda) {
@@ -97,46 +84,15 @@ public class SVM extends model.SVM{
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
-
-    private static void trainWithMinHash(List<LabeledData> corpus, int K, int b, double lambda) {
-
-        int dimension = corpus.get(0).data.dim;
-        long startMinHash = System.currentTimeMillis();
-        List<LabeledData> hashedCorpus = minhash(corpus, K, dimension, b);
-        long minHashTime = System.currentTimeMillis() - startMinHash;
-
-        dimension = hashedCorpus.get(0).data.dim;
-        System.out.println("MinHash takes " + minHashTime + " ms" + " the dimension is " + dimension);
-
-        corpus = hashedCorpus;
-        SVM svmcd = new SVM();
-        DenseVector model = new DenseVector(dimension);
-        long start = System.currentTimeMillis();
-        svmcd.train(corpus, model, lambda);
-
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
-
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: CoordinateDescent.SVM dim train_path lamda [true|false] K b");
+        System.out.println("Usage: CoordinateDescent.SVM dim train_path lambda");
         int dim = Integer.parseInt(argv[0]);
         String path = argv[1];
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        double lamda = Double.parseDouble(argv[2]);
-        boolean minhash = Boolean.parseBoolean(argv[3]);
-        if (minhash) {
-            System.out.println("Training with minhash method.");
-            int K = Integer.parseInt(argv[4]);
-            int b = Integer.parseInt(argv[5]);
-            trainWithMinHash(corpus, K, b, lamda);
-        } else {
-            train(corpus, lamda);
-        }
+        double lambda = Double.parseDouble(argv[2]);
+        train(corpus, lambda);
     }
-
-
 }

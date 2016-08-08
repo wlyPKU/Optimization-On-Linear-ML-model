@@ -40,7 +40,7 @@ public class LassoLBFGS extends model.Lasso{
             for(int id = 0; id < featureDim; id++){
                 x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
                 //z=Soft_threshold(lambda/rho,x+u);
-                model.z.values[id] = Utils.soft_threshold(lambda / rho, x_hat[id]
+                model.z.values[id] = Utils.soft_threshold(lambda/ rho, x_hat[id]
                         + model.u.values[id]);
             }
 
@@ -58,7 +58,7 @@ public class LassoLBFGS extends model.Lasso{
             double loss = lassoLoss(trainCorpus, model.x, model.z, lambda);
             double accuracy = test(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("Iter " + i + " loss=" + loss + " testResidual=" + accuracy +
+            System.out.println("loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model.x);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model.x);

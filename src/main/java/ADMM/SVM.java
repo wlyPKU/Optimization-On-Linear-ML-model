@@ -49,22 +49,10 @@ public class SVM extends model.SVM {
             double trainAccuracy = accuracy(trainCorpus, model.x);
             double testAccuracy = accuracy(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
+            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
         }
-    }
-
-    private double SVMLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
-        double loss = 0.0;
-        for (LabeledData labeledData : list) {
-            double dotProd = model_x.dot(labeledData.data);
-            loss += Math.max(0, 1 - dotProd * labeledData.label);
-        }
-        for(Double v: model_z.values){
-            loss += lambda * v * v;
-        }
-        return loss;
     }
     public static void train(int featureDim, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {

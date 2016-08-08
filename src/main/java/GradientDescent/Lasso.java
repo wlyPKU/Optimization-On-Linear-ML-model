@@ -45,7 +45,7 @@ public class Lasso extends model.Lasso{
             double loss = lassoLoss(trainCorpus, model, lambda);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("Iter " + i + " loss=" + loss + " Test Loss =" + accuracy +
+            System.out.println("loss=" + loss + " Test Loss =" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
@@ -63,7 +63,6 @@ public class Lasso extends model.Lasso{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dim);
         DenseVector modelOfV = new DenseVector(dim);
-
         long start = System.currentTimeMillis();
         lasso.train(corpus, modelOfU, modelOfV, lambda);
         long cost = System.currentTimeMillis() - start;
@@ -80,7 +79,6 @@ public class Lasso extends model.Lasso{
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-
         train(corpus, lambda);
     }
 }

@@ -23,7 +23,7 @@ public class Lasso {
         double residual = 0;
         for (LabeledData labeledData : list) {
             double dot_prod = model.dot(labeledData.data);
-            residual += Math.pow(labeledData.label - dot_prod, 2);
+            residual += 0.5 * Math.pow(labeledData.label - dot_prod, 2);
         }
         return residual;
     }

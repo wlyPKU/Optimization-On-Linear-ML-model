@@ -31,7 +31,7 @@ public class LinearRegression extends model.LinearRegression{
             double loss = test(trainCorpus, model);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("Iter " + i + " loss=" + loss + " testAuc=" + accuracy +
+            System.out.println("loss=" + loss + " testAuc=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
