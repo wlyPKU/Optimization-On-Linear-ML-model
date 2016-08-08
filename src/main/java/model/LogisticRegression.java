@@ -1,7 +1,6 @@
 package model;
 
-import Utils.LabeledData;
-import Utils.Sort;
+import Utils.*;
 import it.unimi.dsi.fastutil.doubles.DoubleComparator;
 import math.DenseVector;
 import java.util.List;

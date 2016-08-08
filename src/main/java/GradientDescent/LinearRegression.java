@@ -1,23 +1,13 @@
 package GradientDescent;
 
-import Utils.LabeledData;
-import Utils.Utils;
+import Utils.*;
 import math.DenseVector;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by 王羚宇 on 2016/7/20.
  */
 public class LinearRegression extends model.LinearRegression{
-    private double linearLoss(List<LabeledData> list, DenseVector model) {
-        double loss = 0.0;
-        for (LabeledData labeledData: list) {
-            double predictValue = model.dot(labeledData.data);
-            loss += Math.pow(labeledData.label - predictValue, 2);
-        }
-        return loss;
-    }
 
     private void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
         for (LabeledData labeledData: list) {
@@ -41,7 +31,7 @@ public class LinearRegression extends model.LinearRegression{
             double loss = test(trainCorpus, model);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " testAuc=" + accuracy +
+            System.out.println("Iter " + i + " loss=" + loss + " testAuc=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);

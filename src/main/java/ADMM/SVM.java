@@ -2,8 +2,7 @@ package ADMM;
 
 import Utils.*;
 import math.DenseVector;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by 王羚宇 on 2016/7/26.
@@ -50,7 +49,7 @@ public class SVM extends model.SVM {
             double trainAccuracy = accuracy(trainCorpus, model.x);
             double testAccuracy = accuracy(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
+            System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
         }

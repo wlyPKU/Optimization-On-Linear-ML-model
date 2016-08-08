@@ -44,9 +44,8 @@ public class DenseVector {
       values[i] += x;
     }
   }
-  public void positiveValueOrZero(SparseVector other) {
-    int[] indices = other.indices;
-    for (int i: indices) {
+  public void positiveValueOrZero() {
+    for (int i = 0; i < values.length; i++) {
       values[i] = Math.max(0, values[i]);
     }
   }

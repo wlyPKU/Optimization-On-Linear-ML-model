@@ -2,10 +2,8 @@ package CoordinateDescent;
 
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import math.SparseMap;
-import math.DenseVector;
-import Utils.LabeledData;
-import Utils.Utils;
+import math.*;
+import Utils.*;
 import java.util.*;
 
 /**
@@ -73,7 +71,7 @@ public class Lasso extends model.Lasso{
             double loss = lassoLoss(trainCorpus, model, lambda);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " testResidual=" + accuracy +
+            System.out.println("Iter " + i + " loss=" + loss + " testResidual=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);

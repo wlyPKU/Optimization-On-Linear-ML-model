@@ -2,8 +2,7 @@ package GradientDescent;
 
 import Utils.*;
 import math.DenseVector;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by leleyu on 2016/6/30.
@@ -51,7 +50,7 @@ public class SVM extends model.SVM{
       double trainAccuracy = accuracy(trainCorpus, model);
       double testAccuracy = accuracy(testCorpus, model);
       long testTime = System.currentTimeMillis() - startTest;
-      System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
+      System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
               + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
               + " trainTime=" + trainTime + " testTime=" + testTime);
     }

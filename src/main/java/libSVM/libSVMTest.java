@@ -2,7 +2,6 @@ package libSVM;
 
 import java.io.*;
 import java.util.HashSet;
-
 import de.bwaldvogel.liblinear.*;
 
 /**

@@ -2,8 +2,7 @@ package GradientDescent;
 
 import Utils.*;
 import math.DenseVector;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by leleyu on 2016/7/1.
@@ -13,17 +12,17 @@ public class LogisticRegression extends model.LogisticRegression{
   private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                           DenseVector modelOfV, double lr, double lambda) {
     for (LabeledData labeledData: list) {
-      //Gradient=lamda+(1-1/(1+e^(-ywx))*y*xi
+      //Gradient=lambda+(1-1/(1+e^(-ywx))*y*xi
       //scala=(1-1/(1+e^(-ywx))*y
       double predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
       double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
       double scala = tmpValue * labeledData.label;
       modelOfU.plusGradient(labeledData.data, + scala * lr);
       modelOfU.allPlusBy(- lr * lambda);
-      modelOfU.positiveValueOrZero(labeledData.data);
+      modelOfU.positiveValueOrZero();
       modelOfV.plusGradient(labeledData.data, - scala * lr);
       modelOfV.allPlusBy(- lr * lambda);
-      modelOfV.positiveValueOrZero(labeledData.data);
+      modelOfV.positiveValueOrZero();
     }
   }
 
@@ -51,7 +50,7 @@ public class LogisticRegression extends model.LogisticRegression{
       double trainAuc = auc(trainCorpus, model);
       double testAuc = auc(testCorpus, model);
       long testTime = System.currentTimeMillis() - startTest;
-      System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
+      System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
               " trainTime=" + trainTime + " testTime=" + testTime);
     }
   }

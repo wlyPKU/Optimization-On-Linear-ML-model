@@ -2,10 +2,8 @@ package CoordinateDescent;
 
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import math.SparseMap;
-import math.DenseVector;
-import Utils.LabeledData;
-import Utils.Utils;
+import math.*;
+import Utils.*;
 import java.util.List;
 
 /**
@@ -107,7 +105,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
             double trainAuc = auc(trainCorpus, model);
             double testAuc = auc(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
+            System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
         }
     }

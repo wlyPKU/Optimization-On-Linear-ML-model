@@ -1,10 +1,8 @@
 package GradientDescent;
 
-import Utils.LabeledData;
-import Utils.Utils;
+import Utils.*;
 import math.DenseVector;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by 王羚宇 on 2016/7/20.
@@ -20,8 +18,8 @@ public class Lasso extends model.Lasso{
             modelOfU.allPlusBy(- lr * lambda);
             modelOfV.plusGradient(labeledData.data, - scala * lr);
             modelOfV.allPlusBy(- lr * lambda);
-            modelOfU.positiveValueOrZero(labeledData.data);
-            modelOfV.positiveValueOrZero(labeledData.data);
+            modelOfU.positiveValueOrZero();
+            modelOfV.positiveValueOrZero();
         }
     }
 
@@ -47,7 +45,7 @@ public class Lasso extends model.Lasso{
             double loss = lassoLoss(trainCorpus, model, lambda);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " Test Loss =" + accuracy +
+            System.out.println("Iter " + i + " loss=" + loss + " Test Loss =" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);

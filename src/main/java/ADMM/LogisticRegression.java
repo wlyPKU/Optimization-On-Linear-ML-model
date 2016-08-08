@@ -1,7 +1,6 @@
 package ADMM;
 
 import Utils.*;
-
 import java.util.List;
 
 //TODO: To be checked...
@@ -57,7 +56,7 @@ public class LogisticRegression extends model.LogisticRegression{
             double trainAuc = auc(trainCorpus, model.x);
             double testAuc = auc(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
+            System.out.println("Iter " + i + " loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
         }
     }
