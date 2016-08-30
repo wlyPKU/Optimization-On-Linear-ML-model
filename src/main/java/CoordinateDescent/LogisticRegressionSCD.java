@@ -22,7 +22,9 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
         double predictValue[] = new double[labeledData.size()];
 
         DenseVector model = new DenseVector(featureDim);
-        for (int i = 0; i < 100; i ++) {
+        DenseVector oldModel = new DenseVector(featureDim);
+
+        for (int i = 0; i < 300; i ++) {
             for(int idx = 0; idx < labeledData.size(); idx++){
                 LabeledData l = labeledData.get(idx);
                 predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
@@ -57,9 +59,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
                     int idx = entry.getIntKey();
                     double value = entry.getDoubleValue();
                     predictValue[idx] += value * (modelOfU.values[fIdx] - oldValue);
-
                 }
-
             }
             //Update w-
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
@@ -92,7 +92,6 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
                     predictValue[idx] -= value * (modelOfV.values[fIdx] - oldValue);
 
                 }
-
             }
             for(int fIdx = 0; fIdx < featureDim; fIdx ++){
                 model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
@@ -107,6 +106,11 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+
+            if(converage(oldModel, model)){
+                break;
+            }
+            System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
         }
     }
 

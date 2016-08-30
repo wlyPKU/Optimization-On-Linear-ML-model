@@ -18,12 +18,14 @@ public class SVM extends model.SVM {
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         double rho = 1e-4;
         double maxRho = 5;
+
+        DenseVector oldModel = new DenseVector(featureDim);
         //Parameter:
-        int lbfgsNumIteration = 200;
+        int lbfgsNumIteration = 10;
         int lbfgsHistory = 10;
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "SVM");
@@ -52,6 +54,10 @@ public class SVM extends model.SVM {
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
+            if(converage(oldModel, model.x)){
+                break;
+            }
+            System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }
     }
     public static void train(int featureDim, List<LabeledData> labeledData,

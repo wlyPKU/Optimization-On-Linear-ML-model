@@ -14,13 +14,7 @@ public class LogisticRegression {
         for (LabeledData labeledData: list) {
             double p = model.dot(labeledData.data);
             double z = p * labeledData.label;
-            if (z > 18) {
-                loss += Math.exp(-z);
-            } else if (z < -18) {
-                loss += -z;
-            } else {
-                loss += Math.log(1 + Math.exp(-z));
-            }
+            loss += Math.log(1 + Math.exp(-z));
         }
         for(Double v : model.values){
             loss += lambda * (v > 0? v : -v);
@@ -125,6 +119,19 @@ public class LogisticRegression {
         for(Double v : model_z.values){
             loss += lambda * (v > 0? v : -v);
         }
+
         return loss;
+    }
+    public boolean converage(DenseVector oldModel, DenseVector newModel){
+        double delta = 0;
+        for(int i = 0; i < oldModel.values.length; i++){
+            delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
+        }
+        System.out.println("This iteration average changes " + delta);
+        if(delta < 0.01){
+            return true;
+        }else{
+            return false;
+        }
     }
 }

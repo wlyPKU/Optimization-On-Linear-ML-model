@@ -38,19 +38,27 @@ public class DenseVector {
       values[i] += x;
     }
   }
-
   public void allPlusBy(double x){
     for(int i = 0; i < values.length; i++){
       values[i] += x;
     }
   }
-  public void positiveValueOrZero() {
-    for (int i = 0; i < values.length; i++) {
+  public void positiveOrZero(SparseVector other){
+    for(int i = 0; i <  other.indices.length; i++){
+      int idx = other.indices[i];
+      values[idx] = Math.max(0, values[idx]);
+    }
+  }
+  public void positiveOrZero(){
+    for(int i = 0; i < values.length; i++){
       values[i] = Math.max(0, values[i]);
     }
   }
-  public void copy(DenseVector other){
-    System.arraycopy(other.values, 0, values, 0, values.length);
+  public void plusAndPositive(double x){
+    for(int i = 0; i < values.length; i++){
+      values[i] += x;
+      values[i] = Math.max(0, values[i]);
+    }
   }
   public void plusGradient(SparseVector other, double scala){
     for(int i = 0; i <  other.indices.length; i++){
@@ -60,6 +68,18 @@ public class DenseVector {
       }else{
         values[idx] += scala;
       }
+    }
+  }
+  public void plusSparse(SparseVector other, double scala){
+    for(int i = 0; i <  other.indices.length; i++){
+      int idx = other.indices[i];
+      values[idx] += scala;
+    }
+  }
+  public void penaltySparse(SparseVector other, double scala){
+    for(int i = 0; i <  other.indices.length; i++){
+      int idx = other.indices[i];
+      values[idx] *= (1 - scala);
     }
   }
 }

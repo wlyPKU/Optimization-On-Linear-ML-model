@@ -1,6 +1,7 @@
 package ADMM;
 
 import Utils.*;
+import math.DenseVector;
 import math.SparseMap;
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class LassoLBFGS extends model.Lasso{
         int lbfgsHistory = 10;
 
         double x_hat[] = new double[model.featureNum];
+        DenseVector oldModel = new DenseVector(featureDim);
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
@@ -67,6 +69,11 @@ public class LassoLBFGS extends model.Lasso{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
             //rho = Math.min(rho * 1.1, maxRho);
+
+            if(converge(oldModel, model.x)){
+                break;
+            }
+            System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }
     }
 

@@ -11,15 +11,16 @@ public class Lasso extends model.Lasso{
 
     private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                             DenseVector modelOfV, double lr, double lambda) {
+        double modelPenalty = -lr * lambda / list.size();
         for (LabeledData labeledData: list) {
             double scala = labeledData.label - modelOfU.dot(labeledData.data)
                     + modelOfV.dot(labeledData.data);
             modelOfU.plusGradient(labeledData.data, scala * lr);
-            modelOfU.allPlusBy(- lr * lambda);
+            modelOfU.plusSparse(labeledData.data, modelPenalty);
             modelOfV.plusGradient(labeledData.data, - scala * lr);
-            modelOfV.allPlusBy(- lr * lambda);
-            modelOfU.positiveValueOrZero();
-            modelOfV.positiveValueOrZero();
+            modelOfV.plusSparse(labeledData.data, modelPenalty);
+            modelOfU.positiveOrZero(labeledData.data);
+            modelOfV.positiveOrZero(labeledData.data);
         }
     }
 
@@ -32,7 +33,9 @@ public class Lasso extends model.Lasso{
         List<LabeledData> testCorpus = corpus.subList(end, size);
         DenseVector model = new DenseVector(modelOfU.dim);
 
-        for (int i = 0; i < 100; i ++) {
+        DenseVector oldModel = new DenseVector(model.dim);
+
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005, lambda);
@@ -45,7 +48,7 @@ public class Lasso extends model.Lasso{
             double loss = lassoLoss(trainCorpus, model, lambda);
             double accuracy = test(testCorpus, model);
             long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " Test Loss =" + accuracy +
+            System.out.println("loss=" + loss + " TestLoss=" + accuracy +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
             double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
@@ -53,6 +56,10 @@ public class Lasso extends model.Lasso{
             Utils.printAccuracy(trainAccuracy);
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
+            if(converge(oldModel, model)){
+                break;
+            }
+            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
         }
     }
 

@@ -1,6 +1,8 @@
 package ADMM;
 
 import Utils.*;
+import math.DenseVector;
+
 import java.util.List;
 
 //TODO: To be checked...
@@ -26,12 +28,14 @@ public class LogisticRegression extends model.LogisticRegression{
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         double rho = 1e-4;
         double maxRho = 5;
+
+        DenseVector oldModel = new DenseVector(featureDim);
         //Parameter:
         int lbfgsNumIteration = 10;
         int lbfgsHistory = 10;
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "logisticRegression");
@@ -58,6 +62,10 @@ public class LogisticRegression extends model.LogisticRegression{
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            if(converage(oldModel, model.x)){
+                break;
+            }
+            System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }
     }
 

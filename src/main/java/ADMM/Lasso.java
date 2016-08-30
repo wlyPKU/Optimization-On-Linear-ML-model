@@ -51,7 +51,7 @@ public class Lasso extends model.Lasso{
             }
         }
         double x_hat[] = new double[model.featureNum];
-        for (i = 0; i < 100; i ++) {
+        for (i = 0; i < 300; i ++) {
             //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);

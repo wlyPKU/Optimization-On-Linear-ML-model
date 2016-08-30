@@ -37,7 +37,8 @@ public class Lasso extends model.Lasso{
             double y = entry.getDoubleValue();
             residual[idx] = y;
         }
-        for (int i = 0; i < 100; i ++) {
+        DenseVector oldModel = new DenseVector(featureDim);
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             for(int j = 0; j < featureDim; j++){
                 double oldValue = model.values[j];
@@ -79,6 +80,11 @@ public class Lasso extends model.Lasso{
             Utils.printAccuracy(trainAccuracy);
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
+
+            if(converge(oldModel, model)){
+                break;
+            }
+            System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
         }
     }
 

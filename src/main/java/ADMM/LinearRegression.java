@@ -3,6 +3,7 @@ package ADMM;
 import Utils.*;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import math.DenseVector;
 import math.SparseMap;
 import java.util.List;
 
@@ -45,7 +46,8 @@ public class LinearRegression extends model.LinearRegression{
                 tmpPart1OfB[i][j] = features[j].multiply(features[i]);
             }
         }
-        for (int i = 0; i < 100; i ++) {
+        DenseVector oldModel = new DenseVector(featureDim);
+        for (int i = 0; i < 300; i ++) {
             //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);
@@ -91,6 +93,10 @@ public class LinearRegression extends model.LinearRegression{
             Utils.printAccuracy(trainAccuracy);
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
+            if(converage(oldModel, model.x)){
+                break;
+            }
+            System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }
     }
 

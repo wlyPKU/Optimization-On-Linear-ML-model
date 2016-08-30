@@ -39,23 +39,33 @@ public class SVM extends model.SVM{
         for(int j = 0; j < alpha.length;j++){
             alpha[j] = 0;
         }
-        double C = 1 / (2.0 * lambda);
-        for (int i = 0; i < 100; i ++) {
+        double C = 1.0 / (2.0 * lambda);
+        DenseVector oldModel = new DenseVector(model.values.length);
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
             int j = 0;
             for (LabeledData labeledData : trainCorpus) {
                 double G = model.dot(labeledData.data) * labeledData.label - 1;
                 double alpha_old = alpha[j];
-                alpha[j] = Math.min(Math.max(0, alpha[j] - G / Q[j]), C);
-                int r = 0;
-                for(Integer idx : labeledData.data.indices){
-                    if(labeledData.data.values == null){
-                        model.values[idx] += (alpha[j] - alpha_old) * labeledData.label;
-                    }
-                    else{
-                        model.values[idx] += (alpha[j] - alpha_old) * labeledData.label * labeledData.data.values[r];
-                        r++;
+                double PG = 0;
+                if(alpha[j] == 0){
+                    PG = Math.min(G, 0);
+                }else if(alpha[j] == C){
+                    PG = Math.max(G, 0);
+                }else if(alpha[j] > 0 && alpha[j] < C){
+                    PG = G;
+                }
+                if(PG != 0) {
+                    alpha[j] = Math.min(Math.max(0, alpha[j] - G / Q[j]), C);
+                    int r = 0;
+                    for (Integer idx : labeledData.data.indices) {
+                        if (labeledData.data.values == null) {
+                            model.values[idx] += (alpha[j] - alpha_old) * labeledData.label;
+                        } else {
+                            model.values[idx] += (alpha[j] - alpha_old) * labeledData.label * labeledData.data.values[r];
+                            r++;
+                        }
                     }
                 }
                 j++;
@@ -71,6 +81,10 @@ public class SVM extends model.SVM{
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
+            if(converage(oldModel, model)){
+                break;
+            }
+            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
         }
     }
 

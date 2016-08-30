@@ -11,6 +11,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
   private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                           DenseVector modelOfV, double lr, double lambda) {
+    double modelPenalty = -lr * lambda / list.size();
     for (LabeledData labeledData: list) {
       //Gradient=lambda+(1-1/(1+e^(-ywx))*y*xi
       //scala=(1-1/(1+e^(-ywx))*y
@@ -18,14 +19,13 @@ public class LogisticRegression extends model.LogisticRegression{
       double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
       double scala = tmpValue * labeledData.label;
       modelOfU.plusGradient(labeledData.data, + scala * lr);
-      modelOfU.allPlusBy(- lr * lambda);
-      modelOfU.positiveValueOrZero();
+      modelOfU.plusSparse(labeledData.data, modelPenalty);
       modelOfV.plusGradient(labeledData.data, - scala * lr);
-      modelOfV.allPlusBy(- lr * lambda);
-      modelOfV.positiveValueOrZero();
+      modelOfV.plusSparse(labeledData.data, modelPenalty);
+      modelOfU.positiveOrZero(labeledData.data);
+      modelOfV.positiveOrZero(labeledData.data);
     }
   }
-
 
   public void train(List<LabeledData> corpus, DenseVector modelOfU,
                     DenseVector modelOfV, double lambda) {
@@ -35,7 +35,8 @@ public class LogisticRegression extends model.LogisticRegression{
     List<LabeledData> trainCorpus = corpus.subList(0, end);
     List<LabeledData> testCorpus = corpus.subList(end, size);
     DenseVector model = new DenseVector(modelOfU.dim);
-    for (int i = 0; i < 100; i ++) {
+    DenseVector oldModel = new DenseVector(model.dim);
+    for (int i = 0; i < 300; i ++) {
       long startTrain = System.currentTimeMillis();
       //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
       sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005, lambda);
@@ -52,6 +53,10 @@ public class LogisticRegression extends model.LogisticRegression{
       long testTime = System.currentTimeMillis() - startTest;
       System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
               " trainTime=" + trainTime + " testTime=" + testTime);
+      if(converage(oldModel, model)){
+        break;
+      }
+      System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
     }
   }
 
@@ -75,9 +80,7 @@ public class LogisticRegression extends model.LogisticRegression{
     List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
     long loadTime = System.currentTimeMillis() - startLoad;
     System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-
     double lambda = Double.parseDouble(argv[2]);
-
     train(corpus, lambda);
   }
 }

@@ -1,6 +1,7 @@
 package ADMM;
 
 import Utils.*;
+import math.DenseVector;
 import math.SparseMap;
 import java.util.List;
 
@@ -26,7 +27,9 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
 
-        for (int i = 0; i < 100; i ++) {
+        DenseVector oldModel = new DenseVector(featureDim);
+
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "LinearRegression");
@@ -58,6 +61,10 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
             //rho = Math.min(rho * 1.1, maxRho);
+            if(converage(oldModel, model.x)){
+                break;
+            }
+            System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }
     }
 

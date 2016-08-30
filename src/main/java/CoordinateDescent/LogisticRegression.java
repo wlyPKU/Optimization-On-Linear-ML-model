@@ -20,7 +20,8 @@ public class LogisticRegression extends model.LogisticRegression{
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         int featureDim = features.length - 1;
 
-        for (int i = 0; i < 100; i ++) {
+        DenseVector oldModel = new DenseVector(featureDim);
+        for (int i = 0; i < 300; i ++) {
             long startTrain = System.currentTimeMillis();
             //Cyclic Feature
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
@@ -91,6 +92,10 @@ public class LogisticRegression extends model.LogisticRegression{
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
+            if(converage(oldModel, model)){
+                break;
+            }
+            System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
         }
     }
 
