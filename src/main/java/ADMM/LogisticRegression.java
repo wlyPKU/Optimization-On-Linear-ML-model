@@ -35,7 +35,7 @@ public class LogisticRegression extends model.LogisticRegression{
         int lbfgsHistory = 10;
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "logisticRegression");
@@ -63,7 +63,7 @@ public class LogisticRegression extends model.LogisticRegression{
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             if(converage(oldModel, model.x)){
-                break;
+                //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

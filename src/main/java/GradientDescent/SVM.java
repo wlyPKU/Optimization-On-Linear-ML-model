@@ -11,13 +11,13 @@ public class SVM extends model.SVM{
   private double sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr, double lambda) {
     int N_UPDATES = 0;
     int N_TOTAL = 0;
-    double modelPenalty = -2 * lr * lambda * list.size();
+    double modelPenalty = -2 * lr * lambda / list.size();
     for (LabeledData labeledData : list) {
       N_TOTAL++;
       //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
       /* model pennalty */
       //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
-      model.penaltySparse(labeledData.data, modelPenalty);
+      model.multiplySparse(labeledData.data, modelPenalty);
       double dotProd = model.dot(labeledData.data);
       if (1 - dotProd * labeledData.label > 0) {
         /* residual pennalty */
@@ -38,10 +38,10 @@ public class SVM extends model.SVM{
     List<LabeledData> testCorpus = corpus.subList(end, size);
 
     DenseVector oldModel = new DenseVector(model.values.length);
-    for (int i = 0; i < 300; i ++) {
+    for (int i = 0; i < 100; i ++) {
       long startTrain = System.currentTimeMillis();
       //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
-      double ratio = sgdOneEpoch(trainCorpus, model, 0.005, lambda);
+      double ratio = sgdOneEpoch(trainCorpus, model, 0.001, lambda);
       long trainTime = System.currentTimeMillis() - startTrain;
       long startTest = System.currentTimeMillis();
       double loss = SVMLoss(trainCorpus, model, lambda);
@@ -55,7 +55,7 @@ public class SVM extends model.SVM{
               + " trainTime=" + trainTime + " testTime=" + testTime);
 
       if(converage(oldModel, model)){
-        break;
+        //break;
       }
       System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
     }

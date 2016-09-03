@@ -15,10 +15,10 @@ public class Lasso extends model.Lasso{
         for (LabeledData labeledData: list) {
             double scala = labeledData.label - modelOfU.dot(labeledData.data)
                     + modelOfV.dot(labeledData.data);
-            modelOfU.plusGradient(labeledData.data, scala * lr);
             modelOfU.plusSparse(labeledData.data, modelPenalty);
-            modelOfV.plusGradient(labeledData.data, - scala * lr);
+            modelOfU.plusGradient(labeledData.data, scala * lr);
             modelOfV.plusSparse(labeledData.data, modelPenalty);
+            modelOfV.plusGradient(labeledData.data, - scala * lr);
             modelOfU.positiveOrZero(labeledData.data);
             modelOfV.positiveOrZero(labeledData.data);
         }
@@ -35,7 +35,7 @@ public class Lasso extends model.Lasso{
 
         DenseVector oldModel = new DenseVector(model.dim);
 
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005, lambda);
@@ -57,12 +57,11 @@ public class Lasso extends model.Lasso{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
             if(converge(oldModel, model)){
-                break;
+                //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
         }
     }
-
 
     public static void train(List<LabeledData> corpus, double lambda) {
         int dim = corpus.get(0).data.dim;

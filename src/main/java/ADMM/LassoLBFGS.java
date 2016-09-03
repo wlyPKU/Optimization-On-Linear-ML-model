@@ -71,7 +71,7 @@ public class LassoLBFGS extends model.Lasso{
             //rho = Math.min(rho * 1.1, maxRho);
 
             if(converge(oldModel, model.x)){
-                break;
+                //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

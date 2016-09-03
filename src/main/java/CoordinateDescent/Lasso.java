@@ -38,7 +38,7 @@ public class Lasso extends model.Lasso{
             residual[idx] = y;
         }
         DenseVector oldModel = new DenseVector(featureDim);
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             for(int j = 0; j < featureDim; j++){
                 double oldValue = model.values[j];
@@ -82,7 +82,7 @@ public class Lasso extends model.Lasso{
             Utils.printAccuracy(testAccuracy);
 
             if(converge(oldModel, model)){
-                break;
+                //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
         }
@@ -94,15 +94,12 @@ public class Lasso extends model.Lasso{
         Lasso lassoCD = new Lasso();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dimension);
-        for(int i = 0; i < dimension; i++){
-            model.values[i] = 0;
-        }
+        Arrays.fill(model.values, 0);
         long start = System.currentTimeMillis();
         lassoCD.train(corpus, labeledData, model, lambda, trainRatio);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
-
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: CoordinateDescent.Lasso FeatureDim SampleDim train_path lambda trainRatio");

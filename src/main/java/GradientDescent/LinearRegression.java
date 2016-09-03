@@ -22,7 +22,7 @@ public class LinearRegression extends model.LinearRegression{
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
         DenseVector oldModel = new DenseVector(model.dim);
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             sgdOneEpoch(trainCorpus, model, 0.005);
@@ -41,7 +41,7 @@ public class LinearRegression extends model.LinearRegression{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
             if(converage(oldModel, model)){
-                break;
+                //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
         }

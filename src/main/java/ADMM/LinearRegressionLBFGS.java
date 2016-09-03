@@ -29,7 +29,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
 
         DenseVector oldModel = new DenseVector(featureDim);
 
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "LinearRegression");
@@ -62,7 +62,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             Utils.printAccuracy(testAccuracy);
             //rho = Math.min(rho * 1.1, maxRho);
             if(converage(oldModel, model.x)){
-                break;
+                //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

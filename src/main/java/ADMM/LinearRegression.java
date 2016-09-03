@@ -47,7 +47,7 @@ public class LinearRegression extends model.LinearRegression{
             }
         }
         DenseVector oldModel = new DenseVector(featureDim);
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);
@@ -94,7 +94,7 @@ public class LinearRegression extends model.LinearRegression{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
             if(converage(oldModel, model.x)){
-                break;
+                //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

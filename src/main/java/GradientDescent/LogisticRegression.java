@@ -36,10 +36,10 @@ public class LogisticRegression extends model.LogisticRegression{
     List<LabeledData> testCorpus = corpus.subList(end, size);
     DenseVector model = new DenseVector(modelOfU.dim);
     DenseVector oldModel = new DenseVector(model.dim);
-    for (int i = 0; i < 300; i ++) {
+    for (int i = 0; i < 100; i ++) {
       long startTrain = System.currentTimeMillis();
       //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
-      sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005, lambda);
+      sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.001, lambda);
       long trainTime = System.currentTimeMillis() - startTrain;
       long startTest = System.currentTimeMillis();
 
@@ -54,7 +54,7 @@ public class LogisticRegression extends model.LogisticRegression{
       System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
               " trainTime=" + trainTime + " testTime=" + testTime);
       if(converage(oldModel, model)){
-        break;
+        //break;
       }
       System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
     }

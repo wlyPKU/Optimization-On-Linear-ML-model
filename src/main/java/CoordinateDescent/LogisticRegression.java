@@ -21,7 +21,7 @@ public class LogisticRegression extends model.LogisticRegression{
         int featureDim = features.length - 1;
 
         DenseVector oldModel = new DenseVector(featureDim);
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Cyclic Feature
             for(int fIdx = 0; fIdx < featureDim; fIdx++){
@@ -93,7 +93,7 @@ public class LogisticRegression extends model.LogisticRegression{
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             if(converage(oldModel, model)){
-                break;
+                //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
         }

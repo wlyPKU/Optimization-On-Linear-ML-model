@@ -43,6 +43,12 @@ public class DenseVector {
       values[i] += x;
     }
   }
+  public void allDividedBy(double x){
+    assert (x != 0);
+    for(int i = 0; i < values.length; i++){
+      values[i] /= x;
+    }
+  }
   public void positiveOrZero(SparseVector other){
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];
@@ -76,10 +82,17 @@ public class DenseVector {
       values[idx] += scala;
     }
   }
-  public void penaltySparse(SparseVector other, double scala){
+  public void multiplySparse(SparseVector other, double scala){
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];
-      values[idx] *= (1 - scala);
+      values[idx] *= (1 + scala);
+    }
+  }
+
+  public void plusDense(DenseVector d){
+    assert (this.dim == d.dim);
+    for(int i = 0; i < d.dim; i++){
+      values[i] += d.values[i];
     }
   }
 }

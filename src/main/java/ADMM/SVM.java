@@ -25,7 +25,7 @@ public class SVM extends model.SVM {
         int lbfgsHistory = 10;
         double rel_par = 1.0;
         double x_hat[] = new double[model.featureNum];
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "SVM");
@@ -55,7 +55,7 @@ public class SVM extends model.SVM {
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
             if(converage(oldModel, model.x)){
-                break;
+                //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

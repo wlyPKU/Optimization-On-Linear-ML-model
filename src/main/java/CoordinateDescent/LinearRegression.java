@@ -35,7 +35,7 @@ public class LinearRegression extends model.LinearRegression{
         }
 
         DenseVector oldModel = new DenseVector(featureDim);
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             for(int j = 0; j < featureDim; j++){
                 double oldValue = model.values[j];
@@ -75,7 +75,7 @@ public class LinearRegression extends model.LinearRegression{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
             if(converage(oldModel, model)){
-                break;
+                //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
         }

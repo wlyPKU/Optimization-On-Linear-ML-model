@@ -24,7 +24,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
         DenseVector model = new DenseVector(featureDim);
         DenseVector oldModel = new DenseVector(featureDim);
 
-        for (int i = 0; i < 300; i ++) {
+        for (int i = 0; i < 100; i ++) {
             for(int idx = 0; idx < labeledData.size(); idx++){
                 LabeledData l = labeledData.get(idx);
                 predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
@@ -108,7 +108,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
                     " trainTime=" + trainTime + " testTime=" + testTime);
 
             if(converage(oldModel, model)){
-                break;
+                //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
         }
