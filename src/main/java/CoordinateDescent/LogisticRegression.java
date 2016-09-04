@@ -4,6 +4,8 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.*;
 import Utils.*;
+
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -106,9 +108,7 @@ public class LogisticRegression extends model.LogisticRegression{
         LogisticRegression lrCD = new LogisticRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dimension);
-        for(int i = 0; i < dimension; i++){
-            model.values[i] = 0;
-        }
+        Arrays.fill(model.values, 0);
         long start = System.currentTimeMillis();
         lrCD.train(corpus, labeledData, model, lambda, trainRatio);
         long cost = System.currentTimeMillis() - start;

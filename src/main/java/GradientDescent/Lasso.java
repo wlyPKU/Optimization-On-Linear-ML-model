@@ -9,6 +9,7 @@ import java.util.*;
  */
 public class Lasso extends model.Lasso{
 
+    static double trainRatio = 0.5;
     private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                             DenseVector modelOfV, double lr, double lambda) {
         double modelPenalty = -lr * lambda / list.size();
@@ -28,7 +29,7 @@ public class Lasso extends model.Lasso{
                       DenseVector modelOfV, double lambda) {
         Collections.shuffle(corpus);
         int size = corpus.size();
-        int end = (int) (size * 0.5);
+        int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
         DenseVector model = new DenseVector(modelOfU.dim);
@@ -77,11 +78,18 @@ public class Lasso extends model.Lasso{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: GradientDescent.Lasso dim train_path lambda");
+        System.out.println("Usage: GradientDescent.Lasso dim train_path lambda [trainRatio]");
         int dim = Integer.parseInt(argv[0]);
         String path = argv[1];
         double lambda = Double.parseDouble(argv[2]);
         long startLoad = System.currentTimeMillis();
+        if(argv.length >= 4){
+            trainRatio = Double.parseDouble(argv[3]);
+            if(trainRatio >= 1 || trainRatio <= 0){
+                System.out.println("Error Train Ratio!");
+                System.exit(1);
+            }
+        }
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");

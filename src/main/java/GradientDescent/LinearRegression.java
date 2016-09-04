@@ -9,6 +9,7 @@ import java.util.*;
  */
 public class LinearRegression extends model.LinearRegression{
 
+    static double trainRatio = 0.5;
     private void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
         for (LabeledData labeledData: list) {
             double scala = labeledData.label - model.dot(labeledData.data);
@@ -18,7 +19,7 @@ public class LinearRegression extends model.LinearRegression{
     public void train(List<LabeledData> corpus, DenseVector model) {
         Collections.shuffle(corpus);
         int size = corpus.size();
-        int end = (int) (size * 0.5);
+        int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
         DenseVector oldModel = new DenseVector(model.dim);
@@ -61,10 +62,17 @@ public class LinearRegression extends model.LinearRegression{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: GradientDescent.LinearRegression dim train_path");
+        System.out.println("Usage: GradientDescent.LinearRegression dim train_path [trainRatio]");
         int dim = Integer.parseInt(argv[0]);
         String path = argv[1];
         long startLoad = System.currentTimeMillis();
+        if(argv.length >= 3){
+            trainRatio = Double.parseDouble(argv[2]);
+            if(trainRatio >= 1 || trainRatio <= 0){
+                System.out.println("Error Train Ratio!");
+                System.exit(1);
+            }
+        }
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");

@@ -15,6 +15,7 @@ public class Lasso extends model.Lasso{
 
     DenseVector globalModelOfU;
     DenseVector globalModelOfV;
+    static double trainRatio = 0.5;
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
@@ -58,7 +59,7 @@ public class Lasso extends model.Lasso{
         Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
-        int end = (int) (size * 0.5);
+        int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
         for(int threadID = 0; threadID < threadNum; threadID++){
@@ -76,7 +77,7 @@ public class Lasso extends model.Lasso{
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
-            ExecutorService threadPool = Executors.newFixedThreadPool(5);
+            ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 threadPool.execute(new executeRunnable(ThreadTrainCorpus.get(threadID),
                         modelOfU, modelOfV, lambda, corpus.size()));
@@ -135,7 +136,7 @@ public class Lasso extends model.Lasso{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda");
+        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda [trainRatio]");
         int threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
@@ -144,6 +145,13 @@ public class Lasso extends model.Lasso{
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
+        if(argv.length >= 5){
+            trainRatio = Double.parseDouble(argv[4]);
+            if(trainRatio >= 1 || trainRatio <= 0){
+                System.out.println("Error Train Ratio!");
+                System.exit(1);
+            }
+        }
         train(corpus, lambda, threadNum);
     }
 }

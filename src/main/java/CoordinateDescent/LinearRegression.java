@@ -1,10 +1,11 @@
 package CoordinateDescent;
 
+import it.unimi.dsi.fastutil.Arrays;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.*;
 import Utils.*;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by 王羚宇 on 2016/7/20.
@@ -87,9 +88,7 @@ public class LinearRegression extends model.LinearRegression{
         LinearRegression linearRegressionCD = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dimension);
-        for(int i = 0; i < dimension; i++){
-            model.values[i] = 0;
-        }
+        java.util.Arrays.fill(model.values, 0);
         long start = System.currentTimeMillis();
         linearRegressionCD.train(corpus, labeledData, model, trainRatio);
         long cost = System.currentTimeMillis() - start;

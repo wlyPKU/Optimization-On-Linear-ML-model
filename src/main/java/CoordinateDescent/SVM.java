@@ -11,11 +11,12 @@ import java.util.*;
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 public class SVM extends model.SVM{
 
+    static double trainRatio = 0.5;
     public void train(List<LabeledData> corpus, DenseVector model, double lambda) {
         Collections.shuffle(corpus);
 
         int size = corpus.size();
-        int end = (int) (size * 0.5);
+        int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
 
@@ -36,9 +37,8 @@ public class SVM extends model.SVM{
         }
 
         double []alpha = new double[trainCorpus.size()];
-        for(int j = 0; j < alpha.length;j++){
-            alpha[j] = 0;
-        }
+        Arrays.fill(alpha, 0);
+
         double C = 1.0 / (2.0 * lambda);
         DenseVector oldModel = new DenseVector(model.values.length);
         for (int i = 0; i < 300; i ++) {
@@ -99,14 +99,21 @@ public class SVM extends model.SVM{
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: CoordinateDescent.SVM dim train_path lambda");
+        System.out.println("Usage: CoordinateDescent.SVM dim train_path lambda [trainRatio]");
         int dim = Integer.parseInt(argv[0]);
         String path = argv[1];
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
+        double lambda = Double.parseDouble(argv[2]);
+        if(argv.length >= 4){
+            trainRatio = Double.parseDouble(argv[3]);
+            if(trainRatio >= 1 || trainRatio <= 0){
+                System.out.println("Error Train Ratio!");
+                System.exit(1);
+            }
+        }
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        double lambda = Double.parseDouble(argv[2]);
         train(corpus, lambda);
     }
 }

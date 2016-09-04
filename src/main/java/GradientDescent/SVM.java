@@ -8,6 +8,8 @@ import java.util.*;
  * Created by leleyu on 2016/6/30.
  */
 public class SVM extends model.SVM{
+
+  static double trainRatio = 0.5;
   private double sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr, double lambda) {
     int N_UPDATES = 0;
     int N_TOTAL = 0;
@@ -33,7 +35,7 @@ public class SVM extends model.SVM{
     Collections.shuffle(corpus);
 
     int size = corpus.size();
-    int end = (int) (size * 0.5);
+    int end = (int) (size * trainRatio);
     List<LabeledData> trainCorpus = corpus.subList(0, end);
     List<LabeledData> testCorpus = corpus.subList(end, size);
 
@@ -73,7 +75,7 @@ public class SVM extends model.SVM{
   }
 
   public static void main(String[] argv) throws Exception {
-    System.out.println("Usage: GradientDescent.SVM dim train_path lambda");
+    System.out.println("Usage: GradientDescent.SVM dim train_path lambda [trainRatio]");
     int dim = Integer.parseInt(argv[0]);
     String path = argv[1];
     long startLoad = System.currentTimeMillis();
@@ -81,6 +83,13 @@ public class SVM extends model.SVM{
     long loadTime = System.currentTimeMillis() - startLoad;
     System.out.println("Loading corpus completed, takes " + loadTime + " ms");
     double lambda = Double.parseDouble(argv[2]);
+    if(argv.length >= 4){
+      trainRatio = Double.parseDouble(argv[3]);
+      if(trainRatio >= 1 || trainRatio <= 0){
+        System.out.println("Error Train Ratio!");
+        System.exit(1);
+      }
+    }
     train(corpus, lambda);
   }
 }
