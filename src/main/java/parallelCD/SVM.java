@@ -3,8 +3,6 @@ package parallelCD;
 /**
  * Created by WLY on 2016/9/4.
  */
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.*;
 import Utils.*;
 import java.util.*;
@@ -16,12 +14,13 @@ import java.util.concurrent.TimeUnit;
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 public class SVM extends model.SVM{
 
-    static double trainRatio = 0.5;
-    static double lambda;
-    static DenseVector model;
-    static double []alpha;
-    static double []Q;
-    static List<LabeledData> trainCorpus;
+    private static double trainRatio = 0.5;
+    private static double lambda;
+    private static int threadNum;
+    private static DenseVector model;
+    private static double []alpha;
+    private static double []Q;
+    private static List<LabeledData> trainCorpus;
 
     public class executeRunnable implements Runnable
     {
@@ -35,7 +34,7 @@ public class SVM extends model.SVM{
         public void run() {
             localTrain();
         }
-        public void localTrain() {
+        private void localTrain() {
             for (int j = from; j < to; j++) {
                 LabeledData labeledData = trainCorpus.get(j);
                 double G = model.dot(labeledData.data) * labeledData.label - 1;
@@ -64,7 +63,7 @@ public class SVM extends model.SVM{
         }
     }
 
-    public void trainCore(List<LabeledData> corpus, int threadNum) {
+    private void trainCore(List<LabeledData> corpus) {
         Collections.shuffle(corpus);
         int size = corpus.size();
         int end = (int) (size * trainRatio);
@@ -121,26 +120,26 @@ public class SVM extends model.SVM{
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
-            if(converage(oldModel, model)){
+            if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
         }
     }
 
-    public static void train(List<LabeledData> corpus, int threadNum) {
+    public static void train(List<LabeledData> corpus) {
         int dim = corpus.get(0).data.dim;
         SVM svmCD = new SVM();
         model = new DenseVector(dim);
         long start = System.currentTimeMillis();
-        svmCD.trainCore(corpus, threadNum);
+        svmCD.trainCore(corpus);
 
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelCD.SVM threadNum dim train_path lambda [trainRatio]");
-        int threadNum = Integer.parseInt(argv[0]);
+        threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         long startLoad = System.currentTimeMillis();
@@ -155,6 +154,6 @@ public class SVM extends model.SVM{
                 System.exit(1);
             }
         }
-        train(corpus, threadNum);
+        train(corpus);
     }
 }

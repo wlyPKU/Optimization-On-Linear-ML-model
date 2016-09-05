@@ -54,7 +54,7 @@ public class LogisticRegression extends model.LogisticRegression{
       long testTime = System.currentTimeMillis() - startTest;
       System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
               " trainTime=" + trainTime + " testTime=" + testTime);
-      if(converage(oldModel, model)){
+      if(converge(oldModel, model)){
         //break;
       }
       System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);

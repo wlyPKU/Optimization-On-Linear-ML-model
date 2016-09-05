@@ -17,13 +17,12 @@ import java.util.List;
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 public class LassoLBFGS extends model.Lasso{
-    public void train(SparseMap[] features, List<LabeledData> labeledData,
+    public void train(int featureDim, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
-        int featureDim = features.length - 1;
         double rho = 1e-4;
         double maxRho = 5;
 
@@ -35,7 +34,7 @@ public class LassoLBFGS extends model.Lasso{
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
-            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "lasso");
+            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "LassoLBFGS");
             double rel_par = 1.0;
 
             //Update z
@@ -77,35 +76,32 @@ public class LassoLBFGS extends model.Lasso{
         }
     }
 
-    public static void train(SparseMap[] corpus, List<LabeledData> labeledData,
+    public static void train(int featureDim, List<LabeledData> labeledData,
                              double lambda, double trainRatio) {
-        int dimension = corpus.length;
         LassoLBFGS lassoLBFGS = new LassoLBFGS();
-        ADMMState model = new ADMMState(dimension);
+        ADMMState model = new ADMMState(featureDim);
         long start = System.currentTimeMillis();
-        lassoLBFGS.train(corpus, labeledData, model, lambda, trainRatio);
+        lassoLBFGS.train(featureDim, labeledData, model, lambda, trainRatio);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: ADMM.LassoLBFGS FeatureDim SampleDim train_path lambda trainRatio");
+        System.out.println("Usage: ADMM.LassoLBFGS FeatureDim train_path lambda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
-        int sampleDim = Integer.parseInt(argv[1]);
-        String path = argv[2];
-        double lambda = Double.parseDouble(argv[3]);
+        String path = argv[1];
+        double lambda = Double.parseDouble(argv[2]);
         double trainRatio = 0.5;
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        if(argv.length >= 4){
+            trainRatio = Double.parseDouble(argv[3]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);
             }
         }
         long startLoad = System.currentTimeMillis();
-        SparseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        train(features, labeledData, lambda, trainRatio);
+        train(featureDim, labeledData, lambda, trainRatio);
     }
 }

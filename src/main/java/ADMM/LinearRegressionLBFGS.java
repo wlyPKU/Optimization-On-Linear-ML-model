@@ -11,13 +11,12 @@ import java.util.List;
  */
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
 public class LinearRegressionLBFGS extends model.LinearRegression{
-    public void train(SparseMap[] features, List<LabeledData> labeledData,
+    public void train(int featureDim, List<LabeledData> labeledData,
                       ADMMState model, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
-        int featureDim = features.length - 1;
         double rho = 1e-4;
         double maxRho = 5;
 
@@ -61,41 +60,38 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
             //rho = Math.min(rho * 1.1, maxRho);
-            if(converage(oldModel, model.x)){
+            if(converge(oldModel, model.x)){
                 //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }
     }
 
-    public static void train(SparseMap[] corpus, List<LabeledData> labeledData, double trainRatio) {
-        int dimension = corpus.length;
+    public static void train(int featureDim, List<LabeledData> labeledData, double trainRatio) {
         LinearRegressionLBFGS lrADMM = new LinearRegressionLBFGS();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        ADMMState model = new ADMMState(dimension);
+        ADMMState model = new ADMMState(featureDim);
         long start = System.currentTimeMillis();
-        lrADMM.train(corpus, labeledData, model, trainRatio);
+        lrADMM.train(featureDim, labeledData, model, trainRatio);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: ADMM.LinearRegressionLBFGS FeatureDim SampleDim train_path [trainRatio]");
+        System.out.println("Usage: ADMM.LinearRegressionLBFGS FeatureDim train_path [trainRatio]");
         int featureDim = Integer.parseInt(argv[0]);
-        int sampleDim = Integer.parseInt(argv[1]);
-        String path = argv[2];
+        String path = argv[1];
         double trainRatio = 0.5;
-        if(argv.length >= 4){
-            trainRatio = Double.parseDouble(argv[3]);
+        if(argv.length >= 3){
+            trainRatio = Double.parseDouble(argv[2]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);
             }
         }
         long startLoad = System.currentTimeMillis();
-        SparseMap[] features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        train(features, labeledData, trainRatio);
+        train(featureDim, labeledData, trainRatio);
     }
 }

@@ -13,9 +13,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class Lasso extends model.Lasso{
 
-    DenseVector globalModelOfU;
-    DenseVector globalModelOfV;
-    static double trainRatio = 0.5;
+    private DenseVector globalModelOfU;
+    private DenseVector globalModelOfV;
+    private static int threadNum;
+    private static double lambda = 0.1;
+    private static double trainRatio = 0.5;
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
@@ -38,7 +40,7 @@ public class Lasso extends model.Lasso{
             globalModelOfU.plusDense(localModelOfU);
             globalModelOfV.plusDense(localModelOfV);
         }
-        public void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
+        private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                                  DenseVector modelOfV, double lr, double lambda) {
             double modelPenalty = -lr * lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
@@ -55,7 +57,7 @@ public class Lasso extends model.Lasso{
     }
 
     public void train(List<LabeledData> corpus, DenseVector modelOfU,
-                      DenseVector modelOfV, double lambda, int threadNum) {
+                      DenseVector modelOfV) {
         Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -122,25 +124,25 @@ public class Lasso extends model.Lasso{
         }
     }
 
-    public static void train(List<LabeledData> corpus, double lambda, int threadNum) {
+    public static void train(List<LabeledData> corpus) {
         int dim = corpus.get(0).data.dim;
         Lasso lasso = new Lasso();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dim);
         DenseVector modelOfV = new DenseVector(dim);
         long start = System.currentTimeMillis();
-        lasso.train(corpus, modelOfU, modelOfV, lambda, threadNum);
+        lasso.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda [trainRatio]");
-        int threadNum = Integer.parseInt(argv[0]);
+        System.out.println("Usage: parallelGD.LassoLBFGS threadNum dim train_path lambda [trainRatio]");
+        threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
-        double lambda = Double.parseDouble(argv[3]);
+        lambda = Double.parseDouble(argv[3]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
@@ -152,6 +154,6 @@ public class Lasso extends model.Lasso{
                 System.exit(1);
             }
         }
-        train(corpus, lambda, threadNum);
+        train(corpus);
     }
 }

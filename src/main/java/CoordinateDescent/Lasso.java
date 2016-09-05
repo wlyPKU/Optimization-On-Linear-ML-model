@@ -102,7 +102,7 @@ public class Lasso extends model.Lasso{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: CoordinateDescent.Lasso FeatureDim SampleDim train_path lambda trainRatio");
+        System.out.println("Usage: CoordinateDescent.LassoLBFGS FeatureDim SampleDim train_path lambda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];

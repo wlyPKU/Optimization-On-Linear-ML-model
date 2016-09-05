@@ -17,20 +17,20 @@ import java.util.concurrent.TimeUnit;
 //Ref: http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf Pg. 7,14,18
 public class LogisticRegressionSCD extends model.LogisticRegression{
 
-    static double lambda;
-    static double trainRatio = 0.5;
-    static SparseMap[] features;
-    static DenseVector modelOfU;
-    static DenseVector modelOfV;
-    static double predictValue[];
-    static DenseVector model;
-    static DenseVector oldModel;
-    static List<LabeledData> trainCorpus;
+    private static double lambda;
+    private static double trainRatio = 0.5;
+    private static int threadNum;
+    private static SparseMap[] features;
+    private static DenseVector modelOfU;
+    private static DenseVector modelOfV;
+    private static double predictValue[];
 
-    public class updateWPositive implements Runnable
+    private static List<LabeledData> trainCorpus;
+
+    private class updateWPositive implements Runnable
     {
         int from, to;
-        public updateWPositive(int from, int to){
+        private updateWPositive(int from, int to){
             this.from = from;
             this.to = to;
 
@@ -38,7 +38,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
         public void run() {
             localTrain();
         }
-        public void localTrain() {
+        private void localTrain() {
             for(int fIdx = from; fIdx < to; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
@@ -76,10 +76,10 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
         }
     }
 
-    public class updateWNegative implements Runnable
+    private class updateWNegative implements Runnable
     {
         int from, to;
-        public updateWNegative(int from, int to){
+        private updateWNegative(int from, int to){
             this.from = from;
             this.to = to;
 
@@ -87,7 +87,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
         public void run() {
             localTrain();
         }
-        public void localTrain() {
+        private void localTrain() {
             for(int fIdx = from; fIdx < to; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
@@ -126,7 +126,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
     }
 
 
-    public void trainCore(List<LabeledData> labeledData, int threadNum) {
+    private void trainCore(List<LabeledData> labeledData) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         trainCorpus = labeledData.subList(0, testBegin);
@@ -135,8 +135,8 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
 
         predictValue = new double[trainCorpus.size()];
 
-        model = new DenseVector(featureDim);
-        oldModel = new DenseVector(featureDim);
+        DenseVector model = new DenseVector(featureDim);
+        DenseVector oldModel = new DenseVector(featureDim);
 
         for (int i = 0; i < 100; i ++) {
             for(int idx = 0; idx < trainCorpus.size(); idx++){
@@ -191,7 +191,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
 
-            if(converage(oldModel, model)){
+            if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
@@ -199,7 +199,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
     }
 
 
-    public static void train(List<LabeledData> labeledData, int threadNum) {
+    public static void train(List<LabeledData> labeledData) {
         int dimension = features.length;
         LogisticRegressionSCD lrSCD = new LogisticRegressionSCD();
         //http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf 3197-3200+
@@ -208,14 +208,14 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
         Arrays.fill(modelOfU.values, 0);
         Arrays.fill(modelOfV.values, 0);
         long start = System.currentTimeMillis();
-        lrSCD.trainCore(labeledData, threadNum);
+        lrSCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelCD.LogisticRegressionSCD threadNum FeatureDim SampleDim train_path lamda trainRatio");
-        int threadNum = Integer.parseInt(argv[0]);
+        threadNum = Integer.parseInt(argv[0]);
         int featureDim = Integer.parseInt(argv[1]);
         int sampleDim = Integer.parseInt(argv[2]);
         String path = argv[3];
@@ -237,6 +237,6 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        train(labeledData, threadNum);
+        train(labeledData);
     }
 }

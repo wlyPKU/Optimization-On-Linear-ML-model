@@ -116,7 +116,7 @@ public class LBFGS {
                         }
                     }
                 }
-            }else if(algorithm.equals("lasso") || algorithm.equals("LinearRegression")){
+            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegression")){
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values != null) {
@@ -180,7 +180,7 @@ public class LBFGS {
                 }
                 score = l.label * score;
                 loss += Math.max(1 - score, 0);
-            }else if(algorithm.equals("lasso") || algorithm.equals("LinearRegression")){
+            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegression")){
                 LabeledData l = iter.next();
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {

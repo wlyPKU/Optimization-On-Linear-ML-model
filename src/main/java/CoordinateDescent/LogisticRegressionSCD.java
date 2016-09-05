@@ -116,7 +116,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
 
-            if(converage(oldModel, model)){
+            if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);

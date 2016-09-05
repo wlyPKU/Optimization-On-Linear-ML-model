@@ -2,7 +2,6 @@ package parallelGD;
 import Utils.*;
 import Utils.Utils;
 import math.DenseVector;
-import model.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,8 +11,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class LinearRegression extends model.LinearRegression{
-    DenseVector globalModel;
-    static double trainRatio = 0.5;
+    private DenseVector globalModel;
+    private static double trainRatio = 0.5;
+    private static int threadNum;
+
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
@@ -28,7 +29,7 @@ public class LinearRegression extends model.LinearRegression{
             sgdOneEpoch(localList, localModel, 0.005);
             globalModel.plusDense(localModel);
         }
-        public void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
+        private void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
             for (LabeledData labeledData: list) {
                 double scala = labeledData.label - model.dot(labeledData.data);
                 model.plusGradient(labeledData.data, scala * lr);
@@ -36,7 +37,7 @@ public class LinearRegression extends model.LinearRegression{
         }
     }
 
-    public void train(List<LabeledData> corpus, DenseVector model, int threadNum) {
+    public void train(List<LabeledData> corpus, DenseVector model) {
         Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -86,7 +87,7 @@ public class LinearRegression extends model.LinearRegression{
             Utils.printAccuracy(trainAccuracy);
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
-            if(converage(oldModel, model)){
+            if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
@@ -94,13 +95,13 @@ public class LinearRegression extends model.LinearRegression{
         }
     }
 
-    public static void train(List<LabeledData> corpus, int threadNum) {
+    public static void train(List<LabeledData> corpus) {
         int dim = corpus.get(0).data.dim;
         LinearRegression linear = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
         long start = System.currentTimeMillis();
-        linear.train(corpus, model, threadNum);
+        linear.train(corpus, model);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
@@ -108,7 +109,7 @@ public class LinearRegression extends model.LinearRegression{
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.LinearRegression threadNum dim train_path [trainRatio]");
-        int threadNum = Integer.parseInt(argv[0]);
+        threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         long startLoad = System.currentTimeMillis();
@@ -122,6 +123,6 @@ public class LinearRegression extends model.LinearRegression{
                 System.exit(1);
             }
         }
-        train(corpus, threadNum);
+        train(corpus);
     }
 }

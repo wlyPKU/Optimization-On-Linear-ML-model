@@ -78,7 +78,7 @@ public class Lasso extends model.Lasso{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: GradientDescent.Lasso dim train_path lambda [trainRatio]");
+        System.out.println("Usage: GradientDescent.LassoLBFGS dim train_path lambda [trainRatio]");
         int dim = Integer.parseInt(argv[0]);
         String path = argv[1];
         double lambda = Double.parseDouble(argv[2]);

@@ -18,12 +18,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class Lasso extends model.Lasso{
 
-    static double residual[];
-    static DenseVector model;
-    static double featureSquare[];
-    static SparseMap[] features;
-    static double lambda;
-    static double trainRatio = 0.5;
+    private static double residual[];
+    private static DenseVector model;
+    private static double featureSquare[];
+    private static SparseMap[] features;
+    private static double lambda;
+    private static double trainRatio = 0.5;
+    private static int threadNum;
 
     public class executeRunnable implements Runnable
     {
@@ -65,7 +66,7 @@ public class Lasso extends model.Lasso{
     }
 
 
-    public void trainCore(List<LabeledData> labeledData, int threadNum) {
+    private void trainCore(List<LabeledData> labeledData) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
@@ -131,21 +132,21 @@ public class Lasso extends model.Lasso{
         }
     }
 
-    public static void train(List<LabeledData> labeledData, int threadNum) {
+    public static void train(List<LabeledData> labeledData) {
         int dimension = features.length;
         Lasso lassoCD = new Lasso();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(dimension);
         Arrays.fill(model.values, 0);
         long start = System.currentTimeMillis();
-        lassoCD.trainCore(labeledData, threadNum);
+        lassoCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.Lasso threadNum FeatureDim SampleDim train_path lambda trainRatio");
-        int threadNum=Integer.parseInt(argv[0]);
+        System.out.println("Usage: parallelCD.LassoLBFGS threadNum FeatureDim SampleDim train_path lambda trainRatio");
+        threadNum=Integer.parseInt(argv[0]);
         int featureDim = Integer.parseInt(argv[1]);
         int sampleDim = Integer.parseInt(argv[2]);
         String path = argv[3];
@@ -163,6 +164,6 @@ public class Lasso extends model.Lasso{
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        train(labeledData, threadNum);
+        train(labeledData);
     }
 }

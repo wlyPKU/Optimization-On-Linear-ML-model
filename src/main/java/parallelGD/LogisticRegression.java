@@ -17,9 +17,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class LogisticRegression extends model.LogisticRegression{
 
-    DenseVector globalModelOfU;
-    DenseVector globalModelOfV;
-    static double trainRatio = 0.5;
+    private DenseVector globalModelOfU;
+    private DenseVector globalModelOfV;
+    private static double trainRatio = 0.5;
+    private static double lambda = 0.1;
+    private static int threadNum;
+
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
@@ -42,7 +45,7 @@ public class LogisticRegression extends model.LogisticRegression{
             globalModelOfU.plusDense(localModelOfU);
             globalModelOfV.plusDense(localModelOfV);
         }
-        public void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
+        private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
                                 DenseVector modelOfV, double lr, double lambda) {
             double modelPenalty = -lr * lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
@@ -59,8 +62,7 @@ public class LogisticRegression extends model.LogisticRegression{
         }
     }
 
-    public void train(List<LabeledData> corpus, DenseVector modelOfU,
-                      DenseVector modelOfV, double lambda, int threadNum) {
+    public void train(List<LabeledData> corpus, DenseVector modelOfU, DenseVector modelOfV) {
         Collections.shuffle(corpus);
         int size = corpus.size();
         int end = (int) (size * trainRatio);
@@ -115,7 +117,7 @@ public class LogisticRegression extends model.LogisticRegression{
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
-            if(converage(oldModel, model)){
+            if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
@@ -124,28 +126,28 @@ public class LogisticRegression extends model.LogisticRegression{
         }
     }
 
-    public static void train(List<LabeledData> corpus, double lambda, int threadNum) {
+    public static void train(List<LabeledData> corpus) {
         int dimension = corpus.get(0).data.dim;
         LogisticRegression lr = new LogisticRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dimension);
         DenseVector modelOfV = new DenseVector(dimension);
         long start = System.currentTimeMillis();
-        lr.train(corpus, modelOfU, modelOfV, lambda, threadNum);
+        lr.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.LogisticRegression threadID FeatureDim train_path lambda [trainRatio]");
-        int threadNum = Integer.parseInt(argv[0]);
+        threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        double lambda = Double.parseDouble(argv[3]);
+        lambda = Double.parseDouble(argv[3]);
         if(argv.length >= 5){
             trainRatio = Double.parseDouble(argv[4]);
             if(trainRatio >= 1 || trainRatio <= 0){
@@ -153,6 +155,6 @@ public class LogisticRegression extends model.LogisticRegression{
                 System.exit(1);
             }
         }
-        train(corpus, lambda, threadNum);
+        train(corpus);
     }
 }

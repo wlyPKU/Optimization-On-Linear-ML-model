@@ -122,7 +122,7 @@ public class LogisticRegression {
 
         return loss;
     }
-    public boolean converage(DenseVector oldModel, DenseVector newModel){
+    public boolean converge(DenseVector oldModel, DenseVector newModel){
         double delta = 0;
         for(int i = 0; i < oldModel.values.length; i++){
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);

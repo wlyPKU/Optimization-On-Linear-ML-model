@@ -116,7 +116,7 @@ public class Lasso extends model.Lasso{
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: ADMM.Lasso FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: ADMM.LassoLBFGS FeatureDim SampleDim train_path lamda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];

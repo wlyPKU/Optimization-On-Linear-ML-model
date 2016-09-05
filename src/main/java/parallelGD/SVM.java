@@ -15,8 +15,10 @@ import java.util.concurrent.TimeUnit;
  * Created by WLY on 2016/9/4.
  */
 public class SVM extends model.SVM{
-    DenseVector globalModel;
-    static double trainRatio = 0.5;
+    private DenseVector globalModel;
+    private static double trainRatio = 0.5;
+    private static int threadNum;
+    private static double lambda = 0.1;
 
     public class executeRunnable implements Runnable
     {
@@ -35,7 +37,7 @@ public class SVM extends model.SVM{
             sgdOneEpoch(localList, localModel, 0.001, lambda, globalCorpusSize);
             globalModel.plusDense(localModel);
         }
-        public void sgdOneEpoch(List<LabeledData> list, DenseVector model,
+        private void sgdOneEpoch(List<LabeledData> list, DenseVector model,
                                 double lr, double lambda, double globalCorpusSize) {
             double modelPenalty = -2 * lr * lambda / globalCorpusSize;
             for (LabeledData labeledData : list) {
@@ -52,7 +54,7 @@ public class SVM extends model.SVM{
         }
     }
 
-    public void train(List<LabeledData> corpus, DenseVector model, double lambda, int threadNum) {
+    public void train(List<LabeledData> corpus, DenseVector model) {
         Collections.shuffle(corpus);
 
         int size = corpus.size();
@@ -102,19 +104,19 @@ public class SVM extends model.SVM{
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
 
-            if(converage(oldModel, model)){
+            if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
         }
     }
 
-    public static void train(List<LabeledData> corpus, double lambda, int threadNum) {
+    public static void train(List<LabeledData> corpus) {
         int dim = corpus.get(0).data.dim;
         SVM svm = new SVM();
         DenseVector model = new DenseVector(dim);
         long start = System.currentTimeMillis();
-        svm.train(corpus, model, lambda, threadNum);
+        svm.train(corpus, model);
 
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
@@ -122,14 +124,14 @@ public class SVM extends model.SVM{
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.SVM threadNum dim train_path lambda [trainRatio]");
-        int threadNum = Integer.parseInt(argv[0]);
+        threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        double lambda = Double.parseDouble(argv[3]);
+        lambda = Double.parseDouble(argv[3]);
         if(argv.length >= 5){
             trainRatio = Double.parseDouble(argv[4]);
             if(trainRatio >= 1 || trainRatio <= 0){
@@ -137,6 +139,6 @@ public class SVM extends model.SVM{
                 System.exit(1);
             }
         }
-        train(corpus, lambda, threadNum);
+        train(corpus);
     }
 }

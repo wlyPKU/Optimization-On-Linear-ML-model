@@ -18,11 +18,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class LinearRegression extends model.LinearRegression{
 
-    static double residual[];
-    static DenseVector model;
-    static double featureSquare[];
-    static SparseMap[] features;
-    static double trainRatio = 0.5;
+    private static int threadNum;
+    private static double residual[];
+    private static DenseVector model;
+    private static double featureSquare[];
+    private static SparseMap[] features;
+    private static double trainRatio = 0.5;
 
     public class executeRunnable implements Runnable
     {
@@ -63,7 +64,7 @@ public class LinearRegression extends model.LinearRegression{
     }
 
 
-    public void trainCore(List<LabeledData> labeledData, int threadNum) {
+    private void trainCore(List<LabeledData> labeledData) {
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
@@ -122,28 +123,28 @@ public class LinearRegression extends model.LinearRegression{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
 
-            if(converage(oldModel, model)){
+            if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
         }
     }
 
-    public static void train(List<LabeledData> labeledData, int threadNum) {
+    public static void train(List<LabeledData> labeledData) {
         int dimension = features.length;
         LinearRegression linearCD = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(dimension);
         Arrays.fill(model.values, 0);
         long start = System.currentTimeMillis();
-        linearCD.trainCore(labeledData, threadNum);
+        linearCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelCD.LinearRegression threadNum FeatureDim SampleDim train_path trainRatio");
-        int threadNum=Integer.parseInt(argv[0]);
+        threadNum = Integer.parseInt(argv[0]);
         int featureDim = Integer.parseInt(argv[1]);
         int sampleDim = Integer.parseInt(argv[2]);
         String path = argv[3];
@@ -160,6 +161,6 @@ public class LinearRegression extends model.LinearRegression{
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        train(labeledData, threadNum);
+        train(labeledData);
     }
 }
