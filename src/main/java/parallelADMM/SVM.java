@@ -47,7 +47,7 @@ public class SVM extends model.SVM {
         public void run() {
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
-                    rho, iteNum, localTrainCorpus.get(threadID), "SVM", model.z);
+                    rho, iteNum, localTrainCorpus.get(threadID), "SVMDataParallel", model.z);
             model.x.plusDense(localADMMState[threadID].x);
         }
     }
@@ -63,7 +63,7 @@ public class SVM extends model.SVM {
         Arrays.fill(model.u.values, 0);
         for(int j = 0; j < threadNum; j++){
             for(int fID = 0; fID < featureDimension; fID++){
-                localADMMState[j].u.values[fID] += (x_hat[fID] - model.z.values[fID]);
+                localADMMState[j].u.values[fID] += (localADMMState[j].x.values[fID] - model.z.values[fID]);
                 model.u.values[fID] += localADMMState[j].u.values[fID];
             }
         }
@@ -87,18 +87,7 @@ public class SVM extends model.SVM {
         }
         model.x.allDividedBy(threadNum);
     }
-    private void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData>testCorpus){
-        long startTest = System.currentTimeMillis();
-        double loss = SVMLoss(trainCorpus, model.x, model.z, lambda);
-        double trainAuc = auc(trainCorpus, model.x);
-        double testAuc = auc(testCorpus, model.x);
-        double trainAccuracy = accuracy(trainCorpus, model.x);
-        double testAccuracy = accuracy(testCorpus, model.x);
-        long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
-                + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
-                + " testTime=" + testTime);
-    }
+
     private void trainCore() {
         Collections.shuffle(labeledData);
 
@@ -118,6 +107,8 @@ public class SVM extends model.SVM {
         }
 
         x_hat = new double[model.featureNum];
+        long totalBegin = System.currentTimeMillis();
+
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
@@ -130,12 +121,14 @@ public class SVM extends model.SVM {
 
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime=" + trainTime + " ");
-            testAndSummary(trainCorpus, testCorpus);
+            testAndSummary(trainCorpus, testCorpus, model.x, lambda);
 
             if(converge(oldModel, model.x)){
                 //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+
         }
     }
     private static void train() {

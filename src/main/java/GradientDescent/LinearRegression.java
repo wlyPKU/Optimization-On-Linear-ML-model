@@ -62,7 +62,7 @@ public class LinearRegression extends model.LinearRegression{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: GradientDescent.LinearRegression dim train_path [trainRatio]");
+        System.out.println("Usage: GradientDescent.LinearRegressionModelParallel dim train_path [trainRatio]");
         int dim = Integer.parseInt(argv[0]);
         String path = argv[1];
         long startLoad = System.currentTimeMillis();

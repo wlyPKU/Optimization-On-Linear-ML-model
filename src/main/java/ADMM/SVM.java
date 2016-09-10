@@ -45,7 +45,7 @@ public class SVM extends model.SVM {
 
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
-            double loss = SVMLoss(trainCorpus, model.x, model.z, lambda);
+            double loss = SVMLoss(trainCorpus, model.x, lambda);
             double trainAuc = auc(trainCorpus, model.x);
             double testAuc = auc(testCorpus, model.x);
             double trainAccuracy = accuracy(trainCorpus, model.x);

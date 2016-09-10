@@ -1,5 +1,6 @@
 package parallelCD;
 
+import Utils.LabeledData;
 import Utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
@@ -8,7 +9,6 @@ import math.SparseMap;
 
 import java.util.Arrays;
 import java.util.List;
-import Utils.LabeledData;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -16,14 +16,17 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
-public class LinearRegression extends model.LinearRegression{
+public class LassoModelParallel extends model.Lasso{
 
-    private static int threadNum;
     private static double residual[];
     private static DenseVector model;
     private static double featureSquare[];
     private static SparseMap[] features;
+    private static double lambda;
     private static double trainRatio = 0.5;
+    private static int threadNum;
+    private static int featureDimension;
+    private static int sampleDimension;
 
     public class executeRunnable implements Runnable
     {
@@ -34,9 +37,6 @@ public class LinearRegression extends model.LinearRegression{
 
         }
         public void run() {
-            localTrain();
-        }
-        public void localTrain() {
             for(int j = from; j < to; j++){
                 double oldValue = model.values[j];
                 double updateValue = 0;
@@ -50,9 +50,9 @@ public class LinearRegression extends model.LinearRegression{
                 }
                 updateValue /= featureSquare[j];
                 model.values[j] += updateValue;
+                model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
 
                 iter =  features[j].map.int2DoubleEntrySet().iterator();
-
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
@@ -69,33 +69,33 @@ public class LinearRegression extends model.LinearRegression{
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
-        int featureDim = features.length - 1;
-        int sampleSize = features[featureDim].map.size();
-        featureSquare = new double[featureDim];
-        residual = new double[sampleSize];
-        for(int i = 0; i < featureDim; i++){
+        featureSquare = new double[featureDimension];
+        residual = new double[sampleDimension];
+        for(int i = 0; i < featureDimension; i++){
             featureSquare[i] = 0;
             for(Double v: features[i].map.values()){
                 featureSquare[i] += v * v;
             }
-            if(featureSquare[i] == 0){
-                featureSquare[i] = Double.MAX_VALUE;
-            }
         }
-        ObjectIterator<Int2DoubleMap.Entry> iter =  features[featureDim].map.int2DoubleEntrySet().iterator();
+
+        ObjectIterator<Int2DoubleMap.Entry> iter =  features[featureDimension].map.int2DoubleEntrySet().iterator();
         while (iter.hasNext()) {
             Int2DoubleMap.Entry entry = iter.next();
             int idx = entry.getIntKey();
             double y = entry.getDoubleValue();
             residual[idx] = y;
         }
-        DenseVector oldModel = new DenseVector(featureDim);
+        DenseVector oldModel = new DenseVector(featureDimension);
+
+        long totalBegin = System.currentTimeMillis();
+
+
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                int from = featureDim * threadID / threadNum;
-                int to = featureDim * (threadID + 1) / threadNum;
+                int from = featureDimension * threadID / threadNum;
+                int to = featureDimension * (threadID + 1) / threadNum;
                 threadPool.execute(new executeRunnable(from, to));
             }
             threadPool.shutdown();
@@ -109,56 +109,47 @@ public class LinearRegression extends model.LinearRegression{
             }
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            long startTest = System.currentTimeMillis();
-
-            double loss = test(trainCorpus, model);
-            double accuracy = test(testCorpus, model);
-            long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " testResidual=" + accuracy +
-                    " trainTime=" + trainTime + " testTime=" + testTime);
-            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
-            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
-            System.out.println("Train Accuracy:");
-            Utils.printAccuracy(trainAccuracy);
-            System.out.println("Test Accuracy:");
-            Utils.printAccuracy(testAccuracy);
+            System.out.println("trainTime=" + trainTime + " ");
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
                 //break;
             }
-            System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
+            System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+
         }
     }
 
     public static void train(List<LabeledData> labeledData) {
-        int dimension = features.length;
-        LinearRegression linearCD = new LinearRegression();
+        LassoModelParallel lassoModelParallelCD = new LassoModelParallel();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        model = new DenseVector(dimension);
+        model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);
         long start = System.currentTimeMillis();
-        linearCD.trainCore(labeledData);
+        lassoModelParallelCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.LinearRegression threadNum FeatureDim SampleDim train_path trainRatio");
-        threadNum = Integer.parseInt(argv[0]);
-        int featureDim = Integer.parseInt(argv[1]);
-        int sampleDim = Integer.parseInt(argv[2]);
+        System.out.println("Usage: parallelCD.LassoModelParallel threadNum FeatureDim SampleDim train_path lambda trainRatio");
+        threadNum=Integer.parseInt(argv[0]);
+        featureDimension = Integer.parseInt(argv[1]);
+        sampleDimension = Integer.parseInt(argv[2]);
         String path = argv[3];
+        lambda = Double.parseDouble(argv[4]);
         trainRatio = 0.5;
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        if(argv.length >= 6){
+            trainRatio = Double.parseDouble(argv[5]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);
             }
         }
         long startLoad = System.currentTimeMillis();
-        features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
-        List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
+        features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);
+        List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);

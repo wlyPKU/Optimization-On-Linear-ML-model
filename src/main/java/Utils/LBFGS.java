@@ -96,7 +96,7 @@ public class LBFGS {
                         g[l.data.indices[i]] += gradient * l.data.values[i];
                     }
                 }
-            }else if(algorithm.equals("SVM")){
+            }else if(algorithm.equals("SVMDataParallel")){
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values != null) {
@@ -116,7 +116,7 @@ public class LBFGS {
                         }
                     }
                 }
-            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegression")){
+            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegressionModelParallel")){
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values != null) {
@@ -168,7 +168,7 @@ public class LBFGS {
                 }
                 score *= l.label;
                 loss += Math.log(1.0 + Math.exp(-score));
-            }else if(algorithm.equals("SVM")){
+            }else if(algorithm.equals("SVMDataParallel")){
                 LabeledData l = iter.next();
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
@@ -180,7 +180,7 @@ public class LBFGS {
                 }
                 score = l.label * score;
                 loss += Math.max(1 - score, 0);
-            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegression")){
+            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegressionModelParallel")){
                 LabeledData l = iter.next();
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {

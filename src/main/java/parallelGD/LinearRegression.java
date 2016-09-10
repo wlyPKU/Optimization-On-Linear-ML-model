@@ -54,6 +54,8 @@ public class LinearRegression extends model.LinearRegression{
 
         globalModel = new DenseVector(model.dim);
 
+        long totalBegin = System.currentTimeMillis();
+
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
@@ -74,24 +76,14 @@ public class LinearRegression extends model.LinearRegression{
             System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            long startTest = System.currentTimeMillis();
-
-            double loss = test(trainCorpus, model);
-            double accuracy = test(testCorpus, model);
-            long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " TestLoss=" + accuracy +
-                    " trainTime=" + trainTime + " testTime=" + testTime);
-            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
-            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
-            System.out.println("Train Accuracy:");
-            Utils.printAccuracy(trainAccuracy);
-            System.out.println("Test Accuracy:");
-            Utils.printAccuracy(testAccuracy);
+            System.out.println("trainTime=" + trainTime + " ");
+            testAndSummary(trainCorpus, testCorpus, model);
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModel.values, 0);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
         }
     }
 

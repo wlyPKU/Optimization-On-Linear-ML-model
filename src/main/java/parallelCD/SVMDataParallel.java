@@ -12,32 +12,33 @@ import java.util.concurrent.TimeUnit;
 
 //http://www.tuicool.com/m/articles/RRZvYb
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
-public class SVM extends model.SVM{
+public class SVMDataParallel extends model.SVM{
 
     private static double trainRatio = 0.5;
     private static double lambda;
     private static int threadNum;
+    private static int featureDimension;
     private static DenseVector model;
+    private static DenseVector localModel[];
     private static double []alpha;
     private static double []Q;
     private static List<LabeledData> trainCorpus;
 
     public class executeRunnable implements Runnable
     {
-        int from, to;
+        int localSampleStart, localSampleEnd;
+        int threadID;
         double C;
-        public executeRunnable(int from, int to, double C){
-            this.from = from;
-            this.to = to;
+        public executeRunnable(int threadID, double C){
+            this.threadID = threadID;
+            localSampleStart = trainCorpus.size() * threadID / threadNum;
+            localSampleEnd= trainCorpus.size() * (threadID + 1) / threadNum;
             this.C = C;
         }
         public void run() {
-            localTrain();
-        }
-        private void localTrain() {
-            for (int j = from; j < to; j++) {
+            for (int j = localSampleStart; j < localSampleEnd; j++) {
                 LabeledData labeledData = trainCorpus.get(j);
-                double G = model.dot(labeledData.data) * labeledData.label - 1;
+                double G = localModel[threadID].dot(labeledData.data) * labeledData.label - 1;
                 double alpha_old = alpha[j];
                 double PG = 0;
                 if(alpha[j] == 0){
@@ -52,14 +53,15 @@ public class SVM extends model.SVM{
                     int r = 0;
                     for (Integer idx : labeledData.data.indices) {
                         if (labeledData.data.values == null) {
-                            model.values[idx] += (alpha[j] - alpha_old) * labeledData.label;
+                            localModel[threadID].values[idx] += (alpha[j] - alpha_old) * labeledData.label;
                         } else {
-                            model.values[idx] += (alpha[j] - alpha_old) * labeledData.label * labeledData.data.values[r];
+                            localModel[threadID].values[idx] += (alpha[j] - alpha_old) * labeledData.label * labeledData.data.values[r];
                             r++;
                         }
                     }
                 }
             }
+            model.plusDense(localModel[threadID]);
         }
     }
 
@@ -70,7 +72,7 @@ public class SVM extends model.SVM{
         trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
 
-        //TODO https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
+        //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
         Q = new double[trainCorpus.size()];
         int index = 0;
         for(LabeledData l: trainCorpus){
@@ -88,17 +90,17 @@ public class SVM extends model.SVM{
 
         alpha = new double[trainCorpus.size()];
         Arrays.fill(alpha, 0);
-
         double C = 1.0 / (2.0 * lambda);
         DenseVector oldModel = new DenseVector(model.values.length);
-        for (int i = 0; i < 300; i ++) {
+        long totalBegin = System.currentTimeMillis();
+
+        for (int i = 0; i < 100; i ++) {
+            ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
+            Arrays.fill(model.values, 0);
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
-            ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                int from = trainCorpus.size() * threadID / threadNum;
-                int to = trainCorpus.size() * (threadID + 1) / threadNum;
-                threadPool.execute(new executeRunnable(from, to, C));
+                threadPool.execute(new executeRunnable(threadID, C));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -109,28 +111,31 @@ public class SVM extends model.SVM{
                     e.printStackTrace();
                 }
             }
+            model.allDividedBy(threadNum);
+
             long trainTime = System.currentTimeMillis() - startTrain;
-            long startTest = System.currentTimeMillis();
-            double loss = SVMLoss(trainCorpus, model, lambda);
-            double trainAuc = auc(trainCorpus, model);
-            double testAuc = auc(testCorpus, model);
-            double trainAccuracy = accuracy(trainCorpus, model);
-            double testAccuracy = accuracy(testCorpus, model);
-            long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
-                    + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
-                    + " trainTime=" + trainTime + " testTime=" + testTime);
+            System.out.println("trainTime=" + trainTime + " ");
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
+
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            for(int idx = 0; idx < threadNum; idx++){
+                System.arraycopy(model.values, 0, localModel[idx].values, 0, featureDimension);
+            }
+
         }
     }
 
     public static void train(List<LabeledData> corpus) {
-        int dim = corpus.get(0).data.dim;
-        SVM svmCD = new SVM();
-        model = new DenseVector(dim);
+        SVMDataParallel svmCD = new SVMDataParallel();
+        model = new DenseVector(featureDimension);
+        localModel = new DenseVector[threadNum];
+        for(int i = 0; i < threadNum; i++){
+            localModel[i] = new DenseVector(featureDimension);
+        }
         long start = System.currentTimeMillis();
         svmCD.trainCore(corpus);
 
@@ -138,12 +143,12 @@ public class SVM extends model.SVM{
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.SVM threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelCD.SVMDataParallel threadNum dim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
-        int dim = Integer.parseInt(argv[1]);
+        featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
         long startLoad = System.currentTimeMillis();
-        List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
+        List<LabeledData> corpus = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         lambda = Double.parseDouble(argv[3]);

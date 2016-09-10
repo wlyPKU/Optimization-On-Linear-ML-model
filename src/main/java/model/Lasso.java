@@ -1,6 +1,7 @@
 package model;
 
 import Utils.LabeledData;
+import Utils.Utils;
 import math.DenseVector;
 import java.util.List;
 
@@ -8,6 +9,25 @@ import java.util.List;
  * Created by 王羚宇 on 2016/8/7.
  */
 public class Lasso {
+    public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+                                DenseVector x, double lambda){
+        long startTest = System.currentTimeMillis();
+        double trainLoss = lassoLoss(trainCorpus, x, lambda);
+        double testLoss = lassoLoss(testCorpus, x, lambda);
+        double trainResidual = test(trainCorpus, x);
+        double testResidual = test(testCorpus, x);
+        long testTime = System.currentTimeMillis() - startTest;
+        System.out.println("Trainloss=" + trainLoss + " TestLoss=" + testLoss +
+                " trainResidual=" + trainResidual + " testResidual=" + testResidual +
+                " testTime=" + testTime);
+        double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, x);
+        double []testAccuracy = Utils.LinearAccuracy(testCorpus, x);
+        System.out.println("Train Accuracy:");
+        Utils.printAccuracy(trainAccuracy);
+        System.out.println("Test Accuracy:");
+        Utils.printAccuracy(testAccuracy);
+
+    }
     public double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {

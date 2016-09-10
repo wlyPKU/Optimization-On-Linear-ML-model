@@ -1,9 +1,11 @@
 package parallelCD;
 
+import Utils.LabeledData;
+import Utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import math.*;
-import Utils.*;
+import math.DenseVector;
+import math.SparseMap;
 
 import java.util.Arrays;
 import java.util.List;
@@ -15,7 +17,7 @@ import java.util.concurrent.TimeUnit;
  * Created by 王羚宇 on 2016/7/26.
  */
 //Ref: http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf Pg. 7,14,18
-public class LogisticRegressionSCD extends model.LogisticRegression{
+public class LogisticRegressionDataParallel extends model.LogisticRegression{
 
     private static double lambda;
     private static double trainRatio = 0.5;
@@ -23,27 +25,31 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
     private static SparseMap[] features;
     private static DenseVector modelOfU;
     private static DenseVector modelOfV;
+    private static DenseVector[] localModelOfU;
+    private static DenseVector[] localModelOfV;
     private static double predictValue[];
 
+    private static int featureDimension;
+    private static int sampleDimension;
     private static List<LabeledData> trainCorpus;
+    private static SparseMap[][] featuresSplits;
 
     private class updateWPositive implements Runnable
     {
-        int from, to;
-        private updateWPositive(int from, int to){
-            this.from = from;
-            this.to = to;
+        int threadID;
+        private updateWPositive(int threadID){
+            this.threadID = threadID;
 
         }
         public void run() {
             localTrain();
         }
         private void localTrain() {
-            for(int fIdx = from; fIdx < to; fIdx++){
+            for(int fIdx = 0; fIdx < featureDimension; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
-                double oldValue = modelOfU.values[fIdx];
-                ObjectIterator<Int2DoubleMap.Entry> iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                double oldValue = localModelOfU[threadID].values[fIdx];
+                ObjectIterator<Int2DoubleMap.Entry> iter =  featuresSplits[threadID][fIdx].map.int2DoubleEntrySet().iterator();
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
@@ -57,42 +63,38 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
 
                 double Uj = 0.25 * 1 / lambda * trainCorpus.size();
                 double updateValue = (1 + firstOrderL) / Uj;
-                if(updateValue > modelOfU.values[fIdx]){
-                    modelOfU.values[fIdx] = 0;
+                if(updateValue > localModelOfU[threadID].values[fIdx]){
+                    localModelOfU[threadID].values[fIdx] = 0;
                 }else{
-                    modelOfU.values[fIdx] -= updateValue;
+                    localModelOfU[threadID].values[fIdx] -= updateValue;
                 }
                 //Update predictValue
-                iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                iter =  featuresSplits[threadID][fIdx].map.int2DoubleEntrySet().iterator();
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
                     if(idx < trainCorpus.size()) {
                         double value = entry.getDoubleValue();
-                        predictValue[idx] += value * (modelOfU.values[fIdx] - oldValue);
+                        predictValue[idx] += value * (localModelOfU[threadID].values[fIdx] - oldValue);
                     }
                 }
             }
+            modelOfU.plusDense(localModelOfU[threadID]);
         }
     }
 
     private class updateWNegative implements Runnable
     {
-        int from, to;
-        private updateWNegative(int from, int to){
-            this.from = from;
-            this.to = to;
-
+        int threadID;
+        private updateWNegative(int threadID){
+            this.threadID = threadID;
         }
         public void run() {
-            localTrain();
-        }
-        private void localTrain() {
-            for(int fIdx = from; fIdx < to; fIdx++){
+            for(int fIdx = 0; fIdx < featureDimension; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
-                double oldValue = modelOfV.values[fIdx];
-                ObjectIterator<Int2DoubleMap.Entry> iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                double oldValue = localModelOfV[threadID].values[fIdx];
+                ObjectIterator<Int2DoubleMap.Entry> iter =  featuresSplits[threadID][fIdx].map.int2DoubleEntrySet().iterator();
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
@@ -106,50 +108,54 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
 
                 double Uj = 0.25 * 1 / lambda * trainCorpus.size();
                 double updateValue = (1 - firstOrderL) / Uj;
-                if(updateValue > modelOfV.values[fIdx]){
-                    modelOfV.values[fIdx] = 0;
+                if(updateValue > localModelOfV[threadID].values[fIdx]){
+                    localModelOfV[threadID].values[fIdx] = 0;
                 }else{
-                    modelOfV.values[fIdx] -= updateValue;
+                    localModelOfV[threadID].values[fIdx] -= updateValue;
                 }
 
-                iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
+                iter =   featuresSplits[threadID][fIdx].map.int2DoubleEntrySet().iterator();
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
                     if(idx < trainCorpus.size()) {
                         double value = entry.getDoubleValue();
-                        predictValue[idx] -= value * (modelOfV.values[fIdx] - oldValue);
+                        predictValue[idx] -= value * (localModelOfV[threadID].values[fIdx] - oldValue);
                     }
                 }
             }
+            modelOfV.plusDense(localModelOfV[threadID]);
         }
+
     }
 
-
     private void trainCore(List<LabeledData> labeledData) {
-        int testBegin = (int)(labeledData.size() * trainRatio);
+        int testBegin = (int)(sampleDimension * trainRatio);
         int testEnd = labeledData.size();
         trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
-        int featureDim = features.length - 1;
 
         predictValue = new double[trainCorpus.size()];
 
-        DenseVector model = new DenseVector(featureDim);
-        DenseVector oldModel = new DenseVector(featureDim);
+        DenseVector model = new DenseVector(featureDimension);
+        DenseVector oldModel = new DenseVector(featureDimension);
+
+        long totalBegin = System.currentTimeMillis();
+
 
         for (int i = 0; i < 100; i ++) {
             for(int idx = 0; idx < trainCorpus.size(); idx++){
                 LabeledData l = trainCorpus.get(idx);
                 predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
             }
+            Arrays.fill(modelOfU.values, 0);
+            Arrays.fill(modelOfV.values, 0);
+
             long startTrain = System.currentTimeMillis();
             //Update w+
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                int from = featureDim * threadID / threadNum;
-                int to = featureDim * (threadID + 1) / threadNum;
-                threadPool.execute(new updateWPositive(from, to));
+                threadPool.execute(new updateWPositive(threadID));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -163,9 +169,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
             //Update w-
             ExecutorService newThreadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                int from = featureDim * threadID / threadNum;
-                int to = featureDim * (threadID + 1) / threadNum;
-                newThreadPool.execute(new updateWNegative(from, to));
+                newThreadPool.execute(new updateWNegative(threadID));
             }
             newThreadPool.shutdown();
             while (!newThreadPool.isTerminated()) {
@@ -177,34 +181,42 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
                 }
             }
 
-            for(int fIdx = 0; fIdx < featureDim; fIdx ++){
+            modelOfU.allDividedBy(threadNum);
+            modelOfV.allDividedBy(threadNum);
+
+            for(int fIdx = 0; fIdx < featureDimension; fIdx ++){
                 model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            long startTest = System.currentTimeMillis();
+            System.out.println("trainTime=" + trainTime + " ");
 
-            double loss = logLoss(trainCorpus, model, lambda);
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
 
-            double trainAuc = auc(trainCorpus, model);
-            double testAuc = auc(testCorpus, model);
-            long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
-                    " trainTime=" + trainTime + " testTime=" + testTime);
 
             if(converge(oldModel, model)){
                 //break;
             }
-            System.arraycopy(model.values, 0, oldModel.values, 0, featureDim);
+            System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            for(int idx = 0; idx < threadNum; idx++){
+                System.arraycopy(modelOfU.values, 0, localModelOfU[idx].values, 0, featureDimension);
+                System.arraycopy(modelOfV.values, 0, localModelOfV[idx].values, 0, featureDimension);
+            }
         }
     }
 
 
     public static void train(List<LabeledData> labeledData) {
-        int dimension = features.length;
-        LogisticRegressionSCD lrSCD = new LogisticRegressionSCD();
+        LogisticRegressionDataParallel lrSCD = new LogisticRegressionDataParallel();
         //http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf 3197-3200+
-        modelOfU = new DenseVector(dimension);
-        modelOfV = new DenseVector(dimension);
+        modelOfU = new DenseVector(featureDimension);
+        modelOfV = new DenseVector(featureDimension);
+        localModelOfU = new DenseVector[threadNum];
+        localModelOfV = new DenseVector[threadNum];
+        for(int i = 0; i < threadNum; i++){
+            localModelOfU[i] = new DenseVector(featureDimension);
+            localModelOfV[i] = new DenseVector(featureDimension);
+        }
         Arrays.fill(modelOfU.values, 0);
         Arrays.fill(modelOfV.values, 0);
         long start = System.currentTimeMillis();
@@ -214,10 +226,10 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.LogisticRegressionSCD threadNum FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: parallelCD.LogisticRegressionDataParallel threadNum FeatureDim SampleDim train_path lamda trainRatio");
         threadNum = Integer.parseInt(argv[0]);
-        int featureDim = Integer.parseInt(argv[1]);
-        int sampleDim = Integer.parseInt(argv[2]);
+        featureDimension = Integer.parseInt(argv[1]);
+        sampleDimension= Integer.parseInt(argv[2]);
         String path = argv[3];
         lambda = Double.parseDouble(argv[4]);
         if(lambda <= 0){
@@ -233,8 +245,10 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
             }
         }
         long startLoad = System.currentTimeMillis();
-        features = Utils.LoadLibSVMByFeature(path, featureDim, sampleDim, trainRatio);
-        List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDim);
+        features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);
+        featuresSplits = Utils.LoadLibSVMByFeatureSplit(path, featureDimension, sampleDimension, trainRatio, threadNum);
+        List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
+
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);

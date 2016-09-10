@@ -9,6 +9,24 @@ import java.util.List;
  * Created by 王羚宇 on 2016/8/7.
  */
 public class SVM {
+
+    public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData>testCorpus,
+                               DenseVector model, double lambda){
+        long startTest = System.currentTimeMillis();
+
+        double trainLoss = SVMLoss(trainCorpus, model, lambda);
+        double testLoss = SVMLoss(testCorpus, model, lambda);
+        double trainAuc = auc(trainCorpus, model);
+        double testAuc = auc(testCorpus, model);
+        double trainAccuracy = accuracy(trainCorpus, model);
+        double testAccuracy = accuracy(testCorpus, model);
+        long testTime = System.currentTimeMillis() - startTest;
+        System.out.println("trainloss=" + trainLoss +"testLoss=" + testLoss +
+                " trainAuc=" + trainAuc + " testAuc=" + testAuc
+                + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
+                + " testTime=" + testTime);
+    }
+
     public double auc(List<LabeledData> list, DenseVector model) {
         int length = list.size();
         System.out.println(length);

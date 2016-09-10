@@ -58,16 +58,6 @@ public class LogisticRegression extends model.LogisticRegression{
         }
     }
 
-    void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus){
-        long startTest = System.currentTimeMillis();
-        double loss = logLoss(trainCorpus, model.x, model.z,lambda);
-        double trainAuc = auc(trainCorpus, model.x);
-        double testAuc = auc(testCorpus, model.x);
-        long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
-                 " testTime=" + testTime);
-    }
-
     private void updateX(int iteNumber){
         Arrays.fill(model.x.values, 0);
         ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
@@ -98,7 +88,7 @@ public class LogisticRegression extends model.LogisticRegression{
         Arrays.fill(model.u.values, 0);
         for(int j = 0; j < threadNum; j++){
             for(int fID = 0; fID < featureDimension; fID++){
-                localADMMState[j].u.values[fID] += (x_hat[fID] - model.z.values[fID]);
+                localADMMState[j].u.values[fID] += (localADMMState[j].x.values[fID] - model.z.values[fID]);
                 model.u.values[fID] += localADMMState[j].u.values[fID];
             }
         }
@@ -122,6 +112,7 @@ public class LogisticRegression extends model.LogisticRegression{
             List<LabeledData> localData = trainCorpus.subList(from, to);
             localTrainCorpus.add(localData);
         }
+        long totalBegin = System.currentTimeMillis();
 
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
@@ -134,12 +125,14 @@ public class LogisticRegression extends model.LogisticRegression{
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime=" + trainTime + " ");
 
-            testAndSummary(trainCorpus, testCorpus);
+            testAndSummary(trainCorpus, testCorpus, model.x, lambda);
 
             if(converge(oldModel, model.x)){
                 //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+
         }
     }
 

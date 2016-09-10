@@ -97,7 +97,7 @@ public class LinearRegression extends model.LinearRegression{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: CoordinateDescent.LinearRegression FeatureDim SampleDim train_path [trainRatio]");
+        System.out.println("Usage: CoordinateDescent.LinearRegressionModelParallel FeatureDim SampleDim train_path [trainRatio]");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];

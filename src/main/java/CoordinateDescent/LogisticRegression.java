@@ -116,7 +116,7 @@ public class LogisticRegression extends model.LogisticRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: CoordinateDescent.LogisticRegression FeatureDim SampleDim train_path lambda trainRatio");
+        System.out.println("Usage: CoordinateDescent.LogisticRegressionModelParallel FeatureDim SampleDim train_path lambda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];

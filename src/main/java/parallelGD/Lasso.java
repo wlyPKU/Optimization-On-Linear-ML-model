@@ -76,6 +76,8 @@ public class Lasso extends model.Lasso{
         globalModelOfU = new DenseVector(modelOfU.dim);
         globalModelOfV = new DenseVector(modelOfV.dim);
 
+        long totalBegin = System.currentTimeMillis();
+
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
@@ -98,29 +100,20 @@ public class Lasso extends model.Lasso{
             System.arraycopy(globalModelOfU.values, 0, modelOfU.values, 0, modelOfU.dim);
             System.arraycopy(globalModelOfV.values, 0, modelOfV.values, 0, modelOfV.dim);
 
-            long trainTime = System.currentTimeMillis() - startTrain;
-            long startTest = System.currentTimeMillis();
-
             for(int j = 0; j < model.dim; j++){
                 model.values[j] = modelOfU.values[j] - modelOfV.values[j];
             }
-            double loss = lassoLoss(trainCorpus, model, lambda);
-            double accuracy = test(testCorpus, model);
-            long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " TestLoss=" + accuracy +
-                    " trainTime=" + trainTime + " testTime=" + testTime);
-            double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
-            double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
-            System.out.println("Train Accuracy:");
-            Utils.printAccuracy(trainAccuracy);
-            System.out.println("Test Accuracy:");
-            Utils.printAccuracy(testAccuracy);
+            long trainTime = System.currentTimeMillis() - startTrain;
+            System.out.println("trainTime=" + trainTime + " ");
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
+
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
         }
     }
 
@@ -138,7 +131,7 @@ public class Lasso extends model.Lasso{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LassoLBFGS threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];

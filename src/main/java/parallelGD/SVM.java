@@ -5,6 +5,7 @@ import Utils.Utils;
 import math.DenseVector;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -72,9 +73,11 @@ public class SVM extends model.SVM{
         DenseVector oldModel = new DenseVector(model.values.length);
         globalModel = new DenseVector(model.dim);
 
+        long totalBegin = System.currentTimeMillis();
+
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
-            //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
+            //StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 threadPool.execute(new executeRunnable(ThreadTrainCorpus.get(threadID),
@@ -91,23 +94,18 @@ public class SVM extends model.SVM{
             }
             globalModel.allDividedBy(threadNum);
             System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
+            Arrays.fill(globalModel.values, 0);
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            long startTest = System.currentTimeMillis();
-            double loss = SVMLoss(trainCorpus, model, lambda);
-            double trainAuc = auc(trainCorpus, model);
-            double testAuc = auc(testCorpus, model);
-            double trainAccuracy = accuracy(trainCorpus, model);
-            double testAccuracy = accuracy(testCorpus, model);
-            long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc
-                    + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
-                    + " trainTime=" + trainTime + " testTime=" + testTime);
+            System.out.println("trainTime=" + trainTime + " ");
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+
         }
     }
 

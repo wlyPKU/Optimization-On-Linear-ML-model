@@ -34,21 +34,6 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
 
-    void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus){
-        long startTest = System.currentTimeMillis();
-        double loss = test(trainCorpus, model.x);
-        double accuracy = test(testCorpus, model.x);
-        long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("loss=" + loss + " testResidual=" + accuracy +
-                " testTime=" + testTime);
-        double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model.x);
-        double []testAccuracy = Utils.LinearAccuracy(testCorpus, model.x);
-        System.out.println("Train Accuracy:");
-        Utils.printAccuracy(trainAccuracy);
-        System.out.println("Test Accuracy:");
-        Utils.printAccuracy(testAccuracy);
-    }
-
     private class executeRunnable implements Runnable {
         int threadID;
         int iteNum;
@@ -61,7 +46,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         public void run() {
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
-                    rho, iteNum, localTrainCorpus.get(threadID), "LinearRegression", model.z);
+                    rho, iteNum, localTrainCorpus.get(threadID), "LinearRegressionModelParallel", model.z);
             model.x.plusDense(localADMMState[threadID].x);
         }
     }
@@ -95,7 +80,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         Arrays.fill(model.u.values, 0);
         for(int j = 0; j < threadNum; j++){
             for(int fID = 0; fID < featureDimension; fID++){
-                localADMMState[j].u.values[fID] += (x_hat[fID] - model.z.values[fID]);
+                localADMMState[j].u.values[fID] += (localADMMState[j].x.values[fID] - model.z.values[fID]);
                 model.u.values[fID] += localADMMState[j].u.values[fID];
             }
         }
@@ -119,6 +104,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             List<LabeledData> localData = trainCorpus.subList(from, to);
             localTrainCorpus.add(localData);
         }
+        long totalBegin = System.currentTimeMillis();
 
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
@@ -130,7 +116,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
 
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime=" + trainTime + " ");
-            testAndSummary(trainCorpus, testCorpus);
+            testAndSummary(trainCorpus, testCorpus, model.x);
 
             //rho = Math.min(rho * 1.1, maxRho);
             if(converge(oldModel, model.x)){
@@ -138,6 +124,8 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             Arrays.fill(model.x.values, 0);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+
         }
     }
 

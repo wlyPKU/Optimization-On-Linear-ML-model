@@ -56,7 +56,7 @@ public class LassoLBFGS extends model.Lasso{
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = lassoLoss(trainCorpus, model.x, model.z, lambda);
+            double loss = lassoLoss(trainCorpus, model.x, lambda);
             double accuracy = test(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
             System.out.println("loss=" + loss + " testResidual=" + accuracy +

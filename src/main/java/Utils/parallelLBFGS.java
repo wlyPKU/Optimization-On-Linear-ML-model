@@ -98,7 +98,7 @@ public class parallelLBFGS {
                         g[l.data.indices[i]] += gradient * l.data.values[i];
                     }
                 }
-            }else if(algorithm.equals("SVM")){
+            }else if(algorithm.equals("SVMDataParallel")){
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values != null) {
@@ -118,7 +118,7 @@ public class parallelLBFGS {
                         }
                     }
                 }
-            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegression")){
+            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegressionModelParallel")){
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values != null) {
@@ -127,13 +127,13 @@ public class parallelLBFGS {
                         score += localX[l.data.indices[i]];
                     }
                 }
-                score = l.label - score;
+                score = score - l.label;
                 loss += 0.5 * score * score;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values == null) {
-                        g[l.data.indices[i]] -= score;
+                        g[l.data.indices[i]] += score;
                     } else {
-                        g[l.data.indices[i]] -= l.data.values[i] * score;
+                        g[l.data.indices[i]] += l.data.values[i] * score;
                     }
                 }
             }
@@ -170,7 +170,7 @@ public class parallelLBFGS {
                 }
                 score *= l.label;
                 loss += Math.log(1.0 + Math.exp(-score));
-            }else if(algorithm.equals("SVM")){
+            }else if(algorithm.equals("SVMDataParallel")){
                 LabeledData l = iter.next();
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
@@ -182,7 +182,7 @@ public class parallelLBFGS {
                 }
                 score = l.label * score;
                 loss += Math.max(1 - score, 0);
-            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegression")){
+            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegressionModelParallel")){
                 LabeledData l = iter.next();
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {

@@ -9,6 +9,20 @@ import java.util.List;
  * Created by 王羚宇 on 2016/8/7.
  */
 public class LogisticRegression {
+
+    public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+                                DenseVector model, double lambda){
+        long startTest = System.currentTimeMillis();
+        double trainLoss = logLoss(trainCorpus, model, lambda);
+        double testLoss = logLoss(testCorpus, model, lambda);
+        double trainAuc = auc(trainCorpus, model);
+        double testAuc = auc(testCorpus, model);
+        long testTime = System.currentTimeMillis() - startTest;
+        System.out.println("trainloss=" + trainLoss + "testloss=" + testLoss +
+                " trainAuc=" + trainAuc + " testAuc=" + testAuc +
+                " testTime=" + testTime);
+    }
+
     public double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {

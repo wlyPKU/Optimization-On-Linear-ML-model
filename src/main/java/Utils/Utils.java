@@ -60,7 +60,7 @@ public class Utils {
 
 
   public static SparseMap[] LoadLibSVMByFeature(String path, int featureDim,
-                                                int sampleDim, double trainRatio) throws IOException{
+             int sampleDim, double trainRatio) throws IOException{
     //Feature and Label(dimension: featureDim+1)
     SparseMap[] features = new SparseMap[featureDim + 1];
     for(int i = 0; i <= featureDim; i++){
@@ -85,6 +85,37 @@ public class Utils {
     return features;
   }
 
+  public static SparseMap[][] LoadLibSVMByFeatureSplit(String path, int featureDim,
+      int sampleDim, double trainRatio, int splitNum) throws IOException{
+    //Feature and Label(dimension: featureDim+1)
+    SparseMap[][]resultSet = new SparseMap[splitNum][featureDim + 1];
+    for(int i = 0; i < splitNum; i++){
+      for(int j = 0; j <= featureDim; j++){
+        resultSet[i][j] = new SparseMap();
+      }
+    }
+
+    BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+    String line;
+    int cnt = 0;
+    int perSplitSize = (int)(Math.ceil(trainRatio * sampleDim / splitNum));
+    while ((line = reader.readLine()) != null && cnt < trainRatio * sampleDim) {
+      String []parts = line.split(" ");
+      //Label(y)
+      int splitIndex = cnt / perSplitSize;
+      resultSet[splitIndex][featureDim].add(cnt, Double.parseDouble(parts[0]));
+      for(int i = 0; i < parts.length - 1; i++){
+        String kv = parts[i + 1];
+        String[] kvParts = kv.split(":");
+        int idx = Integer.parseInt(kvParts[0]);
+        double value = Double.parseDouble(kvParts[1]);
+        resultSet[splitIndex][idx].add(cnt, value);
+      }
+      cnt++;
+    }
+    return resultSet;
+  }
+
   public static double soft_threshold(double th, double value){
     if(value > th){
       return value - th;
@@ -95,60 +126,83 @@ public class Utils {
     }
   }
   public static double[] LinearAccuracy(List<LabeledData> list, DenseVector model){
-    double []table = new double[10];
-    for(int i = 0; i < 10; i++){
+    double []table = new double[16];
+    for(int i = 0; i < 16; i++){
       table[i] = 0;
     }
     for(LabeledData l : list){
       double predictValue = model.dot(l.data);
       double delta = Math.abs(predictValue - l.label);
-      //delta [0] < 1
-      //delta [1] < 2
-      //delta [2] < 3
-      //delta [3] < 4
-      //delta [4] < 10
-      //delta [5] < 20
-      //delta [6] < 30
-      //delta [7] < 40
-      //delta [8] < 50
-      //delta [9] < 100
-      if(delta < 1){
+      //delta [0] < 0.01
+      //delta [1] < 0.02
+      //delta [2] < 0.05
+      //delta [3] < 0.1
+      //delta [4] < 0.2
+      //delta [5] < 0.5
+      //delta [6] < 1
+      //delta [7] < 2
+      //delta [8] < 5
+      //delta [9] < 10
+      //delta [10] < 20
+      //delta [11] < 50
+      //delta [12] < 100
+      //delta [13] < 200
+      //delta [14] < 500
+      if(delta < 0.01){
         table[0] ++;
-      }else if(delta < 2){
+      }else if(delta < 0.02){
         table[1] ++;
-      }else if(delta < 3){
+      }else if(delta < 0.05){
         table[2] ++;
-      }else if(delta < 4){
+      }else if(delta < 0.1){
         table[3] ++;
-      }else if(delta < 10){
+      }else if(delta < 0.2){
         table[4] ++;
-      }else if(delta < 20){
+      }else if(delta < 0.5){
         table[5] ++;
-      }else if(delta < 30){
+      }else if(delta < 1){
         table[6] ++;
-      }else if(delta < 40){
+      }else if(delta < 2){
         table[7] ++;
-      }else if(delta < 50){
+      }else if(delta < 5){
         table[8] ++;
-      }else if(delta < 100){
+      }else if(delta < 10){
         table[9] ++;
+      }else if(delta < 20){
+        table[10] ++;
+      }else if(delta < 50){
+        table[11] ++;
+      }else if(delta < 100){
+        table[12] ++;
+      }else if(delta < 200){
+        table[13] ++;
+      }else if(delta < 500) {
+        table[14]++;
+      }else{
+        table[15]++;
       }
     }
-    for(int i = 0; i < 10; i++){
+    for(int i = 0; i < 16; i++){
       table[i] /= list.size();
     }
     return table;
   }
   public static void printAccuracy(double[] accuracy){
-    System.out.println("-----Loss < 1: " + accuracy[0] * 100 + "%");
-    System.out.println("-----Loss < 2: " + accuracy[1] * 100 + "%");
-    System.out.println("-----Loss < 3: " + accuracy[2] * 100 + "%");
-    System.out.println("-----Loss < 4: " + accuracy[3] * 100 + "%");
-    System.out.println("-----Loss < 10: " + accuracy[4] * 100 + "%");
-    System.out.println("-----Loss < 20: " + accuracy[5] * 100 + "%");
-    System.out.println("-----Loss < 30: " + accuracy[6] * 100 + "%");
-    System.out.println("-----Loss < 40: " + accuracy[7] * 100 + "%");
-    System.out.println("-----Loss < 50: "  + accuracy[8] * 100 + "%");
-    System.out.println("-----Loss < 100: "  + accuracy[9] * 100 + "%");
+    System.out.println("-----Loss<0.01: " + accuracy[0] * 100 + "%");
+    System.out.println("-----Loss<0.02: " + accuracy[1] * 100 + "%");
+    System.out.println("-----Loss<0.05: " + accuracy[2] * 100 + "%");
+    System.out.println("-----Loss<0.1: " + accuracy[3] * 100 + "%");
+    System.out.println("-----Loss<0.2: " + accuracy[4] * 100 + "%");
+    System.out.println("-----Loss<0.5: " + accuracy[5] * 100 + "%");
+    System.out.println("-----Loss<1: " + accuracy[6] * 100 + "%");
+    System.out.println("-----Loss<2: " + accuracy[7] * 100 + "%");
+    System.out.println("-----Loss<5: " + accuracy[8] * 100 + "%");
+    System.out.println("-----Loss<10: " + accuracy[9] * 100 + "%");
+    System.out.println("-----Loss<20: " + accuracy[10] * 100 + "%");
+    System.out.println("-----Loss<50: " + accuracy[11] * 100 + "%");
+    System.out.println("-----Loss<100: " + accuracy[12] * 100 + "%");
+    System.out.println("-----Loss<200: " + accuracy[13] * 100 + "%");
+    System.out.println("-----Loss<500: " + accuracy[14] * 100 + "%");
+    System.out.println("-----Loss>500: " + accuracy[15] * 100 + "%");
   }
 }

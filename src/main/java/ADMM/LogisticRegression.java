@@ -56,7 +56,7 @@ public class LogisticRegression extends model.LogisticRegression{
             long trainTime = System.currentTimeMillis() - startTrain;
             long startTest = System.currentTimeMillis();
 
-            double loss = logLoss(trainCorpus, model.x, model.z,lambda);
+            double loss = logLoss(trainCorpus, model.x, lambda);
             double trainAuc = auc(trainCorpus, model.x);
             double testAuc = auc(testCorpus, model.x);
             long testTime = System.currentTimeMillis() - startTest;
@@ -81,7 +81,7 @@ public class LogisticRegression extends model.LogisticRegression{
         System.out.println(cost + " ms");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: ADMM.LogisticRegression FeatureDim train_path lambda trainRatio");
+        System.out.println("Usage: ADMM.LogisticRegressionModelParallel FeatureDim train_path lambda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         String path = argv[1];
         double lambda = Double.parseDouble(argv[2]);

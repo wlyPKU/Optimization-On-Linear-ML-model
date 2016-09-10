@@ -74,7 +74,7 @@ public class LogisticRegression extends model.LogisticRegression{
   }
 
   public static void main(String[] argv) throws Exception {
-    System.out.println("Usage: GradientDescent.LogisticRegression FeatureDim train_path lambda [trainRatio]");
+    System.out.println("Usage: GradientDescent.LogisticRegressionModelParallel FeatureDim train_path lambda [trainRatio]");
     int dim = Integer.parseInt(argv[0]);
     String path = argv[1];
     long startLoad = System.currentTimeMillis();

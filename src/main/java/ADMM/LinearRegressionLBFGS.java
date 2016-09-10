@@ -31,7 +31,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
-            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "LinearRegression");
+            LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "LinearRegressionModelParallel");
 
             //Update z
             for(int j = 0; j < featureDim; j++) {

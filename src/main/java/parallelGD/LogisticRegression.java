@@ -81,6 +81,9 @@ public class LogisticRegression extends model.LogisticRegression{
 
         DenseVector model = new DenseVector(modelOfU.dim);
         DenseVector oldModel = new DenseVector(model.dim);
+
+        long totalBegin = System.currentTimeMillis();
+
         for (int i = 0; i < 100; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
@@ -104,25 +107,22 @@ public class LogisticRegression extends model.LogisticRegression{
             System.arraycopy(globalModelOfU.values, 0, modelOfU.values, 0, modelOfU.dim);
             System.arraycopy(globalModelOfV.values, 0, modelOfV.values, 0, modelOfV.dim);
 
-            long trainTime = System.currentTimeMillis() - startTrain;
-            long startTest = System.currentTimeMillis();
 
             for(int j = 0; j < model.dim; j++){
                 model.values[j] = modelOfU.values[j] - modelOfV.values[j];
             }
-            double loss = logLoss(trainCorpus, model, lambda);
+            long trainTime = System.currentTimeMillis() - startTrain;
+            System.out.println("trainTime=" + trainTime + " ");
 
-            double trainAuc = auc(trainCorpus, model);
-            double testAuc = auc(testCorpus, model);
-            long testTime = System.currentTimeMillis() - startTest;
-            System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
-                    " trainTime=" + trainTime + " testTime=" + testTime);
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
+
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
+            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
         }
     }
 

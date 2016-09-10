@@ -140,7 +140,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: CoordinateDescent.LogisticRegressionSCD FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: CoordinateDescent.LogisticRegressionModelParallel FeatureDim SampleDim train_path lamda trainRatio");
         int featureDim = Integer.parseInt(argv[0]);
         int sampleDim = Integer.parseInt(argv[1]);
         String path = argv[2];
