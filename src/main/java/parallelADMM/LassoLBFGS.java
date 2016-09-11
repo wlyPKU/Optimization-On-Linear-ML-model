@@ -69,7 +69,8 @@ public class LassoLBFGS extends model.Lasso{
         threadPool.shutdown();
         while (!threadPool.isTerminated()) {
             try {
-                threadPool.awaitTermination(1, TimeUnit.MILLISECONDS);
+                while (!threadPool.awaitTermination(1, TimeUnit.SECONDS)) {
+                }
             } catch (InterruptedException e) {
                 System.out.println("Waiting.");
                 e.printStackTrace();
@@ -115,7 +116,7 @@ public class LassoLBFGS extends model.Lasso{
         }
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x
             updateX(i);
@@ -125,13 +126,13 @@ public class LassoLBFGS extends model.Lasso{
             updateU();
             //rho = Math.min(rho * 1.1, maxRho);
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime=" + trainTime + " ");
+            System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             if(converge(oldModel, model.x)){
                 //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
-            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
         }
     }

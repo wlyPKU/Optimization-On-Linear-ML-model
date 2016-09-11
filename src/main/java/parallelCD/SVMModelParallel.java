@@ -98,7 +98,7 @@ public class SVMModelParallel extends model.SVM{
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 200; i ++) {
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
@@ -115,13 +115,13 @@ public class SVMModelParallel extends model.SVM{
                 }
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime=" + trainTime + " ");
+            System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model, lambda);
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
         }
     }

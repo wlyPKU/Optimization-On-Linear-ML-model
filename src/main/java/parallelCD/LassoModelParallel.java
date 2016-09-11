@@ -90,7 +90,7 @@ public class LassoModelParallel extends model.Lasso{
         long totalBegin = System.currentTimeMillis();
 
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -109,14 +109,14 @@ public class LassoModelParallel extends model.Lasso{
             }
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime=" + trainTime + " ");
+            System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
-            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
         }
     }

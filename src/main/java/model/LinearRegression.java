@@ -15,13 +15,13 @@ public class LinearRegression {
         double loss = test(trainCorpus, model);
         double accuracy = test(testCorpus, model);
         long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("Trainloss=" + loss + " TestLoss=" + accuracy +
+        System.out.println("trainLoss=" + loss + " testLoss=" + accuracy +
                 " testTime=" + testTime);
         double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
         double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
-        System.out.println("Train Accuracy:");
+        System.out.println("trainAccuracy:");
         Utils.printAccuracy(trainAccuracy);
-        System.out.println("Test Accuracy:");
+        System.out.println("testAccuracy:");
         Utils.printAccuracy(testAccuracy);
     }
 

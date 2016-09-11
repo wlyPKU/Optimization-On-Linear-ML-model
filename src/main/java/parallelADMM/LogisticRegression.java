@@ -114,7 +114,7 @@ public class LogisticRegression extends model.LogisticRegression{
         }
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             updateX(i);
@@ -123,7 +123,7 @@ public class LogisticRegression extends model.LogisticRegression{
             updateU();
             //rho = Math.min(maxRho, rho * 1.1);
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime=" + trainTime + " ");
+            System.out.println("trainTime " + trainTime + " ");
 
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
 
@@ -131,7 +131,7 @@ public class LogisticRegression extends model.LogisticRegression{
                 //break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
-            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
         }
     }

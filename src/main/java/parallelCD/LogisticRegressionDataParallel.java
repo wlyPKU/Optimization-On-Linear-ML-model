@@ -143,7 +143,7 @@ public class LogisticRegressionDataParallel extends model.LogisticRegression{
         long totalBegin = System.currentTimeMillis();
 
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 200; i ++) {
             for(int idx = 0; idx < trainCorpus.size(); idx++){
                 LabeledData l = trainCorpus.get(idx);
                 predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
@@ -188,7 +188,7 @@ public class LogisticRegressionDataParallel extends model.LogisticRegression{
                 model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime=" + trainTime + " ");
+            System.out.println("trainTime " + trainTime + " ");
 
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
@@ -197,7 +197,7 @@ public class LogisticRegressionDataParallel extends model.LogisticRegression{
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
-            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             for(int idx = 0; idx < threadNum; idx++){
                 System.arraycopy(modelOfU.values, 0, localModelOfU[idx].values, 0, featureDimension);
                 System.arraycopy(modelOfV.values, 0, localModelOfV[idx].values, 0, featureDimension);

@@ -75,7 +75,7 @@ public class SVM extends model.SVM{
 
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             //StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
@@ -97,14 +97,14 @@ public class SVM extends model.SVM{
             Arrays.fill(globalModel.values, 0);
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime=" + trainTime + " ");
+            System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
         }
     }

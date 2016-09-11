@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class parallelLBFGS {
 
-    private static final Log LOG = LogFactory.getLog(LBFGS.class);
+    private static final Log LOG = LogFactory.getLog(parallelLBFGS.class);
 
     public static void train(ADMMState state,
                              int maxIterNum,
@@ -253,7 +253,7 @@ public class parallelLBFGS {
         }
 
         double alpha = 1.0;
-        double backoff = 0.3;
+        double backoff = 0.5;
         if (iteration == 1) {
             alpha = 1 / Math.sqrt(dot(dir, dir, localFeatureNum));
             backoff = 0.1;
@@ -274,8 +274,8 @@ public class parallelLBFGS {
             step -= 1;
         }
 
-        getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
-        return loss;
+        return getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
+        //return loss;
     }
 
     private static void shift(int localFeatureNum,

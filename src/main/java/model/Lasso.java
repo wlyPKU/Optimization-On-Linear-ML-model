@@ -17,14 +17,14 @@ public class Lasso {
         double trainResidual = test(trainCorpus, x);
         double testResidual = test(testCorpus, x);
         long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("Trainloss=" + trainLoss + " TestLoss=" + testLoss +
+        System.out.println("trainLoss=" + trainLoss + " testLoss=" + testLoss +
                 " trainResidual=" + trainResidual + " testResidual=" + testResidual +
                 " testTime=" + testTime);
         double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, x);
         double []testAccuracy = Utils.LinearAccuracy(testCorpus, x);
-        System.out.println("Train Accuracy:");
+        System.out.println("trainAccuracy:");
         Utils.printAccuracy(trainAccuracy);
-        System.out.println("Test Accuracy:");
+        System.out.println("testAccuracy:");
         Utils.printAccuracy(testAccuracy);
 
     }

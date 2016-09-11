@@ -106,7 +106,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         }
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             updateX(i);
             //Update z
@@ -115,7 +115,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             //rho = Math.min(rho * 1.1, maxRho);
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime=" + trainTime + " ");
+            System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model.x);
 
             //rho = Math.min(rho * 1.1, maxRho);
@@ -124,7 +124,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             Arrays.fill(model.x.values, 0);
-            System.out.println("Totaltime=" + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
         }
     }

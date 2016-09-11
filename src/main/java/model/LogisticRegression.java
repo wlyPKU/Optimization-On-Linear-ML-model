@@ -18,7 +18,7 @@ public class LogisticRegression {
         double trainAuc = auc(trainCorpus, model);
         double testAuc = auc(testCorpus, model);
         long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("trainloss=" + trainLoss + "testloss=" + testLoss +
+        System.out.println("trainLoss=" + trainLoss + " testLoss=" + testLoss +
                 " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                 " testTime=" + testTime);
     }

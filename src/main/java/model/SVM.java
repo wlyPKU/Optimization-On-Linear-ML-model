@@ -21,7 +21,7 @@ public class SVM {
         double trainAccuracy = accuracy(trainCorpus, model);
         double testAccuracy = accuracy(testCorpus, model);
         long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("trainloss=" + trainLoss +"testLoss=" + testLoss +
+        System.out.println("trainLoss=" + trainLoss +" testLoss=" + testLoss +
                 " trainAuc=" + trainAuc + " testAuc=" + testAuc
                 + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                 + " testTime=" + testTime);
