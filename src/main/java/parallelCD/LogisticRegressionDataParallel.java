@@ -56,7 +56,7 @@ public class LogisticRegressionDataParallel extends model.LogisticRegression{
                     if(idx < trainCorpus.size()) {
                         double xj = entry.getDoubleValue();
                         LabeledData l = trainCorpus.get(idx);
-                        double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
+                        double tao = 1.0 / (1.0 + Math.exp( -l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
                 }
@@ -101,12 +101,12 @@ public class LogisticRegressionDataParallel extends model.LogisticRegression{
                     if(idx < trainCorpus.size()) {
                         double xj = entry.getDoubleValue();
                         LabeledData l = trainCorpus.get(idx);
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
+                        double tao = 1.0 / (1.0 + Math.exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
                 }
 
-                double Uj = 0.25 * 1 / lambda * trainCorpus.size();
+                double Uj = 0.25 * 1.0 / lambda * trainCorpus.size();
                 double updateValue = (1 - firstOrderL) / Uj;
                 if(updateValue > localModelOfV[threadID].values[fIdx]){
                     localModelOfV[threadID].values[fIdx] = 0;

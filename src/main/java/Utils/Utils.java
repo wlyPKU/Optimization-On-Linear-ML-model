@@ -29,6 +29,63 @@ public class Utils {
     return list;
   }
 
+  //Divide the corpus into [threadNum] parts by features, the corpus' sample size is [size],
+  // and the feature size is [dim].
+  public static List<List<LabeledData>> loadLibSVMSplit(String path, int dim,
+                                                  int threadNum, int size) throws IOException {
+
+    List<List<LabeledData>> resultList = new ArrayList<List<LabeledData>>();
+    for(int threadID = 0; threadID < threadNum; threadID++){
+      int from = dim * threadID / threadNum;
+      int to = dim * (threadID + 1) / threadNum;
+      List<LabeledData> list = new ArrayList<LabeledData>();
+      BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+      String line;
+      int cnt = 0;
+      while ((line = reader.readLine()) != null && size > cnt) {
+        LabeledData labeledData = parseOneLineLibSVM(line, dim, from, to);
+        list.add(labeledData);
+        cnt ++;
+      }
+      resultList.add(list);
+    }
+    return resultList;
+  }
+
+  private static LabeledData parseOneLineLibSVM(String line, int dim, int from , int to) {
+    String[] parts = line.split(" ");
+    double label = Double.parseDouble(parts[0]);
+    if (label == 0)
+      label = -1;
+    int length = parts.length - 1;
+    int featureCount = 0;
+    for (int i = 0; i < length; i ++) {
+      String kv = parts[i + 1];
+      String[] kvParts = kv.split(":");
+      int idx = Integer.parseInt(kvParts[0]);
+      if(idx >= from && idx < to){
+        featureCount++;
+      }
+    }
+    int[] indices = new int[featureCount];
+    double[] values = new double[featureCount];
+    int index = 0;
+    for (int i = 0; i < length; i ++) {
+      String kv = parts[i + 1];
+      String[] kvParts = kv.split(":");
+      int idx = Integer.parseInt(kvParts[0]);
+      double value = Double.parseDouble(kvParts[1]);
+      if(idx >= from && idx < to){
+        indices[index] = idx;
+        values[index]  = value;
+        index++;
+      }
+    }
+
+    SparseVector data = new SparseVector(dim, indices, values);
+    return new LabeledData(data, label);
+  }
+
   private static LabeledData parseOneLineLibSVM(String line, int dim) {
     String[] parts = line.split(" ");
     double label = Double.parseDouble(parts[0]);

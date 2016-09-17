@@ -40,6 +40,8 @@ public class LogisticRegression extends model.LogisticRegression{
     private ADMMState[] localADMMState;
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
     private double x_hat[];
+    private static DenseVector oldModelZ;
+
 
     private class executeRunnable implements Runnable {
         int threadID;
@@ -56,6 +58,28 @@ public class LogisticRegression extends model.LogisticRegression{
                     rho, iteNum, localTrainCorpus.get(threadID), "logisticRegression", model.z);
             model.x.plusDense(localADMMState[threadID].x);
         }
+    }
+
+    private double calculateRho(double rho){
+        //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG23
+        double miu = 10;
+        double pi_incr = 2, pi_decr = 2;
+        double r = 0;
+        for(int i = 0; i < featureDimension; i++){
+            r += (model.x.values[i] - model.z.values[i]) * (model.x.values[i] - model.z.values[i]);
+        }
+        r = Math.sqrt(r);
+        double s = 0;
+        for(int i = 0; i < featureDimension; i++){
+            s += (oldModelZ.values[i] - model.z.values[i]) * (oldModelZ.values[i] - model.z.values[i]);
+        }
+        s = Math.sqrt(s) * rho;
+        if(r > miu * s){
+            return pi_incr * rho;
+        }else if(s < miu * r){
+            return rho / pi_decr;
+        }
+        return rho;
     }
 
     private void updateX(int iteNumber){
@@ -77,6 +101,7 @@ public class LogisticRegression extends model.LogisticRegression{
     }
 
     private void updateZ(){
+        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, featureDimension);
         for(int id = 0; id < featureDimension; id++){
             x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
             //z=Soft_threshold(lambda/rho,x+u);
@@ -103,6 +128,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
         DenseVector oldModel = new DenseVector(featureDimension);
         x_hat = new double[model.featureNum];
+        oldModelZ = new DenseVector(featureDimension);
 
         localADMMState = new ADMMState[threadNum];
         for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -122,6 +148,8 @@ public class LogisticRegression extends model.LogisticRegression{
             updateZ();
             updateU();
             //rho = Math.min(maxRho, rho * 1.1);
+            rho = calculateRho(rho);
+
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
 

@@ -7,6 +7,7 @@ package parallelADMM;
 import Utils.*;
 import math.DenseVector;
 
+import javax.management.MalformedObjectNameException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +33,7 @@ public class LassoLBFGS extends model.Lasso{
     private static double trainRatio = 0.5;
     private static int featureDimension;
 
+    private static DenseVector oldModelZ;
     private static List<LabeledData> labeledData;
     private static ADMMState model;
     private ADMMState[] localADMMState;
@@ -44,6 +46,27 @@ public class LassoLBFGS extends model.Lasso{
     private int lbfgsHistory = 10;
     double rel_par = 1.0;
 
+    private double calculateRho(double rho){
+        //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG23
+        double miu = 10;
+        double pi_incr = 2, pi_decr = 2;
+        double r = 0;
+        for(int i = 0; i < featureDimension; i++){
+            r += (model.x.values[i] - model.z.values[i]) * (model.x.values[i] - model.z.values[i]);
+        }
+        r = Math.sqrt(r);
+        double s = 0;
+        for(int i = 0; i < featureDimension; i++){
+            s += (oldModelZ.values[i] - model.z.values[i]) * (oldModelZ.values[i] - model.z.values[i]);
+        }
+        s = Math.sqrt(s) * rho;
+        if(r > miu * s){
+            return pi_incr * rho;
+        }else if(s < miu * r){
+            return rho / pi_decr;
+        }
+        return rho;
+    }
     private class executeRunnable implements Runnable
     {
         int threadID;
@@ -56,7 +79,6 @@ public class LassoLBFGS extends model.Lasso{
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
                     rho, iteNum, localTrainCorpus.get(threadID), "LassoLBFGS", model.z);
-            model.x.plusDense(localADMMState[threadID].x);
         }
     }
 
@@ -69,16 +91,21 @@ public class LassoLBFGS extends model.Lasso{
         threadPool.shutdown();
         while (!threadPool.isTerminated()) {
             try {
-                while (!threadPool.awaitTermination(1, TimeUnit.SECONDS)) {
+                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
                 }
             } catch (InterruptedException e) {
                 System.out.println("Waiting.");
                 e.printStackTrace();
             }
         }
+        for(int threadID = 0; threadID < threadNum; threadID++) {
+            model.x.plusDense(localADMMState[threadID].x);
+        }
+
         model.x.allDividedBy(threadNum);
     }
     private void updateZ(){
+        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, featureDimension);
         for(int id = 0; id < featureDimension; id++){
             x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
             //z=Soft_threshold(lambda/rho,x+u);
@@ -116,6 +143,8 @@ public class LassoLBFGS extends model.Lasso{
         }
         long totalBegin = System.currentTimeMillis();
 
+        oldModelZ = new DenseVector(featureDimension);
+
         for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x
@@ -125,6 +154,8 @@ public class LassoLBFGS extends model.Lasso{
             //Update u
             updateU();
             //rho = Math.min(rho * 1.1, maxRho);
+            rho = calculateRho(rho);
+
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
