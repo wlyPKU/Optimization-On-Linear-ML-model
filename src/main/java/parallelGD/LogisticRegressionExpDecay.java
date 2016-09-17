@@ -15,13 +15,18 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/3.
  */
-public class LogisticRegression extends model.LogisticRegression{
+public class LogisticRegressionExpDecay extends model.LogisticRegression{
 
     private DenseVector globalModelOfU;
     private DenseVector globalModelOfV;
     private static double trainRatio = 0.5;
     private static double lambda = 0.1;
     private static int threadNum;
+
+    double initalLearningRate = 0.01;
+    double learningRate = 0.01;
+    double exponentialDecayRate = 0.025;
+    int iteration = 1;
 
     public class executeRunnable implements Runnable
     {
@@ -41,7 +46,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
         }
         public void run() {
-            sgdOneEpoch(localList, localModelOfU, localModelOfV, 0.001, lambda);
+            sgdOneEpoch(localList, localModelOfU, localModelOfV, learningRate, lambda);
             globalModelOfU.plusDense(localModelOfU);
             globalModelOfV.plusDense(localModelOfV);
         }
@@ -127,12 +132,15 @@ public class LogisticRegression extends model.LogisticRegression{
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
+            iteration++;
+            learningRate = initalLearningRate / (Math.exp(iteration * exponentialDecayRate));
         }
     }
 
     public static void train(List<LabeledData> corpus) {
         int dimension = corpus.get(0).data.dim;
-        LogisticRegression lr = new LogisticRegression();
+        LogisticRegressionExpDecay lr = new LogisticRegressionExpDecay();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dimension);
         DenseVector modelOfV = new DenseVector(dimension);
@@ -143,7 +151,7 @@ public class LogisticRegression extends model.LogisticRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LogisticRegression threadID FeatureDim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.LogisticRegressionExpDecay threadID FeatureDim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];

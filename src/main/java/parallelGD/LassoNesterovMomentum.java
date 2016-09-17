@@ -1,3 +1,4 @@
+
 package parallelGD;
 
 import Utils.LabeledData;
@@ -13,15 +14,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by WLY on 2016/9/3.
+ * Created by 王羚宇 on 2016/7/20.
  */
-public class LogisticRegression extends model.LogisticRegression{
+public class LassoNesterovMomentum extends model.Lasso{
 
     private DenseVector globalModelOfU;
     private DenseVector globalModelOfV;
-    private static double trainRatio = 0.5;
-    private static double lambda = 0.1;
     private static int threadNum;
+    private static double lambda = 0.1;
+    private static double trainRatio = 0.5;
+
+    private double[][] momentumV;
+    private double[][] momentumU;
+
+    double gamma = 0.9;
+    double eta = 0.005;
 
     public class executeRunnable implements Runnable
     {
@@ -30,7 +37,9 @@ public class LogisticRegression extends model.LogisticRegression{
         DenseVector localModelOfV;
         double lambda;
         int globalCorpusSize;
-        public executeRunnable(List<LabeledData> list, DenseVector modelOfU, DenseVector modelOfV, double lambda, int globalCorpusSize){
+        int threadID;
+        public executeRunnable(int threadID, List<LabeledData> list, DenseVector modelOfU, DenseVector modelOfV, double lambda, int globalCorpusSize){
+            this.threadID = threadID;
             localList = list;
             localModelOfU = new DenseVector(modelOfU.dim);
             localModelOfV = new DenseVector(modelOfV.dim);
@@ -41,60 +50,79 @@ public class LogisticRegression extends model.LogisticRegression{
 
         }
         public void run() {
-            sgdOneEpoch(localList, localModelOfU, localModelOfV, 0.001, lambda);
+            sgdOneEpoch(localList, localModelOfU, localModelOfV, lambda);
             globalModelOfU.plusDense(localModelOfU);
             globalModelOfV.plusDense(localModelOfV);
         }
         private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
-                                DenseVector modelOfV, double lr, double lambda) {
-            double modelPenalty = -lr * lambda / globalCorpusSize;
+                                 DenseVector modelOfV, double lambda) {
+            double modelPenalty = - lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
-                double predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
-                double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
-                double scala = tmpValue * labeledData.label;
-                modelOfU.plusSparse(labeledData.data, modelPenalty);
-                modelOfU.plusGradient(labeledData.data, scala * lr);
+                double scala = labeledData.label - modelOfU.dotNesterovMomentum(labeledData.data, momentumU[threadID], gamma)
+                        + modelOfV.dot(labeledData.data);
+                for(int i = 0; i < labeledData.data.indices.length; i++){
+                    momentumU[threadID][labeledData.data.indices[i]] *= gamma;
+                    if(labeledData.data.values != null){
+                        momentumU[threadID][labeledData.data.indices[i]] += eta * (scala *  labeledData.data.values[i] + modelPenalty);
+                    }else{
+                        momentumU[threadID][labeledData.data.indices[i]] += eta * (scala  + modelPenalty);
+                    }
+                    modelOfU.values[labeledData.data.indices[i]] += momentumU[threadID][labeledData.data.indices[i]];
+                }
                 modelOfU.positiveOrZero(labeledData.data);
-
-                predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
-                tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
-                scala = tmpValue * labeledData.label;
-                modelOfV.plusSparse(labeledData.data, modelPenalty);
-                modelOfV.plusGradient(labeledData.data, - scala * lr);
+                scala = labeledData.label - modelOfU.dot(labeledData.data)
+                        + modelOfV.dotNesterovMomentum(labeledData.data, momentumV[threadID], gamma);
+                for(int i = 0; i < labeledData.data.indices.length; i++){
+                    momentumV[threadID][labeledData.data.indices[i]] *= gamma;
+                    if(labeledData.data.values != null){
+                        momentumV[threadID][labeledData.data.indices[i]] += eta * (-scala *  labeledData.data.values[i] + modelPenalty);
+                    }else{
+                        momentumV[threadID][labeledData.data.indices[i]] += eta * (-scala  + modelPenalty);
+                    }
+                    modelOfV.values[labeledData.data.indices[i]] += momentumV[threadID][labeledData.data.indices[i]];
+                }
                 modelOfV.positiveOrZero(labeledData.data);
             }
         }
     }
 
-    public void train(List<LabeledData> corpus, DenseVector modelOfU, DenseVector modelOfV) {
+    public void train(List<LabeledData> corpus, DenseVector modelOfU,
+                      DenseVector modelOfV) {
         Collections.shuffle(corpus);
+        List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
-        List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;
             int to = end * (threadID + 1) / threadNum;
             List<LabeledData> threadCorpus = corpus.subList(from, to);
             ThreadTrainCorpus.add(threadCorpus);
         }
+        DenseVector model = new DenseVector(modelOfU.dim);
+        DenseVector oldModel = new DenseVector(model.dim);
 
         globalModelOfU = new DenseVector(modelOfU.dim);
         globalModelOfV = new DenseVector(modelOfV.dim);
 
-        DenseVector model = new DenseVector(modelOfU.dim);
-        DenseVector oldModel = new DenseVector(model.dim);
+        momentumV = new double[threadNum][modelOfU.dim];
+        momentumU = new double[threadNum][modelOfU.dim];
+        for(int i = 0; i < threadNum; i++){
+            for(int j = 0; j < model.dim; j++){
+                momentumU[i][j] = 0;
+                momentumV[i][j] = 0;
+            }
+        }
 
         long totalBegin = System.currentTimeMillis();
 
         for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
-
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(ThreadTrainCorpus.get(threadID),
+                threadPool.execute(new executeRunnable(i, ThreadTrainCorpus.get(threadID),
                         modelOfU, modelOfV, lambda, corpus.size()));
             }
             threadPool.shutdown();
@@ -111,13 +139,11 @@ public class LogisticRegression extends model.LogisticRegression{
             System.arraycopy(globalModelOfU.values, 0, modelOfU.values, 0, modelOfU.dim);
             System.arraycopy(globalModelOfV.values, 0, modelOfV.values, 0, modelOfV.dim);
 
-
             for(int j = 0; j < model.dim; j++){
                 model.values[j] = modelOfU.values[j] - modelOfV.values[j];
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
-
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
@@ -127,31 +153,33 @@ public class LogisticRegression extends model.LogisticRegression{
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
         }
     }
 
     public static void train(List<LabeledData> corpus) {
-        int dimension = corpus.get(0).data.dim;
-        LogisticRegression lr = new LogisticRegression();
+        int dim = corpus.get(0).data.dim;
+        LassoNesterovMomentum lasso = new LassoNesterovMomentum();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        DenseVector modelOfU = new DenseVector(dimension);
-        DenseVector modelOfV = new DenseVector(dimension);
+        DenseVector modelOfU = new DenseVector(dim);
+        DenseVector modelOfV = new DenseVector(dim);
         long start = System.currentTimeMillis();
-        lr.train(corpus, modelOfU, modelOfV);
+        lasso.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
+
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LogisticRegression threadID FeatureDim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.LassoNesterovMomentum threadNum dim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
+        lambda = Double.parseDouble(argv[3]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        lambda = Double.parseDouble(argv[3]);
         if(argv.length >= 5){
             trainRatio = Double.parseDouble(argv[4]);
             if(trainRatio >= 1 || trainRatio <= 0){

@@ -18,6 +18,7 @@ public class Lasso extends model.Lasso{
     private static int threadNum;
     private static double lambda = 0.1;
     private static double trainRatio = 0.5;
+
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
@@ -48,9 +49,11 @@ public class Lasso extends model.Lasso{
                         + modelOfV.dot(labeledData.data);
                 modelOfU.plusSparse(labeledData.data, modelPenalty);
                 modelOfU.plusGradient(labeledData.data, scala * lr);
-                modelOfV.plusSparse(labeledData.data, modelPenalty);
-                modelOfV.plusGradient(labeledData.data, - scala * lr);
                 modelOfU.positiveOrZero(labeledData.data);
+                scala = labeledData.label - modelOfU.dot(labeledData.data)
+                        + modelOfV.dot(labeledData.data);
+                modelOfV.plusGradient(labeledData.data, - scala * lr);
+                modelOfV.plusSparse(labeledData.data, modelPenalty);
                 modelOfV.positiveOrZero(labeledData.data);
             }
         }
@@ -114,6 +117,7 @@ public class Lasso extends model.Lasso{
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
         }
     }
 

@@ -13,61 +13,64 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by WLY on 2016/9/3.
+ * Created by WLY on 2016/9/4.
  */
-public class LogisticRegression extends model.LogisticRegression{
-
-    private DenseVector globalModelOfU;
-    private DenseVector globalModelOfV;
+public class SVMMomentum extends model.SVM{
+    private DenseVector globalModel;
     private static double trainRatio = 0.5;
-    private static double lambda = 0.1;
     private static int threadNum;
+    private static double lambda = 0.1;
+
+    private double[][] momentum;
+
+    double gamma = 0.9;
+    double eta = 0.001;
 
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
-        DenseVector localModelOfU;
-        DenseVector localModelOfV;
+        DenseVector localModel;
         double lambda;
         int globalCorpusSize;
-        public executeRunnable(List<LabeledData> list, DenseVector modelOfU, DenseVector modelOfV, double lambda, int globalCorpusSize){
+        int threadID;
+        public executeRunnable(List<LabeledData> list, DenseVector model, double lambda, int globalCorpusSize, int threadID){
             localList = list;
-            localModelOfU = new DenseVector(modelOfU.dim);
-            localModelOfV = new DenseVector(modelOfV.dim);
-            System.arraycopy(modelOfU.values, 0, localModelOfU.values, 0, modelOfU.dim);
-            System.arraycopy(modelOfV.values, 0, localModelOfV.values, 0, modelOfU.dim);
+            localModel = new DenseVector(model.dim);
+            System.arraycopy(model.values, 0, localModel.values, 0, model.dim);
             this.lambda = lambda;
             this.globalCorpusSize = globalCorpusSize;
-
+            this.threadID = threadID;
         }
         public void run() {
-            sgdOneEpoch(localList, localModelOfU, localModelOfV, 0.001, lambda);
-            globalModelOfU.plusDense(localModelOfU);
-            globalModelOfV.plusDense(localModelOfV);
+            sgdOneEpoch(localList, localModel, lambda, globalCorpusSize);
+            globalModel.plusDense(localModel);
         }
-        private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
-                                DenseVector modelOfV, double lr, double lambda) {
-            double modelPenalty = -lr * lambda / globalCorpusSize;
-            for (LabeledData labeledData: list) {
-                double predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
-                double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
-                double scala = tmpValue * labeledData.label;
-                modelOfU.plusSparse(labeledData.data, modelPenalty);
-                modelOfU.plusGradient(labeledData.data, scala * lr);
-                modelOfU.positiveOrZero(labeledData.data);
-
-                predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
-                tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
-                scala = tmpValue * labeledData.label;
-                modelOfV.plusSparse(labeledData.data, modelPenalty);
-                modelOfV.plusGradient(labeledData.data, - scala * lr);
-                modelOfV.positiveOrZero(labeledData.data);
+        private void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lambda,
+                                 double globalCorpusSize) {
+            double modelPenalty = -2 * lambda / globalCorpusSize;
+            for (LabeledData labeledData : list) {
+                //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
+                /* model pennalty */
+                //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
+                double dotProd = model.dot(labeledData.data);
+                for(int i = 0; i < labeledData.data.indices.length; i++){
+                    momentum[threadID][labeledData.data.indices[i]] *= gamma;
+                    momentum[threadID][labeledData.data.indices[i]] += eta * modelPenalty * model.values[labeledData.data.indices[i]];
+                    if(1 - dotProd * labeledData.label > 0) {
+                        if(labeledData.data.values != null){
+                            momentum[threadID][labeledData.data.indices[i]] += eta * labeledData.label * labeledData.data.values[i];
+                        }else{
+                            momentum[threadID][labeledData.data.indices[i]] += eta * labeledData.label;
+                        }                    }
+                    model.values[labeledData.data.indices[i]] += momentum[threadID][labeledData.data.indices[i]];
+                }
             }
         }
     }
 
-    public void train(List<LabeledData> corpus, DenseVector modelOfU, DenseVector modelOfV) {
+    public void train(List<LabeledData> corpus, DenseVector model) {
         Collections.shuffle(corpus);
+
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
@@ -80,22 +83,25 @@ public class LogisticRegression extends model.LogisticRegression{
             ThreadTrainCorpus.add(threadCorpus);
         }
 
-        globalModelOfU = new DenseVector(modelOfU.dim);
-        globalModelOfV = new DenseVector(modelOfV.dim);
+        DenseVector oldModel = new DenseVector(model.values.length);
+        globalModel = new DenseVector(model.dim);
 
-        DenseVector model = new DenseVector(modelOfU.dim);
-        DenseVector oldModel = new DenseVector(model.dim);
+        momentum = new double[threadNum][model.dim];
+        for(int i = 0; i < threadNum; i++) {
+            for (int j = 0; j < model.dim; j++) {
+                momentum[i][j] = 0;
+            }
+        }
 
         long totalBegin = System.currentTimeMillis();
 
         for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
-            //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
-
+            //StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 threadPool.execute(new executeRunnable(ThreadTrainCorpus.get(threadID),
-                        modelOfU, modelOfV, lambda, corpus.size()));
+                        model, lambda, trainCorpus.size(), threadID));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -106,44 +112,36 @@ public class LogisticRegression extends model.LogisticRegression{
                     e.printStackTrace();
                 }
             }
-            globalModelOfU.allDividedBy(threadNum);
-            globalModelOfV.allDividedBy(threadNum);
-            System.arraycopy(globalModelOfU.values, 0, modelOfU.values, 0, modelOfU.dim);
-            System.arraycopy(globalModelOfV.values, 0, modelOfV.values, 0, modelOfV.dim);
+            globalModel.allDividedBy(threadNum);
+            System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
+            Arrays.fill(globalModel.values, 0);
 
-
-            for(int j = 0; j < model.dim; j++){
-                model.values[j] = modelOfU.values[j] - modelOfV.values[j];
-            }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
-
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
                 //break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-            Arrays.fill(globalModelOfU.values, 0);
-            Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
         }
     }
 
     public static void train(List<LabeledData> corpus) {
-        int dimension = corpus.get(0).data.dim;
-        LogisticRegression lr = new LogisticRegression();
-        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        DenseVector modelOfU = new DenseVector(dimension);
-        DenseVector modelOfV = new DenseVector(dimension);
+        int dim = corpus.get(0).data.dim;
+        SVMMomentum svm = new SVMMomentum();
+        DenseVector model = new DenseVector(dim);
         long start = System.currentTimeMillis();
-        lr.train(corpus, modelOfU, modelOfV);
+        svm.train(corpus, model);
+
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LogisticRegression threadID FeatureDim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.SVMMomentum threadNum dim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];

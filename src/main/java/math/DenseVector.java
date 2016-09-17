@@ -17,6 +17,21 @@ public class DenseVector {
     this.values = new double[dim];
     System.arraycopy(a.values, 0, values, 0, dim);
   }
+  //For NesterovMomentum:
+  public double dotNesterovMomentum(SparseVector other, double[] v_t, double gamma) {
+    int[] indices = other.indices;
+    double ret = 0.0;
+    if (other.values != null) {
+      for (int i = 0; i < indices.length; i ++) {
+        ret += values[indices[i]] * (other.values[i] + gamma * v_t[indices[i]]);
+      }
+    } else {
+      for (int i: indices) {
+        ret += values[i] * (1 - gamma * v_t[i]);
+      }
+    }
+    return ret;
+  }
   public double dot(SparseVector other) {
     int[] indices = other.indices;
     double ret = 0.0;
