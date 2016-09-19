@@ -27,7 +27,7 @@ public class LassoMomentum extends model.Lasso{
     private double[][] momentumV;
     private double[][] momentumU;
 
-    double gamma = 0.9;
+    double gamma = 0.5;
     double eta = 0.005;
 
     public class executeRunnable implements Runnable
@@ -66,7 +66,8 @@ public class LassoMomentum extends model.Lasso{
                         momentumU[threadID][labeledData.data.indices[i]] += eta * (scala *  labeledData.data.values[i] + modelPenalty);
                     }else{
                         momentumU[threadID][labeledData.data.indices[i]] += eta * (scala  + modelPenalty);
-                    }                    modelOfU.values[labeledData.data.indices[i]] += momentumU[threadID][labeledData.data.indices[i]];
+                    }
+                    modelOfU.values[labeledData.data.indices[i]] += momentumU[threadID][labeledData.data.indices[i]];
                 }
                 modelOfU.positiveOrZero(labeledData.data);
                 scala = labeledData.label - modelOfU.dot(labeledData.data)
@@ -156,19 +157,6 @@ public class LassoMomentum extends model.Lasso{
         }
     }
 
-    public static void train(List<LabeledData> corpus) {
-        int dim = corpus.get(0).data.dim;
-        LassoMomentum lasso = new LassoMomentum();
-        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        DenseVector modelOfU = new DenseVector(dim);
-        DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        lasso.train(corpus, modelOfU, modelOfV);
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
-
-
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.LassoMomentum threadNum dim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
@@ -186,6 +174,14 @@ public class LassoMomentum extends model.Lasso{
                 System.exit(1);
             }
         }
-        train(corpus);
+
+        LassoMomentum lasso = new LassoMomentum();
+        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
+        DenseVector modelOfU = new DenseVector(dim);
+        DenseVector modelOfV = new DenseVector(dim);
+        long start = System.currentTimeMillis();
+        lasso.train(corpus, modelOfU, modelOfV);
+        long cost = System.currentTimeMillis() - start;
+        System.out.println(cost + " ms");
     }
 }

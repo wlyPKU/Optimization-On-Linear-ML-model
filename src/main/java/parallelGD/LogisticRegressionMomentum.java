@@ -155,25 +155,13 @@ public class LogisticRegressionMomentum extends model.LogisticRegression{
         }
     }
 
-    public static void train(List<LabeledData> corpus) {
-        int dimension = corpus.get(0).data.dim;
-        LogisticRegressionMomentum lr = new LogisticRegressionMomentum();
-        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        DenseVector modelOfU = new DenseVector(dimension);
-        DenseVector modelOfV = new DenseVector(dimension);
-        long start = System.currentTimeMillis();
-        lr.train(corpus, modelOfU, modelOfV);
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
-
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.LogisticRegressionMomentum threadID FeatureDim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
-        int dim = Integer.parseInt(argv[1]);
+        int dimension = Integer.parseInt(argv[1]);
         String path = argv[2];
         long startLoad = System.currentTimeMillis();
-        List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
+        List<LabeledData> corpus = Utils.loadLibSVM(path, dimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         lambda = Double.parseDouble(argv[3]);
@@ -184,6 +172,14 @@ public class LogisticRegressionMomentum extends model.LogisticRegression{
                 System.exit(1);
             }
         }
-        train(corpus);
+
+        LogisticRegressionMomentum lr = new LogisticRegressionMomentum();
+        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
+        DenseVector modelOfU = new DenseVector(dimension);
+        DenseVector modelOfV = new DenseVector(dimension);
+        long start = System.currentTimeMillis();
+        lr.train(corpus, modelOfU, modelOfV);
+        long cost = System.currentTimeMillis() - start;
+        System.out.println(cost + " ms");
     }
 }

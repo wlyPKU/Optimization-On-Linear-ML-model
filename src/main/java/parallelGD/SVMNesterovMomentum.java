@@ -54,9 +54,9 @@ public class SVMNesterovMomentum extends model.SVM{
                 //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
                 double dotProd = model.dotNesterovMomentum(labeledData.data, momentum[threadID], gamma);
                 for(int i = 0; i < labeledData.data.indices.length; i++){
-                    momentum[threadID][labeledData.data.indices[i]] *= gamma;
-                    momentum[threadID][labeledData.data.indices[i]] += eta * modelPenalty * model.values[labeledData.data.indices[i]];
                     if(1 - dotProd * labeledData.label > 0) {
+                        momentum[threadID][labeledData.data.indices[i]] *= gamma;
+                        momentum[threadID][labeledData.data.indices[i]] += eta * modelPenalty * model.values[labeledData.data.indices[i]];
                         if(labeledData.data.values != null){
                             momentum[threadID][labeledData.data.indices[i]] += eta * labeledData.label * labeledData.data.values[i];
                         }else{
@@ -130,17 +130,6 @@ public class SVMNesterovMomentum extends model.SVM{
         }
     }
 
-    public static void train(List<LabeledData> corpus) {
-        int dim = corpus.get(0).data.dim;
-        SVMNesterovMomentum svm = new SVMNesterovMomentum();
-        DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        svm.train(corpus, model);
-
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
-
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.SVMNesterovMomentum threadNum dim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
@@ -158,6 +147,13 @@ public class SVMNesterovMomentum extends model.SVM{
                 System.exit(1);
             }
         }
-        train(corpus);
+
+        SVMNesterovMomentum svm = new SVMNesterovMomentum();
+        DenseVector model = new DenseVector(dim);
+        long start = System.currentTimeMillis();
+        svm.train(corpus, model);
+
+        long cost = System.currentTimeMillis() - start;
+        System.out.println(cost + " ms");
     }
 }

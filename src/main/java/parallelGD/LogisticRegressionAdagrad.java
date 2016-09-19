@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/3.
  */
-public class LogisticRegression extends model.LogisticRegression{
+public class LogisticRegressionAdagrad extends model.LogisticRegression{
 
     public DenseVector globalModelOfU;
     public DenseVector globalModelOfV;
@@ -24,7 +24,12 @@ public class LogisticRegression extends model.LogisticRegression{
     public static int threadNum;
 
     public double learningRate = 0.001;
-    public int iteration = 0;
+    public int iteration = 1;
+
+
+    double [][]G2ofU;
+    double [][]G2ofV;
+    double epsilon = 1e-8;
 
     public void setNewLearningRate(){
     }
@@ -36,7 +41,9 @@ public class LogisticRegression extends model.LogisticRegression{
         DenseVector localModelOfV;
         double lambda;
         int globalCorpusSize;
-        public executeRunnable(List<LabeledData> list, DenseVector modelOfU, DenseVector modelOfV, double lambda, int globalCorpusSize){
+        int threadID;
+        public executeRunnable(List<LabeledData> list, DenseVector modelOfU, DenseVector modelOfV,
+                               double lambda, int globalCorpusSize, int threadID){
             localList = list;
             localModelOfU = new DenseVector(modelOfU.dim);
             localModelOfV = new DenseVector(modelOfV.dim);
@@ -44,7 +51,7 @@ public class LogisticRegression extends model.LogisticRegression{
             System.arraycopy(modelOfV.values, 0, localModelOfV.values, 0, modelOfU.dim);
             this.lambda = lambda;
             this.globalCorpusSize = globalCorpusSize;
-
+            this.threadID = threadID;
         }
         public void run() {
             sgdOneEpoch(localList, localModelOfU, localModelOfV, learningRate, lambda);
@@ -52,21 +59,39 @@ public class LogisticRegression extends model.LogisticRegression{
             globalModelOfV.plusDense(localModelOfV);
         }
         public void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
-                                DenseVector modelOfV, double lr, double lambda) {
-            double modelPenalty = -lr * lambda / globalCorpusSize;
+                                DenseVector modelOfV, double lr,double lambda) {
+            double modelPenalty = -lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
                 double predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
                 double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
                 double scala = tmpValue * labeledData.label;
-                modelOfU.plusSparse(labeledData.data, modelPenalty);
-                modelOfU.plusGradient(labeledData.data, scala * lr);
-                modelOfU.positiveOrZero(labeledData.data);
+                for(int i = 0; i < labeledData.data.indices.length; i++){
+                    double gradient;
+                    if(labeledData.data.values != null) {
+                        gradient = scala * labeledData.data.values[i] + modelPenalty;
+                    }else{
+                        gradient = scala + modelPenalty;
+                    }
+                    G2ofU[threadID][labeledData.data.indices[i]] += gradient * gradient;
+                    modelOfU.values[labeledData.data.indices[i]] += lr * gradient
+                            / Math.sqrt(G2ofU[threadID][labeledData.data.indices[i]] + epsilon);
 
+                }
+                modelOfU.positiveOrZero(labeledData.data);
                 predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
                 tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
                 scala = tmpValue * labeledData.label;
-                modelOfV.plusSparse(labeledData.data, modelPenalty);
-                modelOfV.plusGradient(labeledData.data, - scala * lr);
+                for(int i = 0; i < labeledData.data.indices.length; i++){
+                    double gradient;
+                    if(labeledData.data.values != null) {
+                        gradient = - scala * labeledData.data.values[i] + modelPenalty;
+                    }else{
+                        gradient = - scala + modelPenalty;
+                    }
+                    G2ofV[threadID][labeledData.data.indices[i]] += gradient * gradient;
+                    modelOfV.values[labeledData.data.indices[i]] += lr * gradient
+                            / Math.sqrt(G2ofV[threadID][labeledData.data.indices[i]] + epsilon);
+                }
                 modelOfV.positiveOrZero(labeledData.data);
             }
         }
@@ -94,6 +119,16 @@ public class LogisticRegression extends model.LogisticRegression{
 
         long totalBegin = System.currentTimeMillis();
 
+        G2ofU = new double[threadNum][modelOfU.dim];
+        G2ofV = new double[threadNum][modelOfV.dim];
+
+        for(int i = 0; i < threadNum; i++){
+            for(int j = 0; j < model.dim; j++){
+                G2ofV[i][j] = 0;
+                G2ofU[i][j] = 0;
+            }
+        }
+
         for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
@@ -102,7 +137,7 @@ public class LogisticRegression extends model.LogisticRegression{
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 threadPool.execute(new executeRunnable(ThreadTrainCorpus.get(threadID),
-                        modelOfU, modelOfV, lambda, corpus.size()));
+                        modelOfU, modelOfV, lambda, corpus.size(), threadID));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -141,7 +176,7 @@ public class LogisticRegression extends model.LogisticRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LogisticRegression threadID FeatureDim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.LogisticRegressionAdagrad threadID FeatureDim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dimension = Integer.parseInt(argv[1]);
         String path = argv[2];
@@ -157,7 +192,7 @@ public class LogisticRegression extends model.LogisticRegression{
                 System.exit(1);
             }
         }
-        LogisticRegression lr = new LogisticRegression();
+        LogisticRegressionAdagrad lr = new LogisticRegressionAdagrad();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dimension);
         DenseVector modelOfV = new DenseVector(dimension);

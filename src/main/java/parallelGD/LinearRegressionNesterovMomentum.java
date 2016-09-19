@@ -19,8 +19,8 @@ public class LinearRegressionNesterovMomentum extends model.LinearRegression{
 
     private double[][] momentum;
 
-    double gamma = 0.9;
-    double eta = 0.005;
+    double gamma = 0.8;
+    double eta = 0.001;
 
     public class executeRunnable implements Runnable
     {
@@ -111,18 +111,6 @@ public class LinearRegressionNesterovMomentum extends model.LinearRegression{
         }
     }
 
-    public static void train(List<LabeledData> corpus) {
-        int dim = corpus.get(0).data.dim;
-        LinearRegressionNesterovMomentum linear = new LinearRegressionNesterovMomentum();
-        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        linear.train(corpus, model);
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
-
-
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.LinearRegressionNesterovMomentum threadNum dim train_path [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
@@ -139,6 +127,12 @@ public class LinearRegressionNesterovMomentum extends model.LinearRegression{
                 System.exit(1);
             }
         }
-        train(corpus);
+        LinearRegressionNesterovMomentum linear = new LinearRegressionNesterovMomentum();
+        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
+        DenseVector model = new DenseVector(dim);
+        long start = System.currentTimeMillis();
+        linear.train(corpus, model);
+        long cost = System.currentTimeMillis() - start;
+        System.out.println(cost + " ms");
     }
 }

@@ -16,10 +16,16 @@ import java.util.concurrent.TimeUnit;
  * Created by WLY on 2016/9/4.
  */
 public class SVM extends model.SVM{
-    private DenseVector globalModel;
-    private static double trainRatio = 0.5;
-    private static int threadNum;
-    private static double lambda = 0.1;
+    public DenseVector globalModel;
+    public static double trainRatio = 0.5;
+    public static int threadNum;
+    public static double lambda = 0.1;
+
+    public double learningRate = 0.001;
+    public int iteration = 0;
+
+    public void setNewLearningRate(){
+    }
 
     public class executeRunnable implements Runnable
     {
@@ -35,10 +41,10 @@ public class SVM extends model.SVM{
             this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
-            sgdOneEpoch(localList, localModel, 0.001, lambda, globalCorpusSize);
+            sgdOneEpoch(localList, localModel, learningRate, lambda, globalCorpusSize);
             globalModel.plusDense(localModel);
         }
-        private void sgdOneEpoch(List<LabeledData> list, DenseVector model,
+        public void sgdOneEpoch(List<LabeledData> list, DenseVector model,
                                 double lr, double lambda, double globalCorpusSize) {
             double modelPenalty = -2 * lr * lambda / globalCorpusSize;
             for (LabeledData labeledData : list) {
@@ -77,6 +83,8 @@ public class SVM extends model.SVM{
 
         for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
+            System.out.println("learning rate " + learningRate);
+
             //StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -106,19 +114,11 @@ public class SVM extends model.SVM{
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
+            iteration++;
+            setNewLearningRate();
         }
     }
 
-    public static void train(List<LabeledData> corpus) {
-        int dim = corpus.get(0).data.dim;
-        SVM svm = new SVM();
-        DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
-        svm.train(corpus, model);
-
-        long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
-    }
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.SVM threadNum dim train_path lambda [trainRatio]");
@@ -137,6 +137,13 @@ public class SVM extends model.SVM{
                 System.exit(1);
             }
         }
-        train(corpus);
+
+        SVM svm = new SVM();
+        DenseVector model = new DenseVector(dim);
+        long start = System.currentTimeMillis();
+        svm.train(corpus, model);
+
+        long cost = System.currentTimeMillis() - start;
+        System.out.println(cost + " ms");
     }
 }
