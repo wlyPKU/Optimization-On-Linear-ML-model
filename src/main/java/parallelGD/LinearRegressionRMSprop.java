@@ -22,7 +22,7 @@ public class LinearRegressionRMSprop extends model.LinearRegression{
 
     double gamma = 0.9;
     public double[][]G2;
-    public double learningRate = 0.001;
+    public static double learningRate = 0.005;
 
     public void setNewLearningRate(){
     }
@@ -122,16 +122,17 @@ public class LinearRegressionRMSprop extends model.LinearRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LinearRegressionRMSprop threadNum dim train_path [trainRatio]");
+        System.out.println("Usage: parallelGD.LinearRegressionRMSprop threadNum dim train_path learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
+        learningRate = Double.parseDouble(argv[3]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        if(argv.length >= 4){
-            trainRatio = Double.parseDouble(argv[3]);
+        if(argv.length >= 5){
+            trainRatio = Double.parseDouble(argv[4]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

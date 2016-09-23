@@ -18,15 +18,16 @@ public class LinearRegressionAdam extends model.LinearRegression{
     public static int threadNum;
 
     public int iteration = 1;
-    private double learningRate = 0.001;
+    private static double learningRate = 0.01;
     double [][]mt;
     double [][]vt;
     double epsilon = 1e-6;
     double beta1 = 0.9;
     double beta2 = 0.999;
 
-    public void setNewLearningRate(){
-    }
+    double pow_beta1_t = beta1;
+    double pow_beta2_t = beta2;
+
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
@@ -40,10 +41,10 @@ public class LinearRegressionAdam extends model.LinearRegression{
 
         }
         public void run() {
-            sgdOneEpoch(localList, localModel,learningRate);
+            sgdOneEpoch(localList, localModel);
             globalModel.plusDense(localModel);
         }
-        public void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
+        public void sgdOneEpoch(List<LabeledData> list, DenseVector model) {
             for (LabeledData labeledData: list) {
                 double scala = labeledData.label - model.dot(labeledData.data);
                 for(int i = 0; i < labeledData.data.indices.length; i++){
@@ -57,9 +58,8 @@ public class LinearRegressionAdam extends model.LinearRegression{
                             (1 - beta1) * gradient;
                     vt[threadID][labeledData.data.indices[i]] = vt[threadID][labeledData.data.indices[i]] * beta2 +
                             (1 - beta2) * gradient * gradient;
-                    double mt_hat = mt[threadID][labeledData.data.indices[i]] / (1 - Math.pow(beta1, iteration));
-                    double vt_hat = vt[threadID][labeledData.data.indices[i]] / (1 - Math.pow(beta2, iteration));
-
+                    double mt_hat = mt[threadID][labeledData.data.indices[i]] / (1 - pow_beta1_t);
+                    double vt_hat = vt[threadID][labeledData.data.indices[i]] / (1 - pow_beta2_t);
                     model.values[labeledData.data.indices[i]] += learningRate * mt_hat/ (epsilon + Math.sqrt(vt_hat));
                 }
             }
@@ -123,22 +123,24 @@ public class LinearRegressionAdam extends model.LinearRegression{
             Arrays.fill(globalModel.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
+            pow_beta1_t *= beta1;
+            pow_beta2_t *= beta2;
             iteration++;
-            setNewLearningRate();
         }
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LinearRegressionAdam threadNum dim train_path [trainRatio]");
+        System.out.println("Usage: parallelGD.LinearRegressionAdam threadNum dim train_path learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
+        learningRate = Double.parseDouble(argv[3]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        if(argv.length >= 4){
-            trainRatio = Double.parseDouble(argv[3]);
+        if(argv.length >= 5){
+            trainRatio = Double.parseDouble(argv[4]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

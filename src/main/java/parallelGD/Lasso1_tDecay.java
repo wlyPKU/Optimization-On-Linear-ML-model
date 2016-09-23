@@ -13,7 +13,7 @@ import java.util.List;
  */
 public class Lasso1_tDecay extends Lasso{
 
-    double initalLearningRate = 0.01;
+    static double initalLearningRate = 0.01;
     double decayRate = 1;
 
     public void setNewLearningRate(){
@@ -21,17 +21,19 @@ public class Lasso1_tDecay extends Lasso{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.Lasso1_tDecay threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.Lasso1_tDecay threadNum dim train_path lambda learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
+        initalLearningRate = Double.parseDouble(argv[4]);
+        learningRate = initalLearningRate;
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        if(argv.length >= 6){
+            trainRatio = Double.parseDouble(argv[5]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

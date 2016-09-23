@@ -21,13 +21,13 @@ public class LassoAdagrad extends model.Lasso{
     private static double lambda = 0.1;
     private static double trainRatio = 0.5;
 
-    double learningRate = 0.001;
+    static double learningRate = 0.05;
     int iteration = 1;
 
     double [][]G2ofU;
     double [][]G2ofV;
     //Guide value: 1e-8
-    double epsilon = 1;
+    double epsilon = 1e-8;
 
     public class executeRunnable implements Runnable
     {
@@ -67,11 +67,12 @@ public class LassoAdagrad extends model.Lasso{
                     }else{
                         gradient = scala + modelPenalty;
                     }
+                    G2ofU[threadID][labeledData.data.indices[i]] += gradient * gradient;
                     modelOfU.values[labeledData.data.indices[i]] += lr * gradient /
                             Math.sqrt(G2ofU[threadID][labeledData.data.indices[i]] + epsilon);
-                    G2ofU[threadID][labeledData.data.indices[i]] += gradient * gradient;
-                    modelOfU.positiveOrZero(labeledData.data);
                 }
+                modelOfU.positiveOrZero(labeledData.data);
+
                 scala = labeledData.label - modelOfU.dot(labeledData.data)
                         + modelOfV.dot(labeledData.data);
                 for(int i = 0; i < labeledData.data.indices.length; i++){
@@ -81,9 +82,9 @@ public class LassoAdagrad extends model.Lasso{
                     }else{
                         gradient = -scala + modelPenalty;
                     }
+                    G2ofV[threadID][labeledData.data.indices[i]] += gradient * gradient;
                     modelOfV.values[labeledData.data.indices[i]] += lr * gradient
                             / Math.sqrt(G2ofV[threadID][labeledData.data.indices[i]] + epsilon);
-                    G2ofV[threadID][labeledData.data.indices[i]] += gradient * gradient;
                 }
                 modelOfV.positiveOrZero(labeledData.data);
             }
@@ -165,17 +166,18 @@ public class LassoAdagrad extends model.Lasso{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LassoAdagrad threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.LassoAdagrad threadNum dim train_path lambda learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
+        learningRate = Double.parseDouble(argv[4]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        if(argv.length >= 6){
+            trainRatio = Double.parseDouble(argv[5]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

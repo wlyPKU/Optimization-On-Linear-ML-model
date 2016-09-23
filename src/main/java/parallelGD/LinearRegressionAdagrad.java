@@ -17,7 +17,7 @@ public class LinearRegressionAdagrad extends model.LinearRegression{
     public static double trainRatio = 0.5;
     public static int threadNum;
 
-    public double learningRate = 0.005;
+    public static double learningRate = 0.05;
     public int iteration = 0;
     double epsilon = 1e-8;
 
@@ -120,16 +120,17 @@ public class LinearRegressionAdagrad extends model.LinearRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LinearRegressionAdagrad threadNum dim train_path [trainRatio]");
+        System.out.println("Usage: parallelGD.LinearRegressionAdagrad threadNum dim train_path learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
+        learningRate = Double.parseDouble(argv[3]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        if(argv.length >= 4){
-            trainRatio = Double.parseDouble(argv[3]);
+        if(argv.length >= 5){
+            trainRatio = Double.parseDouble(argv[4]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

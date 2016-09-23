@@ -27,7 +27,7 @@ public class LogisticRegressionMomentum extends model.LogisticRegression{
     private double[][] momentumU;
 
     double gamma = 0.9;
-    double eta = 0.005;
+    static double eta = 0.005;
 
     public class executeRunnable implements Runnable
     {
@@ -156,7 +156,7 @@ public class LogisticRegressionMomentum extends model.LogisticRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LogisticRegressionMomentum threadID FeatureDim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.LogisticRegressionMomentum threadID FeatureDim train_path lambda learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dimension = Integer.parseInt(argv[1]);
         String path = argv[2];
@@ -165,8 +165,9 @@ public class LogisticRegressionMomentum extends model.LogisticRegression{
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         lambda = Double.parseDouble(argv[3]);
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        eta = Double.parseDouble(argv[4]);
+        if(argv.length >= 6){
+            trainRatio = Double.parseDouble(argv[5]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

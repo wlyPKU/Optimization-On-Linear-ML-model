@@ -23,10 +23,9 @@ public class LogisticRegressionAdadelta extends model.LogisticRegression{
     public static double lambda = 0.1;
     public static int threadNum;
 
-    public double learningRate = 0.001;
     public int iteration = 1;
 
-    double gamma = 0.6;
+    double gamma = 0.9;
     double [][]G2ofU;
     double [][]G2ofV;
     double [][]deltaThetaOfU;
@@ -151,7 +150,6 @@ public class LogisticRegressionAdadelta extends model.LogisticRegression{
         for (int i = 0; i < 200; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
-            System.out.println("learning rate " + learningRate);
 
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {

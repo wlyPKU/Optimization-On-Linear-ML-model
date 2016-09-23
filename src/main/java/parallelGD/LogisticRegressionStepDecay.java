@@ -13,7 +13,7 @@ public class LogisticRegressionStepDecay extends LogisticRegression{
 
     double decayRate = 0.7;
     int dacayIteration = 20;
-    double learningRate = 0.1;
+    static double learningRate = 0.1;
 
     public void setNewLearningRate(){
         if(iteration % dacayIteration == 0){
@@ -22,7 +22,7 @@ public class LogisticRegressionStepDecay extends LogisticRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LogisticRegressionStepDecay threadID FeatureDim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.LogisticRegressionStepDecay threadID FeatureDim train_path lambda learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dimension = Integer.parseInt(argv[1]);
         String path = argv[2];
@@ -31,8 +31,9 @@ public class LogisticRegressionStepDecay extends LogisticRegression{
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         lambda = Double.parseDouble(argv[3]);
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        learningRate = Double.parseDouble(argv[4]);
+        if(argv.length >=6){
+            trainRatio = Double.parseDouble(argv[5]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

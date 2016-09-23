@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class SVMExpDecay extends SVM{
 
-    double initalLearningRate = 0.01;
+    static double initalLearningRate = 0.01;
     double exponentialDecayRate = 0.025;
 
     public void setNewLearningRate(){
@@ -19,7 +19,7 @@ public class SVMExpDecay extends SVM{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.SVMExpDecay threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.SVMExpDecay threadNum dim train_path lambda initalLearningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
@@ -28,8 +28,10 @@ public class SVMExpDecay extends SVM{
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         lambda = Double.parseDouble(argv[3]);
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        initalLearningRate = Double.parseDouble(argv[4]);
+        learningRate = initalLearningRate;
+        if(argv.length >= 6){
+            trainRatio = Double.parseDouble(argv[5]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

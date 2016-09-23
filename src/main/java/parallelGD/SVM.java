@@ -21,7 +21,7 @@ public class SVM extends model.SVM{
     public static int threadNum;
     public static double lambda = 0.1;
 
-    public double learningRate = 0.001;
+    public static double learningRate = 0.001;
     public int iteration = 0;
 
     public void setNewLearningRate(){
@@ -121,7 +121,7 @@ public class SVM extends model.SVM{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.SVM threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.SVM threadNum dim train_path lambda learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
@@ -130,8 +130,9 @@ public class SVM extends model.SVM{
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         lambda = Double.parseDouble(argv[3]);
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        learningRate = Double.parseDouble(argv[4]);
+        if(argv.length >= 6){
+            trainRatio = Double.parseDouble(argv[5]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

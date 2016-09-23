@@ -24,16 +24,15 @@ public class LassoAdadelta extends model.Lasso{
     private static double lambda = 0.1;
     private static double trainRatio = 0.5;
 
-    double learningRate = 0.01;
     int iteration = 1;
-    double gamma = 0.6;
+    static double gamma = 0.9;
 
     double [][]G2ofU;
     double [][]G2ofV;
     double [][]deltaThetaOfU;
     double [][]deltaThetaOfV;
     //guide value : 1e-8
-    double epsilon = 1e2;
+    double epsilon = 1e-8;
 
     public class executeRunnable implements Runnable
     {
@@ -55,12 +54,12 @@ public class LassoAdadelta extends model.Lasso{
             this.threadID = threadID;
         }
         public void run() {
-            sgdOneEpoch(localList, localModelOfU, localModelOfV, learningRate, lambda);
+            sgdOneEpoch(localList, localModelOfU, localModelOfV, lambda);
             globalModelOfU.plusDense(localModelOfU);
             globalModelOfV.plusDense(localModelOfV);
         }
         private void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
-                                 DenseVector modelOfV, double lr, double lambda) {
+                                 DenseVector modelOfV, double lambda) {
             double modelPenalty = - lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
                 double scala = labeledData.label - modelOfU.dot(labeledData.data)
@@ -76,12 +75,11 @@ public class LassoAdadelta extends model.Lasso{
                     G2ofU[threadID][labeledData.data.indices[i]] += (1 - gamma) * gradient * gradient;
 
                     double theta = Math.sqrt(deltaThetaOfU[threadID][labeledData.data.indices[i]] + epsilon)
-                            * gradient / Math.sqrt(G2ofU[threadID][labeledData.data.indices[i]] + epsilon);
+                            / Math.sqrt(G2ofU[threadID][labeledData.data.indices[i]] + epsilon) * gradient ;
 
                     modelOfU.values[labeledData.data.indices[i]] += theta;
                     deltaThetaOfU[threadID][labeledData.data.indices[i]] *= gamma;
                     deltaThetaOfU[threadID][labeledData.data.indices[i]] += (1 - gamma) * theta * theta;
-
                 }
                 modelOfU.positiveOrZero(labeledData.data);
 
@@ -186,7 +184,7 @@ public class LassoAdadelta extends model.Lasso{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LassoAdadelta threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.LassoAdadelta threadNum dim train_path lambda  [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];

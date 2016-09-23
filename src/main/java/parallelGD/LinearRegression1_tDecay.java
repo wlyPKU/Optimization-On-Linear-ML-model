@@ -2,13 +2,14 @@ package parallelGD;
 
 import Utils.LabeledData;
 import Utils.Utils;
+import javafx.scene.control.DatePicker;
 import math.DenseVector;
 
 import java.util.List;
 
 public class LinearRegression1_tDecay extends LinearRegression{
 
-    double initalLearningRate = 0.01;
+    static double initalLearningRate = 0.01;
     double decayRate = 1;
 
     public void setNewLearningRate(){
@@ -16,16 +17,18 @@ public class LinearRegression1_tDecay extends LinearRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LinearRegression1_tDecay threadNum dim train_path [trainRatio]");
+        System.out.println("Usage: parallelGD.LinearRegression1_tDecay threadNum dim train_path learningRate[trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
+        initalLearningRate = Double.parseDouble(argv[3]);
+        learningRate = initalLearningRate;
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        if(argv.length >= 4){
-            trainRatio = Double.parseDouble(argv[3]);
+        if(argv.length >= 5){
+            trainRatio = Double.parseDouble(argv[4]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);

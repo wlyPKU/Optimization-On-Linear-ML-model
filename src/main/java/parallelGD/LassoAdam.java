@@ -21,7 +21,7 @@ public class LassoAdam extends model.Lasso{
     private static double lambda = 0.1;
     private static double trainRatio = 0.5;
 
-    double learningRate = 0.001;
+    static double learningRate = 0.01;
     int iteration = 1;
     double gamma = 0.9;
 
@@ -32,6 +32,9 @@ public class LassoAdam extends model.Lasso{
     double epsilon = 1e-6;
     double beta1 = 0.9;
     double beta2 = 0.999;
+
+    double pow_beta1_t = beta1;
+    double pow_beta2_t = beta2;
 
     public class executeRunnable implements Runnable
     {
@@ -75,8 +78,8 @@ public class LassoAdam extends model.Lasso{
                             (1 - beta1) * gradient;
                     vtOfU[threadID][labeledData.data.indices[i]] = vtOfU[threadID][labeledData.data.indices[i]] * beta2 +
                             (1 - beta2) * gradient * gradient;
-                    double mt_hat = mtOfU[threadID][labeledData.data.indices[i]] / (1 - Math.pow(beta1, iteration));
-                    double vt_hat = vtOfU[threadID][labeledData.data.indices[i]] / (1 - Math.pow(beta2, iteration));
+                    double mt_hat = mtOfU[threadID][labeledData.data.indices[i]] / (1 - pow_beta1_t);
+                    double vt_hat = vtOfU[threadID][labeledData.data.indices[i]] / (1 - pow_beta2_t);
 
                     modelOfU.values[labeledData.data.indices[i]] += learningRate * mt_hat/ (epsilon + Math.sqrt(vt_hat));
                 }
@@ -95,9 +98,8 @@ public class LassoAdam extends model.Lasso{
                             (1 - beta1) * gradient;
                     vtOfV[threadID][labeledData.data.indices[i]] = vtOfV[threadID][labeledData.data.indices[i]] * beta2 +
                             (1 - beta2) * gradient * gradient;
-                    double mt_hat = mtOfV[threadID][labeledData.data.indices[i]] / (1 - Math.pow(beta1, iteration));
-                    double vt_hat = vtOfV[threadID][labeledData.data.indices[i]] / (1 - Math.pow(beta2, iteration));
-
+                    double mt_hat = mtOfV[threadID][labeledData.data.indices[i]] / (1 - pow_beta1_t);
+                    double vt_hat = vtOfV[threadID][labeledData.data.indices[i]] / (1 - pow_beta2_t);
                     modelOfV.values[labeledData.data.indices[i]] += learningRate * mt_hat/ (epsilon + Math.sqrt(vt_hat));
 
                 }
@@ -179,6 +181,8 @@ public class LassoAdam extends model.Lasso{
             Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
+            pow_beta1_t *= beta1;
+            pow_beta2_t *= beta2;
             iteration++;
         }
     }
@@ -197,17 +201,18 @@ public class LassoAdam extends model.Lasso{
 
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LassoAdam threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelGD.LassoAdam threadNum dim train_path lambda learningRate [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
+        learningRate = Double.parseDouble(argv[4]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
+        if(argv.length >= 6){
+            trainRatio = Double.parseDouble(argv[5]);
             if(trainRatio >= 1 || trainRatio <= 0){
                 System.out.println("Error Train Ratio!");
                 System.exit(1);
