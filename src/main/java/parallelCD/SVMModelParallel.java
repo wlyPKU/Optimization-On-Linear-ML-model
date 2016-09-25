@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit;
 
 //http://www.tuicool.com/m/articles/RRZvYb
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
+
+//https://www.csie.ntu.edu.tw/~cjlin/papers/cddual.pdf
 public class SVMModelParallel extends model.SVM{
 
     private static double trainRatio = 0.5;
