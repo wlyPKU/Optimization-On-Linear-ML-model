@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 public class LassoLBFGS extends model.Lasso{
-
+    private static long start;
     private static double lambda;
     private static int threadNum;
     private static double trainRatio = 0.5;
@@ -62,7 +62,7 @@ public class LassoLBFGS extends model.Lasso{
         s = Math.sqrt(s) * rho;
         if(r > miu * s){
             return pi_incr * rho;
-        }else if(s < miu * r){
+        }else if(s > miu * r){
             return rho / pi_decr;
         }
         return rho;
@@ -145,7 +145,7 @@ public class LassoLBFGS extends model.Lasso{
 
         oldModelZ = new DenseVector(featureDimension);
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x
             updateX(i);
@@ -159,11 +159,13 @@ public class LassoLBFGS extends model.Lasso{
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
-            if(converge(oldModel, model.x)){
-                //break;
-            }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 60000){
+                break;
+                //break;
+            }
 
         }
     }
@@ -171,7 +173,7 @@ public class LassoLBFGS extends model.Lasso{
     private static void train() {
         LassoLBFGS lassoLBFGS = new LassoLBFGS();
         model = new ADMMState(featureDimension);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lassoLBFGS.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

@@ -16,7 +16,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
+//  model       每个线程共享
+//  residual    每个线程共享
+//  可能会发生冲突
 public class LinearRegressionModelParallel extends model.LinearRegression{
+    private static long start;
 
     private static int threadNum;
     private static double residual[];
@@ -87,7 +91,7 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
         DenseVector oldModel = new DenseVector(featureDimension);
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -114,7 +118,11 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 60000) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -123,7 +131,7 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         linearCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

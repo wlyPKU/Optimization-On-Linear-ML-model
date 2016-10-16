@@ -19,7 +19,11 @@ import java.util.concurrent.TimeUnit;
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 
 //https://www.csie.ntu.edu.tw/~cjlin/papers/cddual.pdf
+// Block Coordinate Descent
+//  model       每个线程独立(虽然更改同样一份model,predictValue,因此每个线程独立)
+//  predictValue    每个线程独立
 public class SVMBCD extends model.SVM{
+    private static long start;
 
     private static double trainRatio = 0.5;
     private static double lambda = 0.5;
@@ -108,7 +112,7 @@ public class SVMBCD extends model.SVM{
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
@@ -135,14 +139,18 @@ public class SVMBCD extends model.SVM{
             for(int j = 0; j < threadNum; j++){
                 System.arraycopy(model.values, 0,localModel[j].values, 0,  featureDimension);
             }
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 300000) {
+                break;
+                //break;
+            }
         }
     }
 
     public static void train(List<LabeledData> corpus) {
         SVMBCD svmCD = new SVMBCD();
         model = new DenseVector(featureDimension);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         svmCD.trainCore(corpus);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

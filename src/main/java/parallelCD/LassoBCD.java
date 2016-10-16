@@ -16,8 +16,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
+// Block Coordinate Descent
+//  model       每个线程独立(虽然更改同样一份model,但因为实际计算中使用的是residual,因此每个线程独立)
+//  residual    每个线程独立
 public class LassoBCD extends model.Lasso{
-
+    private static long start;
     private static double residual[][];
     private static DenseVector model;
     private static double featureSquare[];
@@ -93,7 +96,7 @@ public class LassoBCD extends model.Lasso{
         long totalBegin = System.currentTimeMillis();
 
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             iter =  features[featureDimension].map.int2DoubleEntrySet().iterator();
             while (iter.hasNext()) {
                 Int2DoubleMap.Entry entry = iter.next();
@@ -129,7 +132,11 @@ public class LassoBCD extends model.Lasso{
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 60000){
+                break;
+                //break;
+            }
         }
     }
 
@@ -138,7 +145,7 @@ public class LassoBCD extends model.Lasso{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lassoModelParallelCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

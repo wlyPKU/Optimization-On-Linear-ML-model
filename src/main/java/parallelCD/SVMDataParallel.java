@@ -14,7 +14,9 @@ import java.util.concurrent.TimeUnit;
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 
 //https://www.csie.ntu.edu.tw/~cjlin/papers/cddual.pdf
+//  数据并行
 public class SVMDataParallel extends model.SVM{
+    private static long start;
 
     private static double trainRatio = 0.5;
     private static double lambda;
@@ -96,7 +98,7 @@ public class SVMDataParallel extends model.SVM{
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             Arrays.fill(model.values, 0);
             long startTrain = System.currentTimeMillis();
@@ -127,7 +129,11 @@ public class SVMDataParallel extends model.SVM{
             for(int idx = 0; idx < threadNum; idx++){
                 System.arraycopy(model.values, 0, localModel[idx].values, 0, featureDimension);
             }
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 300000) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -138,7 +144,7 @@ public class SVMDataParallel extends model.SVM{
         for(int i = 0; i < threadNum; i++){
             localModel[i] = new DenseVector(featureDimension);
         }
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         svmCD.trainCore(corpus);
 
         long cost = System.currentTimeMillis() - start;

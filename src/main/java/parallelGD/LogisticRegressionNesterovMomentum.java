@@ -122,7 +122,7 @@ public class LogisticRegressionNesterovMomentum extends model.LogisticRegression
 
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
 

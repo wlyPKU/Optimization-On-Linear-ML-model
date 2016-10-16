@@ -38,7 +38,7 @@ public class Lasso extends model.Lasso{
             residual[idx] = y;
         }
         DenseVector oldModel = new DenseVector(featureDim);
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             for(int j = 0; j < featureDim; j++){
                 double oldValue = model.values[j];

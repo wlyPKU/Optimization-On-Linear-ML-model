@@ -26,7 +26,7 @@ public class LogisticRegressionSCD extends model.LogisticRegression{
         DenseVector model = new DenseVector(featureDim);
         DenseVector oldModel = new DenseVector(featureDim);
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; ; i ++) {
             for(int idx = 0; idx < trainCorpus.size(); idx++){
                 LabeledData l = trainCorpus.get(idx);
                 predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);

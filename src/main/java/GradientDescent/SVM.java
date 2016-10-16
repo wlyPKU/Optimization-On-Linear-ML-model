@@ -40,7 +40,7 @@ public class SVM extends model.SVM{
     List<LabeledData> testCorpus = corpus.subList(end, size);
 
     DenseVector oldModel = new DenseVector(model.values.length);
-    for (int i = 0; i < 100; i ++) {
+    for (int i = 0; ; i ++) {
       long startTrain = System.currentTimeMillis();
       //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
       double ratio = sgdOneEpoch(trainCorpus, model, 0.001, lambda);

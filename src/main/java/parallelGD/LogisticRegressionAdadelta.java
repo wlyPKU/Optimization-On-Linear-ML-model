@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
  * Created by WLY on 2016/9/3.
  */
 public class LogisticRegressionAdadelta extends model.LogisticRegression{
+    private static long start;
 
     public DenseVector globalModelOfU;
     public DenseVector globalModelOfV;
@@ -147,7 +148,7 @@ public class LogisticRegressionAdadelta extends model.LogisticRegression{
             }
         }
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
 

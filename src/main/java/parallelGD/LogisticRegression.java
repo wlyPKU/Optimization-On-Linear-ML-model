@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
  * Created by WLY on 2016/9/3.
  */
 public class LogisticRegression extends model.LogisticRegression{
+    private static long start;
 
     public DenseVector globalModelOfU;
     public DenseVector globalModelOfV;
@@ -94,7 +95,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             System.out.println("learning rate " + learningRate);
@@ -137,6 +138,11 @@ public class LogisticRegression extends model.LogisticRegression{
 
             iteration++;
             setNewLearningRate();
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 300000) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -162,7 +168,7 @@ public class LogisticRegression extends model.LogisticRegression{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dimension);
         DenseVector modelOfV = new DenseVector(dimension);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lr.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

@@ -47,7 +47,7 @@ public class LinearRegression extends model.LinearRegression{
             }
         }
         DenseVector oldModel = new DenseVector(featureDim);
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; ; i ++) {
             //Calculate (A^Tb+rho*(z-u))
             for(int r = 0; r < featureDim; r++) {
                 part2OfB[r] = tmpPart2OfB[r] + rho * (model.z.values[r] - model.u.values[r]);

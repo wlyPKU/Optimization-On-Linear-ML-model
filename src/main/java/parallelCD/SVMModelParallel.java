@@ -19,7 +19,11 @@ import java.util.concurrent.TimeUnit;
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 
 //https://www.csie.ntu.edu.tw/~cjlin/papers/cddual.pdf
+//  model           每个线程共享
+//  predictValue    每个线程共享
+//  可能会发生冲突
 public class SVMModelParallel extends model.SVM{
+    private static long start;
 
     private static double trainRatio = 0.5;
     private static double lambda = 0.5;
@@ -100,7 +104,7 @@ public class SVMModelParallel extends model.SVM{
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
@@ -124,14 +128,18 @@ public class SVMModelParallel extends model.SVM{
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 300000) {
+                break;
+                //break;
+            }
         }
     }
 
     public static void train(List<LabeledData> corpus) {
         SVMModelParallel svmCD = new SVMModelParallel();
         model = new DenseVector(featureDimension);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         svmCD.trainCore(corpus);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

@@ -15,7 +15,12 @@ import java.util.concurrent.TimeUnit;
  * Created by 王羚宇 on 2016/7/26.
  */
 //Ref: http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf Pg. 7,14,18
+
+//  model       每个线程共享
+//  predictValue    每个线程共享
+//  可能会发生冲突
 public class LogisticRegressionModelParallel extends model.LogisticRegression{
+    private static long start;
 
     private static double lambda;
     private static double trainRatio = 0.5;
@@ -136,7 +141,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
         long totalBegin = System.currentTimeMillis();
 
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             for(int idx = 0; idx < trainCorpus.size(); idx++){
                 LabeledData l = trainCorpus.get(idx);
                 predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
@@ -189,7 +194,11 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 300000) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -201,7 +210,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
         modelOfV = new DenseVector(featureDimension);
         Arrays.fill(modelOfU.values, 0);
         Arrays.fill(modelOfV.values, 0);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lrSCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

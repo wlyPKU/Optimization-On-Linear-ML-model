@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
  * Created by 王羚宇 on 2016/7/26.
  */
 public class SVM extends model.SVM {
+    private static long start;
 
     private static double lambda;
     private static double trainRatio = 0.5;
@@ -106,7 +107,7 @@ public class SVM extends model.SVM {
         s = Math.sqrt(s) * rho;
         if(r > miu * s){
             return pi_incr * rho;
-        }else if(s < miu * r){
+        }else if(s > miu * r){
             return rho / pi_decr;
         }
         return rho;
@@ -135,7 +136,7 @@ public class SVM extends model.SVM {
         x_hat = new double[model.featureNum];
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             updateX(i);
@@ -155,14 +156,18 @@ public class SVM extends model.SVM {
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 300000) {
+                break;
+                //break;
+            }
         }
     }
     private static void train() {
         SVM svmADMM = new SVM();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new ADMMState(featureDimension);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         svmADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

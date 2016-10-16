@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
  * Created by WLY on 2016/9/4.
  */
 public class SVMAdadelta extends model.SVM{
+    private static long start;
+
     public DenseVector globalModel;
     public static double trainRatio = 0.5;
     public static int threadNum;
@@ -108,7 +110,7 @@ public class SVMAdadelta extends model.SVM{
 
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
 
             //StepSize tuning:  c/k(k=0,1,2...) or backtracking line search

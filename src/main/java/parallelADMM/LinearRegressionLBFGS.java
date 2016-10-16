@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
  */
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
 public class LinearRegressionLBFGS extends model.LinearRegression{
+    private static long start;
 
     private static double trainRatio = 0.5;
     private static int featureDimension;
@@ -51,7 +52,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         s = Math.sqrt(s) * rho;
         if(r > miu * s){
             return pi_incr * rho;
-        }else if(s < miu * r){
+        }else if(s > miu * r){
             return rho / pi_decr;
         }
         return rho;
@@ -131,7 +132,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         }
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             updateX(i);
             //Update z
@@ -151,14 +152,18 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             Arrays.fill(model.x.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 60000) {
+                break;
+                //break;
+            }
         }
     }
 
     private static void train() {
         LinearRegressionLBFGS lrADMM = new LinearRegressionLBFGS();
         model = new ADMMState(featureDimension);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lrADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

@@ -23,7 +23,7 @@ public class LogisticRegression extends model.LogisticRegression{
         int featureDim = features.length - 1;
 
         DenseVector oldModel = new DenseVector(featureDim);
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //Cyclic Feature
             for(int fIdx = 0; fIdx < featureDim; fIdx++){

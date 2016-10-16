@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
  * Created by 王羚宇 on 2016/7/20.
  */
 public class Lasso extends model.Lasso{
+    private static long start;
 
     public DenseVector globalModelOfU;
     public DenseVector globalModelOfV;
@@ -87,7 +88,7 @@ public class Lasso extends model.Lasso{
 
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             System.out.println("learning rate " + learningRate);
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
@@ -127,6 +128,11 @@ public class Lasso extends model.Lasso{
 
             iteration++;
             setNewLearningRate();
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 60000) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -136,7 +142,7 @@ public class Lasso extends model.Lasso{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dim);
         DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lasso.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
@@ -166,7 +172,7 @@ public class Lasso extends model.Lasso{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dim);
         DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lasso.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

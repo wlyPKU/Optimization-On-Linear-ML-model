@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 //http://www.tuicool.com/m/articles/RRZvYb
 //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
 public class SVMMultiCore extends model.SVM{
+    private static long start;
 
     private static double trainRatio = 0.5;
     private static double lambda;
@@ -92,7 +93,7 @@ public class SVMMultiCore extends model.SVM{
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             Arrays.fill(model.values, 0);
             long startTrain = System.currentTimeMillis();

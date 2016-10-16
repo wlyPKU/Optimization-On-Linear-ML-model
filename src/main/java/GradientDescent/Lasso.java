@@ -36,7 +36,7 @@ public class Lasso extends model.Lasso{
 
         DenseVector oldModel = new DenseVector(model.dim);
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             sgdOneEpoch(trainCorpus, modelOfU, modelOfV, 0.005, lambda);

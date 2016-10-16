@@ -11,6 +11,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class LinearRegression extends model.LinearRegression{
+    private static long start;
+
     public DenseVector globalModel;
     public static double trainRatio = 0.5;
     public static int threadNum;
@@ -61,7 +63,7 @@ public class LinearRegression extends model.LinearRegression{
 
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             System.out.println("learning rate " + learningRate);
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
@@ -93,6 +95,11 @@ public class LinearRegression extends model.LinearRegression{
 
             iteration++;
             setNewLearningRate();
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 60000) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -117,7 +124,7 @@ public class LinearRegression extends model.LinearRegression{
         LinearRegression linear = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         linear.train(corpus, model);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

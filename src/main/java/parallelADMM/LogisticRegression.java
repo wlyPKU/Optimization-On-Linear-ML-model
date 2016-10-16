@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 //https://web.stanford.edu/~boyd/papers/admm/logreg-l1/logreg.html
 public class LogisticRegression extends model.LogisticRegression{
+    private static long start;
 
     private static double lambda;
     private static double trainRatio = 0.5;
@@ -76,7 +77,7 @@ public class LogisticRegression extends model.LogisticRegression{
         s = Math.sqrt(s) * rho;
         if(r > miu * s){
             return pi_incr * rho;
-        }else if(s < miu * r){
+        }else if(s > miu * r){
             return rho / pi_decr;
         }
         return rho;
@@ -140,7 +141,7 @@ public class LogisticRegression extends model.LogisticRegression{
         }
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             updateX(i);
@@ -148,7 +149,9 @@ public class LogisticRegression extends model.LogisticRegression{
             updateZ();
             updateU();
             //rho = Math.min(maxRho, rho * 1.1);
-            rho = calculateRho(rho);
+            if(i < 50) {
+                rho = calculateRho(rho);
+            }
 
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
@@ -160,7 +163,11 @@ public class LogisticRegression extends model.LogisticRegression{
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 300000) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -169,7 +176,7 @@ public class LogisticRegression extends model.LogisticRegression{
         LogisticRegression lrADMM = new LogisticRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new ADMMState(featureDimension);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lrADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

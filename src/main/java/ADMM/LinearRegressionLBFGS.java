@@ -28,7 +28,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
 
         DenseVector oldModel = new DenseVector(featureDim);
 
-        for (int i = 0; i < 100; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
             LBFGS.train(model, lbfgsNumIteration, lbfgsHistory, rho, i, trainCorpus, "LinearRegressionModelParallel");

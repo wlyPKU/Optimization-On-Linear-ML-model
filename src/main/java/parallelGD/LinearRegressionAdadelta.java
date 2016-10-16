@@ -13,6 +13,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class LinearRegressionAdadelta extends model.LinearRegression{
+    private static long start;
+
     public DenseVector globalModel;
     public static double trainRatio = 0.5;
     public static int threadNum;
@@ -91,7 +93,7 @@ public class LinearRegressionAdadelta extends model.LinearRegression{
         }
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);

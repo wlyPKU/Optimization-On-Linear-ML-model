@@ -16,8 +16,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
+//  数据并行
 public class LassoDataParallel extends model.Lasso{
-
+    private static long start;
     private static DenseVector model;
     private static DenseVector localModel[];
     private static double featureSquare[];
@@ -97,7 +98,7 @@ public class LassoDataParallel extends model.Lasso{
 
         long totalBegin = System.currentTimeMillis();
 
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
 
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
@@ -132,6 +133,11 @@ public class LassoDataParallel extends model.Lasso{
                 residual[idx] = labeledData.get(idx).label
                         - model.dot(labeledData.get(idx).data);
             }
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > 60000){
+                break;
+                //break;
+            }
         }
     }
 
@@ -146,7 +152,7 @@ public class LassoDataParallel extends model.Lasso{
         }
         Arrays.fill(model.values, 0);
 
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lassoCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
