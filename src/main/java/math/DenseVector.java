@@ -1,5 +1,7 @@
 package math;
 
+import java.util.Arrays;
+
 /**
  * Created by leleyu on 2016/6/30.
  */
@@ -10,6 +12,7 @@ public class DenseVector {
   public DenseVector(int dim) {
     this.dim = dim;
     this.values = new double[dim];
+    Arrays.fill(this.values, 0);
   }
 
   public DenseVector(DenseVector a){

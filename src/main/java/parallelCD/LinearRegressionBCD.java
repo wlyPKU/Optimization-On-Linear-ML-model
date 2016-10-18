@@ -126,11 +126,13 @@ public class LinearRegressionBCD extends model.LinearRegression{
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model);
 
+
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                //break;
+                break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
             long nowCost = System.currentTimeMillis() - start;
             if(nowCost > 60000){
                 break;

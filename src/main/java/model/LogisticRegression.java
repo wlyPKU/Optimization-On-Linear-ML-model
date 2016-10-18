@@ -142,7 +142,7 @@ public class LogisticRegression {
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
         System.out.println("This iteration average changes " + delta);
-        if(delta < 0.01){
+        if(delta < 0.00001){
             return true;
         }else{
             return false;

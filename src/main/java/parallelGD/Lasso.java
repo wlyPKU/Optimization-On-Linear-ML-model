@@ -118,14 +118,15 @@ public class Lasso extends model.Lasso{
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
+
+
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                //break;
+                break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
             iteration++;
             setNewLearningRate();
             long nowCost = System.currentTimeMillis() - start;

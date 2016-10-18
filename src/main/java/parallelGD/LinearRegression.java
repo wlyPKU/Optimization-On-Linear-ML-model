@@ -86,13 +86,14 @@ public class LinearRegression extends model.LinearRegression{
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model);
+
+
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                //break;
+                break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModel.values, 0);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
             iteration++;
             setNewLearningRate();
             long nowCost = System.currentTimeMillis() - start;

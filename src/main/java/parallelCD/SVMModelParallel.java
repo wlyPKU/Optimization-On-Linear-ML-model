@@ -123,11 +123,13 @@ public class SVMModelParallel extends model.SVM{
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model, lambda);
+
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                //break;
+                break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
             long nowCost = System.currentTimeMillis() - start;
             if(nowCost > 300000) {
                 break;

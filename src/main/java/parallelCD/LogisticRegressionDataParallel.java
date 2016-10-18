@@ -195,11 +195,13 @@ public class LogisticRegressionDataParallel extends model.LogisticRegression{
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
 
+
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                //break;
+                break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
             for(int idx = 0; idx < threadNum; idx++){
                 System.arraycopy(modelOfU.values, 0, localModelOfU[idx].values, 0, featureDimension);
                 System.arraycopy(modelOfV.values, 0, localModelOfV[idx].values, 0, featureDimension);

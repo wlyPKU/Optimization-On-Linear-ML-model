@@ -151,11 +151,12 @@ public class SVM extends model.SVM {
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
 
+            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model.x)){
-                //break;
+                break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
             long nowCost = System.currentTimeMillis() - start;
             if(nowCost > 300000) {
                 break;

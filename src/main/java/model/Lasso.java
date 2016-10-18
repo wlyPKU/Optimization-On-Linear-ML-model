@@ -64,7 +64,7 @@ public class Lasso {
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
         System.out.println("This iteration average changes " + delta);
-        if(delta < 1e-2){
+        if(delta < 0.00001){
             return true;
         }else{
             return false;
