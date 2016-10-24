@@ -61,7 +61,7 @@ public class DenseVector {
       values[i] += x;
     }
   }
-  public void allDividedBy(double x){
+  public void allDividedBy(int x){
     assert (x != 0);
     for(int i = 0; i < values.length; i++){
       values[i] /= x;

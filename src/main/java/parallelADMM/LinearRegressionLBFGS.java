@@ -148,11 +148,13 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             rho = Math.min(rho * 1.1, maxRho);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model.x)){
-                break;
+                if(earlyStop)
+
+                    break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > 60000) {
+            if(nowCost > maxTimeLimit) {
                 break;
                 //break;
             }

@@ -24,6 +24,8 @@ public class LinearRegressionRMSprop extends model.LinearRegression{
     public double[][]G2;
     public static double learningRate = 0.005;
 
+    static long start;
+
     public void setNewLearningRate(){
     }
     public class executeRunnable implements Runnable
@@ -110,12 +112,17 @@ public class LinearRegressionRMSprop extends model.LinearRegression{
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model);
             if(converge(oldModel, model)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModel.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > maxTimeLimit) {
+                break;
+                //break;
+            }
             iteration++;
             setNewLearningRate();
         }
@@ -142,7 +149,7 @@ public class LinearRegressionRMSprop extends model.LinearRegression{
         LinearRegressionRMSprop linear = new LinearRegressionRMSprop();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         linear.train(corpus, model);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

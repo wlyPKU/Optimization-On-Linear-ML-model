@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
  * Created by WLY on 2016/9/4.
  */
 public class SVM extends model.SVM{
-    private static long start;
+    public static long start;
 
     public DenseVector globalModel;
     public static double trainRatio = 0.5;
@@ -114,13 +114,15 @@ public class SVM extends model.SVM{
 
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                break;
+                if(earlyStop)
+
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             iteration++;
             setNewLearningRate();
             long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > 300000) {
+            if(nowCost > maxTimeLimit) {
                 break;
                 //break;
             }

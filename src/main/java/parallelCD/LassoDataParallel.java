@@ -12,12 +12,12 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
+import model.Lasso;
 /**
  * Created by WLY on 2016/9/4.
  */
 //  数据并行
-public class LassoDataParallel extends model.Lasso{
+public class LassoDataParallel extends Lasso{
     private static long start;
     private static DenseVector model;
     private static DenseVector localModel[];
@@ -123,7 +123,8 @@ public class LassoDataParallel extends model.Lasso{
 
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
 
@@ -135,7 +136,7 @@ public class LassoDataParallel extends model.Lasso{
                         - model.dot(labeledData.get(idx).data);
             }
             long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > 60000){
+            if(nowCost > maxTimeLimit){
                 break;
                 //break;
             }

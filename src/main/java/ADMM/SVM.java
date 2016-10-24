@@ -55,7 +55,8 @@ public class SVM extends model.SVM {
                     + " trainAccuracy=" + trainAccuracy + " testAccuracy=" + testAccuracy
                     + " trainTime=" + trainTime + " testTime=" + testTime);
             if(converge(oldModel, model.x)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

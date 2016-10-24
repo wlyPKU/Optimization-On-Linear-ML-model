@@ -201,7 +201,9 @@ public class LogisticRegressionBCD extends model.LogisticRegression{
 
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                break;
+                if(earlyStop)
+
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
 

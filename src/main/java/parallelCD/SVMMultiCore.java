@@ -130,7 +130,9 @@ public class SVMMultiCore extends model.SVM{
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
-                break;
+                if(earlyStop)
+
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );

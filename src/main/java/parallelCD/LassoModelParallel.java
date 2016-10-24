@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
+import model.Lasso;
 /**
  * Created by WLY on 2016/9/4.
  */
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  residual    每个线程共享
 //  可能会发生冲突
-public class LassoModelParallel extends model.Lasso{
+public class LassoModelParallel extends Lasso{
     private static long start;
 
     private static double residual[];
@@ -120,12 +120,13 @@ public class LassoModelParallel extends model.Lasso{
 
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
 
             long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > 60000){
+            if(nowCost > maxTimeLimit){
                 break;
                 //break;
             }

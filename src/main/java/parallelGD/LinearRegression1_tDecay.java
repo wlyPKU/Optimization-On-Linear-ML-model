@@ -38,7 +38,7 @@ public class LinearRegression1_tDecay extends LinearRegression{
         LinearRegression1_tDecay linear = new LinearRegression1_tDecay();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         linear.train(corpus, model);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

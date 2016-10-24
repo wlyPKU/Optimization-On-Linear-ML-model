@@ -153,7 +153,9 @@ public class SVM extends model.SVM {
 
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model.x)){
-                break;
+                if(earlyStop)
+
+                    break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
 

@@ -7,12 +7,11 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 /**
  * Created by 王羚宇 on 2016/7/20.
  */
 public class Lasso extends model.Lasso{
-    private static long start;
+    public static long start;
 
     public DenseVector globalModelOfU;
     public DenseVector globalModelOfV;
@@ -122,7 +121,8 @@ public class Lasso extends model.Lasso{
 
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModelOfU.values, 0);
@@ -130,7 +130,7 @@ public class Lasso extends model.Lasso{
             iteration++;
             setNewLearningRate();
             long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > 60000) {
+            if(nowCost > maxTimeLimit) {
                 break;
                 //break;
             }

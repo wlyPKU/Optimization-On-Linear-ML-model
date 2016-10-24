@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
  * Created by 王羚宇 on 2016/7/20.
  */
 public class LassoAdam extends model.Lasso{
+    private static long start;
 
     private DenseVector globalModelOfU;
     private DenseVector globalModelOfV;
@@ -174,13 +175,18 @@ public class LassoAdam extends model.Lasso{
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > maxTimeLimit) {
+                break;
+                //break;
+            }
             pow_beta1_t *= beta1;
             pow_beta2_t *= beta2;
             iteration++;
@@ -193,7 +199,7 @@ public class LassoAdam extends model.Lasso{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dim);
         DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lasso.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

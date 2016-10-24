@@ -9,6 +9,9 @@ import java.util.List;
  * Created by 王羚宇 on 2016/8/7.
  */
 public class LinearRegression {
+    public boolean earlyStop = false;
+    public double maxTimeLimit = 100000;
+
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector model){
         long startTest = System.currentTimeMillis();

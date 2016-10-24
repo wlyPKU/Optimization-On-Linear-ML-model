@@ -40,7 +40,7 @@ public class SVMExpDecay extends SVM{
 
         SVMExpDecay svm = new SVMExpDecay();
         DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         svm.train(corpus, model);
 
         long cost = System.currentTimeMillis() - start;

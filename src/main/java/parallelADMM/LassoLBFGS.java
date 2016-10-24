@@ -1,19 +1,19 @@
 package parallelADMM;
 
+
 /**
  * Created by WLY on 2016/9/4.
  */
 
 import Utils.*;
 import math.DenseVector;
-
-import javax.management.MalformedObjectNameException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import model.Lasso;
 
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
 /**
@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 //https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
-public class LassoLBFGS extends model.Lasso{
+public class LassoLBFGS extends Lasso{
     private static long start;
     private static double lambda;
     private static int threadNum;
@@ -161,11 +161,12 @@ public class LassoLBFGS extends model.Lasso{
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model.x)){
+                if(earlyStop)
                 break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > 60000){
+            if(nowCost > maxTimeLimit){
                 break;
                 //break;
             }

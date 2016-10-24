@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class LassoRMSprop extends model.Lasso{
 
+    private static long start;
     private DenseVector globalModelOfU;
     private DenseVector globalModelOfV;
     private static int threadNum;
@@ -158,13 +159,18 @@ public class LassoRMSprop extends model.Lasso{
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > maxTimeLimit) {
+                break;
+                //break;
+            }
             iteration++;
         }
     }
@@ -193,7 +199,7 @@ public class LassoRMSprop extends model.Lasso{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dim);
         DenseVector modelOfV = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lasso.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

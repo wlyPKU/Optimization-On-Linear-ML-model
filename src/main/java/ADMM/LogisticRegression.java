@@ -63,7 +63,8 @@ public class LogisticRegression extends model.LogisticRegression{
             System.out.println("loss=" + loss + " trainAuc=" + trainAuc + " testAuc=" + testAuc +
                     " trainTime=" + trainTime + " testTime=" + testTime);
             if(converge(oldModel, model.x)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

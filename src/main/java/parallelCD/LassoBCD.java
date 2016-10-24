@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
-
+import model.Lasso;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 // Block Coordinate Descent
 //  model       每个线程独立(虽然更改同样一份model,但因为实际计算中使用的是residual,因此每个线程独立)
 //  residual    每个线程独立
-public class LassoBCD extends model.Lasso{
+public class LassoBCD extends Lasso{
     private static long start;
     private static double residual[][];
     private static DenseVector model;
@@ -128,12 +128,13 @@ public class LassoBCD extends model.Lasso{
             testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
-                break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
 
             long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > 60000){
+            if(nowCost > maxTimeLimit){
                 break;
                 //break;
             }

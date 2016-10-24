@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class LogisticRegressionNesterovMomentum extends model.LogisticRegression{
 
+    static long start;
     private DenseVector globalModelOfU;
     private DenseVector globalModelOfV;
     private static double trainRatio = 0.5;
@@ -155,12 +156,18 @@ public class LogisticRegressionNesterovMomentum extends model.LogisticRegression
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > maxTimeLimit) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -187,7 +194,7 @@ public class LogisticRegressionNesterovMomentum extends model.LogisticRegression
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dimension);
         DenseVector modelOfV = new DenseVector(dimension);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lr.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

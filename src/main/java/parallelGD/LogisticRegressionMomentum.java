@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class LogisticRegressionMomentum extends model.LogisticRegression{
 
+    static long start;
     private DenseVector globalModelOfU;
     private DenseVector globalModelOfV;
     private static double trainRatio = 0.5;
@@ -146,12 +147,18 @@ public class LogisticRegressionMomentum extends model.LogisticRegression{
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             if(converge(oldModel, model)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModelOfU.values, 0);
             Arrays.fill(globalModelOfV.values, 0);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > maxTimeLimit) {
+                break;
+                //break;
+            }
         }
     }
 

@@ -94,7 +94,8 @@ public class LinearRegression extends model.LinearRegression{
             System.out.println("Test Accuracy:");
             Utils.printAccuracy(testAccuracy);
             if(converge(oldModel, model.x)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

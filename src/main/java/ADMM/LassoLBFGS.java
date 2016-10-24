@@ -4,6 +4,7 @@ import Utils.*;
 import math.DenseVector;
 import math.SparseMap;
 import java.util.List;
+import model.Lasso;
 
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
 /**
@@ -16,7 +17,7 @@ import java.util.List;
 //https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
-public class LassoLBFGS extends model.Lasso{
+public class LassoLBFGS extends Lasso{
     public void train(int featureDim, List<LabeledData> labeledData,
                       ADMMState model, double lambda, double trainRatio) {
         int testBegin = (int)(labeledData.size() * trainRatio);
@@ -70,7 +71,8 @@ public class LassoLBFGS extends model.Lasso{
             //rho = Math.min(rho * 1.1, maxRho);
 
             if(converge(oldModel, model.x)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }

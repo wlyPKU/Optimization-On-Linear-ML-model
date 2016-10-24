@@ -43,7 +43,7 @@ public class SVMStepDecay extends SVM{
 
         SVMStepDecay svm = new SVMStepDecay();
         DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         svm.train(corpus, model);
 
         long cost = System.currentTimeMillis() - start;

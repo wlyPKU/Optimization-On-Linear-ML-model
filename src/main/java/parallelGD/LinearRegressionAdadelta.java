@@ -116,7 +116,8 @@ public class LinearRegressionAdadelta extends model.LinearRegression{
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model);
             if(converge(oldModel, model)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             Arrays.fill(globalModel.values, 0);
@@ -124,6 +125,11 @@ public class LinearRegressionAdadelta extends model.LinearRegression{
 
             iteration++;
             setNewLearningRate();
+            long nowCost = System.currentTimeMillis() - start;
+            if(nowCost > maxTimeLimit) {
+                break;
+                //break;
+            }
         }
     }
 
@@ -147,7 +153,7 @@ public class LinearRegressionAdadelta extends model.LinearRegression{
         LinearRegressionAdadelta linear = new LinearRegressionAdadelta();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
-        long start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         linear.train(corpus, model);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");

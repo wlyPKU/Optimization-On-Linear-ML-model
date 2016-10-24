@@ -9,6 +9,8 @@ import java.util.List;
  * Created by 王羚宇 on 2016/8/7.
  */
 public class Lasso {
+    public boolean earlyStop = false;
+    public double maxTimeLimit = 100000;
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector x, double lambda){
         long startTest = System.currentTimeMillis();

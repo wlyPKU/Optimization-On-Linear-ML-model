@@ -61,7 +61,8 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             Utils.printAccuracy(testAccuracy);
             //rho = Math.min(rho * 1.1, maxRho);
             if(converge(oldModel, model.x)){
-                //break;
+                if(earlyStop)
+                    break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDim);
         }
