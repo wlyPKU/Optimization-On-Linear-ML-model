@@ -174,13 +174,27 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
-        if(argv.length >=4){
-            trainRatio = Double.parseDouble(argv[3]);
-            if(trainRatio >= 1 || trainRatio <= 0){
-                System.out.println("Error Train Ratio!");
-                System.exit(1);
+        for(int i = 0; i < argv.length - 1; i++){
+            if(argv[i].equals("EarlyStop")){
+                earlyStop = Boolean.parseBoolean(argv[i + 1]);
             }
+            if(argv[i].equals("TimeLimit")){
+                maxTimeLimit = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("TrainRatio")){
+                trainRatio = Double.parseDouble(argv[4]);
+                if(trainRatio >= 1 || trainRatio <= 0){
+                    System.out.println("Error Train Ratio!");
+                    System.exit(1);
+                }            }
         }
+        System.out.println("ThreadNum " + threadNum);
+        System.out.println("FeatureDimension " + featureDimension);
+        System.out.println("File Path " + path);
+        System.out.println("TrainRatio " + trainRatio);
+        System.out.println("TimeLimit " + maxTimeLimit);
+        System.out.println("EarlyStop " + earlyStop);
+
         long startLoad = System.currentTimeMillis();
         labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;

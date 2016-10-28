@@ -232,13 +232,28 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
             System.exit(2);
         }
 
-        if(argv.length >= 6){
-            trainRatio = Double.parseDouble(argv[5]);
-            if(trainRatio >= 1 || trainRatio <= 0){
-                System.out.println("Error Train Ratio!");
-                System.exit(1);
+        for(int i = 0; i < argv.length - 1; i++){
+            if(argv[i].equals("EarlyStop")){
+                earlyStop = Boolean.parseBoolean(argv[i + 1]);
             }
+            if(argv[i].equals("TimeLimit")){
+                maxTimeLimit = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("TrainRatio")){
+                trainRatio = Double.parseDouble(argv[4]);
+                if(trainRatio >= 1 || trainRatio <= 0){
+                    System.out.println("Error Train Ratio!");
+                    System.exit(1);
+                }            }
         }
+        System.out.println("ThreadNum " + threadNum);
+        System.out.println("FeatureDimension " + featureDimension);
+        System.out.println("SampleDimension " + sampleDimension);
+        System.out.println("File Path " + path);
+        System.out.println("Lambda " + lambda);
+        System.out.println("TrainRatio " + trainRatio);
+        System.out.println("TimeLimit " + maxTimeLimit);
+        System.out.println("EarlyStop " + earlyStop);
         long startLoad = System.currentTimeMillis();
         features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);

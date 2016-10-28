@@ -160,7 +160,7 @@ public class SVM extends model.SVM {
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
 
             long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > 300000) {
+            if(nowCost > maxTimeLimit) {
                 break;
                 //break;
             }
@@ -182,13 +182,27 @@ public class SVM extends model.SVM {
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
-        if(argv.length >= 5){
-            trainRatio = Double.parseDouble(argv[4]);
-            if(trainRatio >= 1 || trainRatio <= 0){
-                System.out.println("Error Train Ratio!");
-                System.exit(1);
+        for(int i = 0; i < argv.length - 1; i++){
+            if(argv[i].equals("EarlyStop")){
+                earlyStop = Boolean.parseBoolean(argv[i + 1]);
             }
+            if(argv[i].equals("TimeLimit")){
+                maxTimeLimit = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("TrainRatio")){
+                trainRatio = Double.parseDouble(argv[4]);
+                if(trainRatio >= 1 || trainRatio <= 0){
+                    System.out.println("Error Train Ratio!");
+                    System.exit(1);
+                }            }
         }
+        System.out.println("ThreadNum " + threadNum);
+        System.out.println("FeatureDimension " + featureDimension);
+        System.out.println("File Path " + path);
+        System.out.println("Lambda " + lambda);
+        System.out.println("TrainRatio " + trainRatio);
+        System.out.println("TimeLimit " + maxTimeLimit);
+        System.out.println("EarlyStop " + earlyStop);
         long startLoad = System.currentTimeMillis();
         labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;

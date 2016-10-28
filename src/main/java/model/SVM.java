@@ -9,11 +9,11 @@ import java.util.List;
  * Created by 王羚宇 on 2016/8/7.
  */
 public class SVM {
-    public boolean earlyStop = false;
+    public static boolean earlyStop = true;
     //for gis and news
     //public double maxTimeLimit = 300000;
     //for webspam
-    public double maxTimeLimit = 600000;
+    public static double maxTimeLimit = 600000;
 
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData>testCorpus,
                                DenseVector model, double lambda){

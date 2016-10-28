@@ -193,13 +193,28 @@ public class LogisticRegressionAdagrad extends model.LogisticRegression{
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         lambda = Double.parseDouble(argv[3]);
         learningRate = Double.parseDouble(argv[4]);
-        if(argv.length >= 6){
-            trainRatio = Double.parseDouble(argv[5]);
-            if(trainRatio >= 1 || trainRatio <= 0){
-                System.out.println("Error Train Ratio!");
-                System.exit(1);
+        for(int i = 0; i < argv.length - 1; i++){
+            if(argv[i].equals("EarlyStop")){
+                earlyStop = Boolean.parseBoolean(argv[i + 1]);
             }
+            if(argv[i].equals("TimeLimit")){
+                maxTimeLimit = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("TrainRatio")){
+                trainRatio = Double.parseDouble(argv[4]);
+                if(trainRatio >= 1 || trainRatio <= 0){
+                    System.out.println("Error Train Ratio!");
+                    System.exit(1);
+                }            }
         }
+        System.out.println("ThreadNum " + threadNum);
+        System.out.println("FeatureDimension " + dimension);
+        System.out.println("LearningRate " + learningRate);
+        System.out.println("File Path " + path);
+        System.out.println("Lambda " + lambda);
+        System.out.println("TrainRatio " + trainRatio);
+        System.out.println("TimeLimit " + maxTimeLimit);
+        System.out.println("EarlyStop " + earlyStop);
         LogisticRegressionAdagrad lr = new LogisticRegressionAdagrad();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dimension);

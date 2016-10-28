@@ -34,7 +34,14 @@ public class LinearRegression1_tDecay extends LinearRegression{
                 System.exit(1);
             }
         }
-
+        for(int i = 0; i < argv.length - 1; i++){
+            if(argv[i].equals("EarlyStop")){
+                earlyStop = Boolean.parseBoolean(argv[i + 1]);
+            }
+            if(argv[i].equals("TimeLimit")){
+                maxTimeLimit = Double.parseDouble(argv[i + 1]);
+            }
+        }
         LinearRegression1_tDecay linear = new LinearRegression1_tDecay();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
