@@ -134,14 +134,18 @@ public class LinearRegressionMomentum extends model.LinearRegression{
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
+            if(argv[i].equals("StopDelta")){
+                stopDelta = Double.parseDouble(argv[i + 1]);
+            }
             if(argv[i].equals("TrainRatio")){
-                trainRatio = Double.parseDouble(argv[4]);
+                trainRatio = Double.parseDouble(argv[i+1]);
                 if(trainRatio >= 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
                 }            }
         }
         System.out.println("ThreadNum " + threadNum);
+        System.out.println("StopDelta " + stopDelta);
         System.out.println("FeatureDimension " + dim);
         System.out.println("File Path " + path);
         System.out.println("TrainRatio " + trainRatio);

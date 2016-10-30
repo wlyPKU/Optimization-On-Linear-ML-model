@@ -14,6 +14,8 @@ public class LogisticRegression {
     //public double maxTimeLimit = 300000;
     //for webspam
     public static double maxTimeLimit = 600000;
+    public static double stopDelta = 0.00001;
+
 
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector model, double lambda){
@@ -147,7 +149,7 @@ public class LogisticRegression {
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
         System.out.println("This iteration average changes " + delta);
-        if(delta < 0.00001){
+        if(delta < stopDelta){
             return true;
         }else{
             return false;

@@ -11,6 +11,9 @@ import java.util.List;
 public class Lasso {
     public static boolean earlyStop = true;
     public static double maxTimeLimit = 200000;
+    public static double stopDelta = 0.00001;
+
+
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector x, double lambda){
         long startTest = System.currentTimeMillis();
@@ -66,7 +69,7 @@ public class Lasso {
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
         System.out.println("This iteration average changes " + delta);
-        if(delta < 0.00001){
+        if(delta < stopDelta){
             return true;
         }else{
             return false;
