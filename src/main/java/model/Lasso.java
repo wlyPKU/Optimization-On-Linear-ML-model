@@ -12,6 +12,8 @@ public class Lasso {
     public static boolean earlyStop = true;
     public static double maxTimeLimit = 200000;
     public static double stopDelta = 0.00001;
+    public static int maxIteration = 100;
+    public static int modelType = 0;
 
 
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
@@ -28,9 +30,9 @@ public class Lasso {
         double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, x);
         double []testAccuracy = Utils.LinearAccuracy(testCorpus, x);
         System.out.println("trainAccuracy:");
-        Utils.printAccuracy(trainAccuracy);
+        //Utils.printAccuracy(trainAccuracy);
         System.out.println("testAccuracy:");
-        Utils.printAccuracy(testAccuracy);
+        //Utils.printAccuracy(testAccuracy);
 
     }
     public double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {

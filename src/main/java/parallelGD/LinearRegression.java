@@ -19,22 +19,22 @@ public class LinearRegression extends model.LinearRegression{
 
     public static double learningRate = 0.005;
     public int iteration = 0;
+    public static DenseVector localModel[];
 
     public void setNewLearningRate(){
     }
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
-        DenseVector localModel;
-        public executeRunnable(List<LabeledData> list, DenseVector model){
+        int threadID;
+        public executeRunnable(int threadID, List<LabeledData> list, DenseVector model){
+            this.threadID = threadID;
             localList = list;
-            localModel = new DenseVector(model.dim);
-            System.arraycopy(model.values, 0, localModel.values, 0, model.dim);
+            System.arraycopy(model.values, 0, localModel[threadID].values, 0, model.dim);
 
         }
         public void run() {
-            sgdOneEpoch(localList, localModel, learningRate);
-            globalModel.plusDense(localModel);
+            sgdOneEpoch(localList, localModel[threadID], learningRate);
         }
         public void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
             for (LabeledData labeledData: list) {
@@ -60,16 +60,20 @@ public class LinearRegression extends model.LinearRegression{
         DenseVector oldModel = new DenseVector(model.dim);
 
         globalModel = new DenseVector(model.dim);
+        localModel = new DenseVector[threadNum];
+        for(int i = 0; i < threadNum; i++){
+            localModel[i] =new DenseVector(model.dim);
+        }
 
         long totalBegin = System.currentTimeMillis();
-
+        long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             System.out.println("learning rate " + learningRate);
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(ThreadTrainCorpus.get(threadID), model));
+                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), model));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -80,11 +84,16 @@ public class LinearRegression extends model.LinearRegression{
                     e.printStackTrace();
                 }
             }
+            for(int threadID = 0; threadID < threadNum; threadID++) {
+                globalModel.plusDense(localModel[threadID]);
+            }
             globalModel.allDividedBy(threadNum);
             System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
 
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
+            totalIterationTime += trainTime;
+            System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model);
 
 
@@ -97,8 +106,7 @@ public class LinearRegression extends model.LinearRegression{
             Arrays.fill(globalModel.values, 0);
             iteration++;
             setNewLearningRate();
-            long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > maxTimeLimit) {
+            if(totalIterationTime > maxTimeLimit) {
                 break;
                 //break;
             }

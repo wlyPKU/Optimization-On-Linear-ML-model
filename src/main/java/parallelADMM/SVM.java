@@ -135,7 +135,7 @@ public class SVM extends model.SVM {
 
         x_hat = new double[model.featureNum];
         long totalBegin = System.currentTimeMillis();
-
+        long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x;
@@ -150,7 +150,8 @@ public class SVM extends model.SVM {
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
-
+            totalIterationTime += trainTime;
+            System.out.println("totalIterationTime " + totalIterationTime);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model.x)){
                 if(earlyStop)
@@ -159,8 +160,7 @@ public class SVM extends model.SVM {
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
 
-            long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > maxTimeLimit) {
+            if(totalIterationTime > maxTimeLimit) {
                 break;
                 //break;
             }

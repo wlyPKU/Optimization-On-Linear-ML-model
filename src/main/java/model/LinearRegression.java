@@ -12,6 +12,8 @@ public class LinearRegression {
     public static boolean earlyStop = true;
     public static double maxTimeLimit = 200000;
     public static double stopDelta = 0.00001;
+    public static int modelType = 0;
+    public static int maxIteration = 100;
 
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector model){

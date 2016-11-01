@@ -15,7 +15,8 @@ public class LogisticRegression {
     //for webspam
     public static double maxTimeLimit = 600000;
     public static double stopDelta = 0.00001;
-
+    public static int maxIteration = 100;
+    public static int modelType = 0;
 
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector model, double lambda){

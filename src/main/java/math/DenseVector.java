@@ -94,6 +94,7 @@ public class DenseVector {
       }
     }
   }
+
   public void plusSparse(SparseVector other, double scala){
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];

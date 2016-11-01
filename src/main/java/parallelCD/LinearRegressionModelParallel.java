@@ -91,6 +91,7 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
         DenseVector oldModel = new DenseVector(featureDimension);
         long totalBegin = System.currentTimeMillis();
 
+        long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
@@ -111,19 +112,18 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
 
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
+            totalIterationTime += trainTime;
+            System.out.println("totalIterationTime " + totalIterationTime);
+
             testAndSummary(trainCorpus, testCorpus, model);
-
-
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model)){
                 if(earlyStop)
-
                     break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
 
-            long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > maxTimeLimit) {
+            if(totalIterationTime > maxTimeLimit) {
                 break;
                 //break;
             }
@@ -163,7 +163,8 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
                 if(trainRatio >= 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
-                }            }
+                }
+            }
         }
         System.out.println("ThreadNum " + threadNum);
         System.out.println("StopDelta " + stopDelta);

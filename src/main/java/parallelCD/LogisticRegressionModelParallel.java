@@ -140,7 +140,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
 
         long totalBegin = System.currentTimeMillis();
 
-
+        long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             for(int idx = 0; idx < trainCorpus.size(); idx++){
                 LabeledData l = trainCorpus.get(idx);
@@ -184,25 +184,28 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
                 model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
             }
             long trainTime = System.currentTimeMillis() - startTrain;
+            System.out.println("Iteration " + i);
             System.out.println("trainTime " + trainTime + " ");
-
+            totalIterationTime += trainTime;
+            System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
-
-
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            if(converge(oldModel, model)){
-                if(earlyStop)
-
-                    break;
-            }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
-
-            long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > maxTimeLimit) {
-                break;
-                //break;
+            if(modelType == 1) {
+                if (totalIterationTime > maxTimeLimit) {
+                    break;
+                }
+            }else if(modelType == 0){
+                if(i > maxIteration){
+                    break;
+                }
+            }else if (modelType == 2){
+                if(converge(oldModel, model)){
+                    break;
+                }
             }
+
         }
     }
 
@@ -233,8 +236,9 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
         }
 
         for(int i = 0; i < argv.length - 1; i++){
-            if(argv[i].equals("EarlyStop")){
-                earlyStop = Boolean.parseBoolean(argv[i + 1]);
+            if(argv[i].equals("Model")){
+                //0: maxIteration  1: maxTime 2: earlyStop
+                modelType = Integer.parseInt(argv[i + 1]);
             }
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
@@ -242,12 +246,16 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
             if(argv[i].equals("StopDelta")){
                 stopDelta = Double.parseDouble(argv[i + 1]);
             }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
+            }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
                 if(trainRatio >= 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
-                }            }
+                }
+            }
         }
         System.out.println("ThreadNum " + threadNum);
         System.out.println("StopDelta " + stopDelta);
@@ -257,7 +265,9 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
         System.out.println("Lambda " + lambda);
         System.out.println("TrainRatio " + trainRatio);
         System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("EarlyStop " + earlyStop);
+        System.out.println("ModelType " + modelType);
+        System.out.println("Iteration Limit " + maxIteration);
+
         long startLoad = System.currentTimeMillis();
         features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);

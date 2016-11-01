@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/3.
  */
-public class LogisticRegression extends model.LogisticRegression{
+public class LogisticRegressionPS extends model.LogisticRegression{
     public static long start;
 
     public DenseVector globalModelOfU;
@@ -27,10 +27,6 @@ public class LogisticRegression extends model.LogisticRegression{
     public static double learningRate = 0.001;
     public int iteration = 0;
 
-    public static DenseVector localModelOfU[];
-    public static DenseVector localModelOfV[];
-
-
 
     public void setNewLearningRate(){
     }
@@ -41,35 +37,32 @@ public class LogisticRegression extends model.LogisticRegression{
         double lambda;
         int globalCorpusSize;
         int threadID;
-        public executeRunnable(int threadID,List<LabeledData> list, DenseVector modelOfU, DenseVector modelOfV, double lambda, int globalCorpusSize){
+        public executeRunnable(int threadID,List<LabeledData> list, double lambda, int globalCorpusSize){
             this.threadID = threadID;
             localList = list;
-            System.arraycopy(modelOfU.values, 0, localModelOfU[threadID].values, 0, modelOfU.dim);
-            System.arraycopy(modelOfV.values, 0, localModelOfV[threadID].values, 0, modelOfU.dim);
             this.lambda = lambda;
             this.globalCorpusSize = globalCorpusSize;
 
         }
         public void run() {
-            sgdOneEpoch(localList, localModelOfU[threadID], localModelOfV[threadID], learningRate, lambda);
+            sgdOneEpoch(localList, learningRate, lambda);
         }
-        public void sgdOneEpoch(List<LabeledData> list, DenseVector modelOfU,
-                                DenseVector modelOfV, double lr, double lambda) {
+        public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
             double modelPenalty = -lr * lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
-                double predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
+                double predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
                 double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
                 double scala = tmpValue * labeledData.label;
-                modelOfU.plusSparse(labeledData.data, modelPenalty);
-                modelOfU.plusGradient(labeledData.data, scala * lr);
-                modelOfU.positiveOrZero(labeledData.data);
+                globalModelOfU.plusSparse(labeledData.data, modelPenalty);
+                globalModelOfU.plusGradient(labeledData.data, scala * lr);
+                globalModelOfU.positiveOrZero(labeledData.data);
 
-                predictValue = modelOfU.dot(labeledData.data) - modelOfV.dot(labeledData.data);
+                predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
                 tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
                 scala = tmpValue * labeledData.label;
-                modelOfV.plusSparse(labeledData.data, modelPenalty);
-                modelOfV.plusGradient(labeledData.data, - scala * lr);
-                modelOfV.positiveOrZero(labeledData.data);
+                globalModelOfV.plusSparse(labeledData.data, modelPenalty);
+                globalModelOfV.plusGradient(labeledData.data, - scala * lr);
+                globalModelOfV.positiveOrZero(labeledData.data);
             }
         }
     }
@@ -87,13 +80,7 @@ public class LogisticRegression extends model.LogisticRegression{
             List<LabeledData> threadCorpus = corpus.subList(from, to);
             ThreadTrainCorpus.add(threadCorpus);
         }
-        localModelOfU = new DenseVector[threadNum];
-        localModelOfV = new DenseVector[threadNum];
-        for(int i = 0; i < threadNum; i++){
-            localModelOfU[i] = new DenseVector(modelOfU.dim);
-            localModelOfV[i] = new DenseVector(modelOfU.dim);
 
-        }
         globalModelOfU = new DenseVector(modelOfU.dim);
         globalModelOfV = new DenseVector(modelOfV.dim);
 
@@ -110,8 +97,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID),
-                        modelOfU, modelOfV, lambda, corpus.size()));
+                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), lambda, corpus.size()));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -122,38 +108,34 @@ public class LogisticRegression extends model.LogisticRegression{
                     e.printStackTrace();
                 }
             }
-            for(int id = 0; id < threadNum; id++){
-                globalModelOfU.plusDense(localModelOfU[id]);
-                globalModelOfV.plusDense(localModelOfV[id]);
-            }
-            globalModelOfU.allDividedBy(threadNum);
-            globalModelOfV.allDividedBy(threadNum);
             System.arraycopy(globalModelOfU.values, 0, modelOfU.values, 0, modelOfU.dim);
             System.arraycopy(globalModelOfV.values, 0, modelOfV.values, 0, modelOfV.dim);
-
-
             for(int j = 0; j < model.dim; j++){
-                model.values[j] = modelOfU.values[j] - modelOfV.values[j];
+                model.values[j] = globalModelOfU.values[j] - globalModelOfV.values[j];
             }
             long trainTime = System.currentTimeMillis() - startTrain;
+            System.out.println("Iteration " + i);
+
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            if(converge(oldModel, model)){
-                if(earlyStop)
-
-                    break;
-            }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-            Arrays.fill(globalModelOfU.values, 0);
-            Arrays.fill(globalModelOfV.values, 0);
             iteration++;
             setNewLearningRate();
-            if(totalIterationTime > maxTimeLimit) {
-                break;
-                //break;
+            if(modelType == 1) {
+                if (totalIterationTime > maxTimeLimit) {
+                    break;
+                }
+            }else if(modelType == 0){
+                if(i > maxIteration){
+                    break;
+                }
+            }else if (modelType == 2){
+                if(converge(oldModel, model)){
+                    break;
+                }
             }
         }
     }
@@ -170,9 +152,6 @@ public class LogisticRegression extends model.LogisticRegression{
         lambda = Double.parseDouble(argv[3]);
         learningRate = Double.parseDouble(argv[4]);
         for(int i = 0; i < argv.length - 1; i++){
-            if(argv[i].equals("EarlyStop")){
-                earlyStop = Boolean.parseBoolean(argv[i + 1]);
-            }
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
@@ -184,7 +163,15 @@ public class LogisticRegression extends model.LogisticRegression{
                 if(trainRatio >= 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
-                }            }
+                }
+            }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
+            }
+            if(argv[i].equals("Model")){
+                //0: maxIteration  1: maxTime 2: earlyStop
+                modelType = Integer.parseInt(argv[i + 1]);
+            }
         }
         System.out.println("ThreadNum " + threadNum);
         System.out.println("StopDelta " + stopDelta);
@@ -194,8 +181,9 @@ public class LogisticRegression extends model.LogisticRegression{
         System.out.println("Lambda " + lambda);
         System.out.println("TrainRatio " + trainRatio);
         System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("EarlyStop " + earlyStop);
-        LogisticRegression lr = new LogisticRegression();
+        System.out.println("ModelType " + modelType);
+        System.out.println("Iteration Limit " + maxIteration);
+        LogisticRegressionPS lr = new LogisticRegressionPS();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dimension);
         DenseVector modelOfV = new DenseVector(dimension);

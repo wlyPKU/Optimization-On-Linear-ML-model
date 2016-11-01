@@ -145,6 +145,7 @@ public class LassoLBFGS extends Lasso{
 
         oldModelZ = new DenseVector(featureDimension);
 
+        long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             //Update x
@@ -157,7 +158,9 @@ public class LassoLBFGS extends Lasso{
             rho = calculateRho(rho);
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime " + trainTime + " ");
+            System.out.println("trainTime " + trainTime);
+            totalIterationTime += trainTime;
+            System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(converge(oldModel, model.x)){
@@ -165,12 +168,10 @@ public class LassoLBFGS extends Lasso{
                 break;
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
-            long nowCost = System.currentTimeMillis() - start;
-            if(nowCost > maxTimeLimit){
+            if(totalIterationTime > maxTimeLimit){
                 break;
                 //break;
             }
-
         }
     }
 
