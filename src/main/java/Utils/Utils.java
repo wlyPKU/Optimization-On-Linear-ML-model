@@ -22,7 +22,7 @@ public class Utils {
       LabeledData labeledData = parseOneLineLibSVM(line, dim);
       list.add(labeledData);
       cnt ++;
-      if (cnt % 1000000 == 0) {
+      if (cnt % 100000 == 0) {
         System.out.println("Finishing load " + cnt + " lines.");
       }
     }

@@ -1,14 +1,16 @@
 package parallelCD;
 
+import Utils.LabeledData;
 import Utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
+import model.Lasso;
 
 import java.util.Arrays;
 import java.util.List;
-import Utils.LabeledData;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -16,19 +18,20 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
+
 //  model       每个线程共享
 //  residual    每个线程共享
 //  可能会发生冲突
-public class LinearRegressionModelParallel extends model.LinearRegression{
+public class LassoModelParallelApartVector extends Lasso{
     private static long start;
 
-    private static int threadNum;
-    private static double residual[];
+    private static Vector<Double> residual;
     private static DenseVector model;
     private static double featureSquare[];
     private static SparseMap[] features;
+    private static double lambda;
     private static double trainRatio = 0.5;
-
+    private static int threadNum;
     private static int featureDimension;
     private static int sampleDimension;
 
@@ -50,20 +53,44 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
                     double xj = entry.getDoubleValue();
-                    updateValue += xj * residual[idx];
+                    updateValue += xj * residual.get(idx);
                 }
                 updateValue /= featureSquare[j];
                 model.values[j] += updateValue;
+                model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
 
                 iter =  features[j].map.int2DoubleEntrySet().iterator();
-
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
                     double value = entry.getDoubleValue();
-                    residual[idx] -= (model.values[j] - oldValue) * value;
+                    residual.set(idx, residual.get(idx) - (model.values[j] - oldValue) * value);
                 }
             }
+        }
+    }
+
+    private void adjustResidual(){
+        double tmpResidual[] = new double[sampleDimension];
+        ObjectIterator<Int2DoubleMap.Entry> iter =  features[featureDimension].map.int2DoubleEntrySet().iterator();
+        while (iter.hasNext()) {
+            Int2DoubleMap.Entry entry = iter.next();
+            int idx = entry.getIntKey();
+            double y = entry.getDoubleValue();
+            tmpResidual[idx] = y;
+        }
+        for(int j = 0; j < featureDimension; j++){
+            iter =  features[j].map.int2DoubleEntrySet().iterator();
+            while (iter.hasNext()) {
+                Int2DoubleMap.Entry entry = iter.next();
+                int idx = entry.getIntKey();
+                double value = entry.getDoubleValue();
+                tmpResidual[idx] -= model.values[j] * value;
+            }
+        }
+
+        for(int i = 0; i < sampleDimension; i++){
+            residual.setElementAt(tmpResidual[i], i);
         }
     }
 
@@ -73,7 +100,8 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         featureSquare = new double[featureDimension];
-        residual = new double[sampleDimension];
+        residual = new Vector<Double>();
+        residual.setSize(sampleDimension);
         for(int i = 0; i < featureDimension; i++){
             featureSquare[i] = 0;
             for(Double v: features[i].map.values()){
@@ -86,12 +114,14 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
             Int2DoubleMap.Entry entry = iter.next();
             int idx = entry.getIntKey();
             double y = entry.getDoubleValue();
-            residual[idx] = y;
+            residual.set(idx, y);
         }
         DenseVector oldModel = new DenseVector(featureDimension);
+
         long totalBegin = System.currentTimeMillis();
 
         long totalIterationTime = 0;
+
         for (int i = 0; ; i ++) {
             long startTrain = System.currentTimeMillis();
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
@@ -111,52 +141,63 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
             }
 
             long trainTime = System.currentTimeMillis() - startTrain;
+            System.out.println("Iteration " + i);
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
-
-            testAndSummary(trainCorpus, testCorpus, model);
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            if(converge(oldModel, model)){
-                if(earlyStop)
+            adjustResidual();
+            if(modelType == 1) {
+                if (totalIterationTime > maxTimeLimit) {
                     break;
+                }
+            }else if(modelType == 0){
+                if(i > maxIteration){
+                    break;
+                }
+            }else if (modelType == 2){
+                if(converge(oldModel, model)){
+                    break;
+                }
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
 
-            if(totalIterationTime > maxTimeLimit) {
-                break;
-                //break;
-            }
         }
     }
 
     public static void train(List<LabeledData> labeledData) {
-        LinearRegressionModelParallel linearCD = new LinearRegressionModelParallel();
+        LassoModelParallelApartVector lassoModelParallelCD = new LassoModelParallelApartVector();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);
         start = System.currentTimeMillis();
-        linearCD.trainCore(labeledData);
+        lassoModelParallelCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println(cost + " ms");
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.LinearRegressionModelParallel threadNum FeatureDim SampleDim train_path trainRatio");
+        System.out.println("Usage: parallelCD.LassoModelParallelApartVector threadNum FeatureDim SampleDim train_path lambda trainRatio");
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         sampleDimension = Integer.parseInt(argv[2]);
         String path = argv[3];
+        lambda = Double.parseDouble(argv[4]);
         trainRatio = 0.5;
         for(int i = 0; i < argv.length - 1; i++){
-            if(argv[i].equals("EarlyStop")){
-                earlyStop = Boolean.parseBoolean(argv[i + 1]);
+            if(argv[i].equals("Model")){
+                //0: maxIteration  1: maxTime 2: earlyStop
+                modelType = Integer.parseInt(argv[i + 1]);
             }
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
             if(argv[i].equals("StopDelta")){
                 stopDelta = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
@@ -171,9 +212,12 @@ public class LinearRegressionModelParallel extends model.LinearRegression{
         System.out.println("FeatureDimension " + featureDimension);
         System.out.println("SampleDimension " + sampleDimension);
         System.out.println("File Path " + path);
+        System.out.println("Lambda " + lambda);
         System.out.println("TrainRatio " + trainRatio);
         System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("EarlyStop " + earlyStop);
+        System.out.println("ModelType " + modelType);
+        System.out.println("Iteration Limit " + maxIteration);
+
         long startLoad = System.currentTimeMillis();
         features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);

@@ -129,7 +129,6 @@ public class SVMModelParallel extends model.SVM{
             testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
 
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
@@ -144,6 +143,8 @@ public class SVMModelParallel extends model.SVM{
                     break;
                 }
             }
+            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
+
         }
     }
 

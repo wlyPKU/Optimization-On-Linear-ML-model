@@ -137,7 +137,6 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
             adjustResidual(model, residual);
 
             if(modelType == 1) {
@@ -153,6 +152,8 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
                     break;
                 }
             }
+            System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
+
         }
     }
 

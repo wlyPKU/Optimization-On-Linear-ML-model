@@ -79,7 +79,6 @@ public class LinearRegressionPS extends model.LinearRegression{
                     e.printStackTrace();
                 }
             }
-            System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
 
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("Iteration " + i);
@@ -104,6 +103,8 @@ public class LinearRegressionPS extends model.LinearRegression{
                     break;
                 }
             }
+            System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
+
         }
     }
 

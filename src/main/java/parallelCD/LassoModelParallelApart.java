@@ -140,7 +140,6 @@ public class LassoModelParallelApart extends Lasso{
             System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
             adjustResidual(model, residual);
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
@@ -155,6 +154,7 @@ public class LassoModelParallelApart extends Lasso{
                     break;
                 }
             }
+            System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
         }
     }
 

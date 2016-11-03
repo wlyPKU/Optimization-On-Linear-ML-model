@@ -115,7 +115,6 @@ public class LassoPS extends model.Lasso{
             testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
-            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -131,6 +130,8 @@ public class LassoPS extends model.Lasso{
                         break;
                 }
             }
+            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
+
         }
     }
 

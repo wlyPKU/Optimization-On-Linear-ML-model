@@ -153,17 +153,20 @@ public class SVM extends model.SVM {
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            if(converge(oldModel, model.x)){
-                if(earlyStop)
-
+            if(modelType == 1) {
+                if (totalIterationTime > maxTimeLimit) {
                     break;
+                }
+            }else if(modelType == 0){
+                if(i > maxIteration){
+                    break;
+                }
+            }else if (modelType == 2){
+                if(converge(oldModel, model.x)){
+                    break;
+                }
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
-
-            if(totalIterationTime > maxTimeLimit) {
-                break;
-                //break;
-            }
         }
     }
     private static void train() {
@@ -183,8 +186,9 @@ public class SVM extends model.SVM {
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
         for(int i = 0; i < argv.length - 1; i++){
-            if(argv[i].equals("EarlyStop")){
-                earlyStop = Boolean.parseBoolean(argv[i + 1]);
+            if(argv[i].equals("Model")){
+                //0: maxIteration  1: maxTime 2: earlyStop
+                modelType = Integer.parseInt(argv[i + 1]);
             }
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
@@ -192,12 +196,16 @@ public class SVM extends model.SVM {
             if(argv[i].equals("StopDelta")){
                 stopDelta = Double.parseDouble(argv[i + 1]);
             }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
+            }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
                 if(trainRatio >= 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
-                }            }
+                }
+            }
         }
         System.out.println("ThreadNum " + threadNum);
         System.out.println("StopDelta " + stopDelta);
@@ -206,7 +214,8 @@ public class SVM extends model.SVM {
         System.out.println("Lambda " + lambda);
         System.out.println("TrainRatio " + trainRatio);
         System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("EarlyStop " + earlyStop);
+        System.out.println("ModelType " + modelType);
+        System.out.println("Iteration Limit " + maxIteration);
         long startLoad = System.currentTimeMillis();
         labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;

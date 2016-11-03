@@ -121,7 +121,6 @@ public class LogisticRegressionPS extends model.LogisticRegression{
             System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -137,6 +136,8 @@ public class LogisticRegressionPS extends model.LogisticRegression{
                     break;
                 }
             }
+            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
+
         }
     }
 
