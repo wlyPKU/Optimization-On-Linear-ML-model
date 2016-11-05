@@ -29,7 +29,7 @@ public class SVM extends model.SVM {
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
 
     //Parameter:
-    private int lbfgsNumIteration = 10;
+    private int lbfgsNumIteration = 2;
     private int lbfgsHistory = 10;
     private double rel_par = 1.0;
     private double rho = 1e-4;
@@ -146,7 +146,7 @@ public class SVM extends model.SVM {
             updateU();
             //rho = Math.min(maxRho, rho * 1.1);
             rho = calculateRho(rho);
-
+            System.out.println("Iteration " + i);
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);

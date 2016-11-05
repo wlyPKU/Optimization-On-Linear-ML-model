@@ -32,7 +32,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
     private double rho = 1e-4;
     private double maxRho = 5;
     private double rel_par = 1.0;
-    private int lbfgsNumIteration = 10;
+    private int lbfgsNumIteration = 2;
     private int lbfgsHistory = 10;
     private static DenseVector oldModelZ;
 
@@ -141,7 +141,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             updateU();
             //rho = Math.min(rho * 1.1, maxRho);
             rho = calculateRho(rho);
-
+            System.out.println("Iteration " + i);
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;

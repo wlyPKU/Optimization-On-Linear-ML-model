@@ -42,7 +42,7 @@ public class LassoLBFGS extends Lasso{
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
     private double rho = 1e-4;
     private double maxRho = 5;
-    private int lbfgsNumIteration = 10;
+    private int lbfgsNumIteration = 2;
     private int lbfgsHistory = 10;
     double rel_par = 1.0;
 
@@ -109,7 +109,7 @@ public class LassoLBFGS extends Lasso{
         for(int id = 0; id < featureDimension; id++){
             x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
             //z=Soft_threshold(lambda/rho,x+u);
-            model.z.values[id] = Utils.soft_threshold(lambda/ (rho * threadNum), x_hat[id]
+            model.z.values[id] = Utils.soft_threshold(lambda / rho * threadNum, x_hat[id]
                     + model.u.values[id]);
         }
     }
@@ -156,7 +156,7 @@ public class LassoLBFGS extends Lasso{
             updateU();
             //rho = Math.min(rho * 1.1, maxRho);
             rho = calculateRho(rho);
-
+            System.out.println("Iteration " + i);
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime);
             totalIterationTime += trainTime;

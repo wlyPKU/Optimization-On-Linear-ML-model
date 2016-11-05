@@ -35,7 +35,7 @@ public class LogisticRegression extends model.LogisticRegression{
     private static int threadNum;
     private double rho = 1e-4;
     private double maxRho = 5;
-    private int lbfgsNumIteration = 10;
+    private int lbfgsNumIteration = 2;
     private int lbfgsHistory = 10;
     private double rel_par = 1.0;
     private ADMMState[] localADMMState;
@@ -106,7 +106,7 @@ public class LogisticRegression extends model.LogisticRegression{
         for(int id = 0; id < featureDimension; id++){
             x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
             //z=Soft_threshold(lambda/rho,x+u);
-            model.z.values[id] = Utils.soft_threshold(lambda / (threadNum * rho), x_hat[id] + model.u.values[id]);
+            model.z.values[id] = Utils.soft_threshold(lambda / rho * threadNum, x_hat[id] + model.u.values[id]);
         }
     }
 
@@ -151,7 +151,7 @@ public class LogisticRegression extends model.LogisticRegression{
             //rho = Math.min(maxRho, rho * 1.1);
             rho = calculateRho(rho);
 
-
+            System.out.println("Iteration " + i);
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
