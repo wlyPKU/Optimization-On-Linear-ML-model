@@ -60,15 +60,21 @@ public class SVMDataParallel extends model.SVM{
                     PG = G;
                 }
                 if(PG != 0) {
-                    alpha[j] = Math.min(Math.max(0, alpha[j] - G / Q[j]), C);
-                    int r = 0;
-                    for (Integer idx : labeledData.data.indices) {
-                            if (labeledData.data.values == null) {
-                                model.values[idx] += (alpha[j] - alpha_old) * labeledData.label;
-                            } else {
-                                model.values[idx] += (alpha[j] - alpha_old) * labeledData.label * labeledData.data.values[r];
-                                r++;
+
+                    alpha[j] = Math.min(Math.max(0, alpha[j] - G / 3.0 / Q[j]), C);
+                    double deltaAlpha = alpha[j] - alpha_old;
+                    if(deltaAlpha != 0){
+                        if (labeledData.data.values == null) {
+                            for (Integer idx : labeledData.data.indices) {
+                                model.values[idx] += deltaAlpha * labeledData.label;
                             }
+                        }else{
+                            for (int i = 0; i < labeledData.data.indices.length; i++) {
+                                int idx = labeledData.data.indices[i];
+                                double value = labeledData.data.values[i];
+                                model.values[idx] += deltaAlpha * labeledData.label * value;
+                            }
+                        }
                     }
                 }
             }
@@ -114,7 +120,7 @@ public class SVMDataParallel extends model.SVM{
             index++;
         }
         alpha = new double[trainCorpus.size()];
-        double C = 1.0 / (2.0 * lambda);
+        double C = 1.0 / lambda;
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
 

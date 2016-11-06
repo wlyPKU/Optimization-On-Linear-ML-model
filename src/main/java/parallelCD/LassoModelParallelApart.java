@@ -59,11 +59,12 @@ public class LassoModelParallelApart extends Lasso{
                 model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
 
                 iter =  features[j].map.int2DoubleEntrySet().iterator();
+                double deltaChange = model.values[j] - oldValue;
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
                     int idx = entry.getIntKey();
                     double value = entry.getDoubleValue();
-                    residual[idx] -= (model.values[j] - oldValue) * value;
+                    residual[idx] -= deltaChange * value;
                 }
             }
         }
