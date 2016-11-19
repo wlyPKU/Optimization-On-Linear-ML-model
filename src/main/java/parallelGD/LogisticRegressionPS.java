@@ -186,6 +186,8 @@ public class LogisticRegressionPS extends model.LogisticRegression{
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
+
         LogisticRegressionPS lr = new LogisticRegressionPS();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector modelOfU = new DenseVector(dimension);
@@ -193,6 +195,6 @@ public class LogisticRegressionPS extends model.LogisticRegression{
         start = System.currentTimeMillis();
         lr.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 }

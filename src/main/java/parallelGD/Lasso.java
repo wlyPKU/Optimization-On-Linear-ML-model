@@ -192,6 +192,6 @@ public class Lasso extends model.Lasso{
         start = System.currentTimeMillis();
         lasso.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 }

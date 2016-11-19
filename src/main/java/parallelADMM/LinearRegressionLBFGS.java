@@ -29,8 +29,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
     private double x_hat[];
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
 
-    private double rho = 1e-4;
-    //private double maxRho = 5;
+    private static double rho = 0.1;
     private double rel_par = 1.0;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
@@ -83,6 +82,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
                     rho, iteNum, localTrainCorpus.get(threadID), "LinearRegressionModelParallel", model.z);
+            model.x.plusDense(localADMMState[threadID].x);
         }
     }
 
@@ -97,12 +97,8 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             try {
                 threadPool.awaitTermination(1, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
-                System.out.println("Waiting.");
                 e.printStackTrace();
             }
-        }
-        for(int threadID = 0; threadID < threadNum; threadID++) {
-            model.x.plusDense(localADMMState[threadID].x);
         }
         model.x.allDividedBy(threadNum);
     }
@@ -111,7 +107,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         for(int id = 0; id < featureDimension; id++){
             x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
             //z=Soft_threshold(lambda/rho,x+u);
-            model.z.values[id] = x_hat[id] + model.u.values[id];
+            model.z.values[id] = (x_hat[id] + model.u.values[id]);
         }
     }
 
@@ -153,17 +149,18 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             //Update z
             updateZ();
             updateU();
-            //rho = Math.min(rho * 1.1, maxRho);
-            rho = calculateRho(rho);
-            System.out.println("Iteration " + i);
+            if(!rhoFixed){
+                rho = calculateRho(rho);
+            }
+            System.out.println("------- Iteration " + i + " -------");
+            System.out.println("Current rho is " + rho);
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model.x);
-
-            rho = calculateRho(rho);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
                     break;
@@ -187,7 +184,7 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         start = System.currentTimeMillis();
         lrADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: ADMM.LinearRegressionLBFGS threadNum featureDimension train_path [trainRatio]");
@@ -208,6 +205,12 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
             if(argv[i].equals("MaxIteration")){
                 maxIteration = Integer.parseInt(argv[i + 1]);
             }
+            if(argv[i].equals("RhoInitial")){
+                rho = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("RhoFixed")){
+                rhoFixed = Boolean.parseBoolean(argv[i + 1]);
+            }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
                 if(trainRatio >= 1 || trainRatio <= 0){
@@ -224,7 +227,9 @@ public class LinearRegressionLBFGS extends model.LinearRegression{
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
-
+        System.out.println("Rho Fixed " + rhoFixed);
+        System.out.println("Rho " + rho);
+        System.out.println("------------------------------------");
 
         long startLoad = System.currentTimeMillis();
         labeledData = Utils.loadLibSVM(path, featureDimension);

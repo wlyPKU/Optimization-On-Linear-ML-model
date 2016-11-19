@@ -188,6 +188,7 @@ public class LassoPS extends model.Lasso{
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
 
         LassoPS lasso = new LassoPS();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
@@ -196,6 +197,6 @@ public class LassoPS extends model.Lasso{
         start = System.currentTimeMillis();
         lasso.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 }

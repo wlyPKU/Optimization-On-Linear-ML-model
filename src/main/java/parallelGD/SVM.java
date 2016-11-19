@@ -179,6 +179,6 @@ public class SVM extends model.SVM{
         svm.train(corpus, model);
 
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 }

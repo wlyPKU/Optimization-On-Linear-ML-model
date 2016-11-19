@@ -32,7 +32,7 @@ public class SVM extends model.SVM {
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
     private double rel_par = 1.0;
-    private double rho = 1e-4;
+    private static double rho = 0.1;
     //private double maxRho = 5;
     private double x_hat[];
     private static DenseVector oldModelZ;
@@ -50,6 +50,7 @@ public class SVM extends model.SVM {
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
                     rho, iteNum, localTrainCorpus.get(threadID), "SVMDataParallel", model.z);
+            model.x.plusDense(localADMMState[threadID].x);
         }
     }
 
@@ -86,9 +87,6 @@ public class SVM extends model.SVM {
                 System.out.println("Waiting.");
                     e.printStackTrace();
                 }
-        }
-        for(int threadID = 0; threadID < threadNum; threadID++) {
-            model.x.plusDense(localADMMState[threadID].x);
         }
         model.x.allDividedBy(threadNum);
     }
@@ -158,9 +156,11 @@ public class SVM extends model.SVM {
             updateZ();
             //Update u
             updateU();
-            //rho = Math.min(maxRho, rho * 1.1);
-            rho = calculateRho(rho);
-            System.out.println("Iteration " + i);
+            if(!rhoFixed){
+                rho = calculateRho(rho);
+            }
+            System.out.println("------- Iteration " + i + " -------");
+            System.out.println("Current rho is " + rho);
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
@@ -190,7 +190,7 @@ public class SVM extends model.SVM {
         start = System.currentTimeMillis();
         svmADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 
     public static void main(String[] argv) throws Exception {
@@ -207,8 +207,14 @@ public class SVM extends model.SVM {
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
+            if(argv[i].equals("RhoFixed")){
+                rhoFixed = Boolean.parseBoolean(argv[i + 1]);
+            }
             if(argv[i].equals("StopDelta")){
                 stopDelta = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("RhoInitial")){
+                rho = Double.parseDouble(argv[i + 1]);
             }
             if(argv[i].equals("MaxIteration")){
                 maxIteration = Integer.parseInt(argv[i + 1]);
@@ -230,6 +236,10 @@ public class SVM extends model.SVM {
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("Rho Fixed " + rhoFixed);
+        System.out.println("Rho " + rho);
+        System.out.println("------------------------------------");
+
         long startLoad = System.currentTimeMillis();
         labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;

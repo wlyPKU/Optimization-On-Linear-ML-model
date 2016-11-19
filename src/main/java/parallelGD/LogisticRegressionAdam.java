@@ -251,6 +251,6 @@ public class LogisticRegressionAdam extends model.LogisticRegression{
         start = System.currentTimeMillis();
         lr.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 }

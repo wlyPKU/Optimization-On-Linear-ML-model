@@ -130,7 +130,7 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
             }
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("Iteration " + i);
+            System.out.println("------- Iteration " + i + " -------");
             System.out.println("trainTime " + trainTime + " ");
             testAndSummary(trainCorpus, testCorpus, model);
 
@@ -165,7 +165,7 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
         start = System.currentTimeMillis();
         linearCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 
     public static void main(String[] argv) throws Exception {
@@ -206,6 +206,7 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
 
         long startLoad = System.currentTimeMillis();
         features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);

@@ -200,7 +200,6 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
                 try {
                     newThreadPool.awaitTermination(1, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
-                    System.out.println("Waiting.");
                     e.printStackTrace();
                 }
             }
@@ -209,7 +208,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
                 model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("Iteration " + i);
+            System.out.println("------- Iteration " + i + " -------");
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
@@ -245,7 +244,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
         start = System.currentTimeMillis();
         lrSCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 
     public static void main(String[] argv) throws Exception {
@@ -291,6 +290,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
 
         long startLoad = System.currentTimeMillis();
         features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);

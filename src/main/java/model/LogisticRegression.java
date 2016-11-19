@@ -17,6 +17,8 @@ public class LogisticRegression {
     public static double stopDelta = 0.00001;
     public static int maxIteration = 100;
     public static int modelType = 0;
+    public static boolean rhoFixed = true;
+
 
     public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector model, double lambda){

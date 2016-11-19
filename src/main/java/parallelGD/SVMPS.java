@@ -175,12 +175,14 @@ public class SVMPS extends model.SVM{
         System.out.println("EarlyStop " + earlyStop);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
+
         SVMPS svm = new SVMPS();
         DenseVector model = new DenseVector(dim);
         start = System.currentTimeMillis();
         svm.train(corpus, model);
 
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 }

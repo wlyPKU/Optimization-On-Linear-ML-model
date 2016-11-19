@@ -135,7 +135,7 @@ public class LassoModelParallelApart extends Lasso{
             }
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("Iteration " + i);
+            System.out.println("------- Iteration " + i + " -------");
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
@@ -171,7 +171,7 @@ public class LassoModelParallelApart extends Lasso{
         start = System.currentTimeMillis();
         lassoModelParallelCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 
     public static void main(String[] argv) throws Exception {
@@ -214,6 +214,7 @@ public class LassoModelParallelApart extends Lasso{
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
 
         long startLoad = System.currentTimeMillis();
         features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);

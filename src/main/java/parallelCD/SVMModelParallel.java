@@ -120,12 +120,11 @@ public class SVMModelParallel extends model.SVM{
                 try {
                     threadPool.awaitTermination(1, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
-                    System.out.println("Waiting.");
                     e.printStackTrace();
                 }
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("Iteration " + i);
+            System.out.println("------- Iteration " + i + " -------");
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
@@ -157,7 +156,7 @@ public class SVMModelParallel extends model.SVM{
         start = System.currentTimeMillis();
         svmCD.trainCore(corpus);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelCD.SVMModelParallel threadNum dim train_path lambda [trainRatio]");
@@ -200,6 +199,7 @@ public class SVMModelParallel extends model.SVM{
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
         train(corpus);
     }
 }

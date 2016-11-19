@@ -150,6 +150,7 @@ public class LinearRegressionPS extends model.LinearRegression{
         System.out.println("EarlyStop " + earlyStop);
         System.out.println("ModelType " + modelType);
         System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
 
         LinearRegressionPS linear = new LinearRegressionPS();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
@@ -157,6 +158,6 @@ public class LinearRegressionPS extends model.LinearRegression{
         start = System.currentTimeMillis();
         linear.train(corpus, model);
         long cost = System.currentTimeMillis() - start;
-        System.out.println(cost + " ms");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
 }
