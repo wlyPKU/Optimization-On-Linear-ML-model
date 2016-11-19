@@ -16,7 +16,7 @@ public class Lasso {
     public static int modelType = 0;
 
 
-    public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+    public boolean testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector x, double lambda){
         long startTest = System.currentTimeMillis();
         double trainLoss = lassoLoss(trainCorpus, x, lambda);
@@ -33,7 +33,10 @@ public class Lasso {
         //Utils.printAccuracy(trainAccuracy);
         System.out.println("testAccuracy:");
         //Utils.printAccuracy(testAccuracy);
-
+        if(trainResidual > 1e100){
+            return true;
+        }
+        return false;
     }
     public double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
         double loss = 0.0;

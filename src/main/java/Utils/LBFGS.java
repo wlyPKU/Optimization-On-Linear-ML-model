@@ -223,7 +223,6 @@ public class LBFGS {
                 timesBy(dir, s.get(i), -alphas[i] - beta, localFeatureNum);
             }
         }
-
     }
 
     private static double linearSearch(double[] x,
@@ -251,7 +250,7 @@ public class LBFGS {
         }
 
         double alpha = 1.0;
-        double backoff = 0.3;
+        double backoff = 0.5;
         if (iteration == 1) {
             alpha = 1 / Math.sqrt(dot(dir, dir, localFeatureNum));
             backoff = 0.1;

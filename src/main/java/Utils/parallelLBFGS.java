@@ -145,7 +145,7 @@ public class parallelLBFGS {
                                  double rhoADMM,
                                  double[] z,
                                  List<LabeledData> trainCorpus,
-                                 String algorithm) {
+                                  String algorithm) {
         double loss = 0.0;
 
         int localFeatureNum = state.featureNum;
@@ -274,8 +274,8 @@ public class parallelLBFGS {
             step -= 1;
         }
 
-        return getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
-        //return loss;
+        getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
+        return loss;
     }
 
     private static void shift(int localFeatureNum,

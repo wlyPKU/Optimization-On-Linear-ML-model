@@ -45,7 +45,10 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
 
         }
         public void run() {
-            double C = 1.0 / lambda;
+            double C = Double.MAX_VALUE;
+            if(lambda != 0){
+                C = 1.0 / lambda;
+            }
             for(int fIdx = from; fIdx < to; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;
@@ -93,8 +96,10 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
 
         }
         public void run() {
-            double C = 1.0 / lambda;
-
+            double C = Double.MAX_VALUE;
+            if(lambda != 0){
+                C = 1.0 / lambda;
+            }
             for(int fIdx = from; fIdx < to; fIdx++){
                 //First Order L:
                 double firstOrderL = 0;

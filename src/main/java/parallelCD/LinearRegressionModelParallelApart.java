@@ -44,7 +44,6 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
             for(int j = from; j < to; j++){
                 double oldValue = model.values[j];
                 double updateValue = 0;
-
                 ObjectIterator<Int2DoubleMap.Entry> iter =  features[j].map.int2DoubleEntrySet().iterator();
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
@@ -55,7 +54,7 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
                 updateValue /= featureSquare[j];
                 model.values[j] += updateValue;
 
-                iter =  features[j].map.int2DoubleEntrySet().iterator();
+                iter = features[j].map.int2DoubleEntrySet().iterator();
 
                 double deltaChange = model.values[j] - oldValue;
                 while (iter.hasNext()) {

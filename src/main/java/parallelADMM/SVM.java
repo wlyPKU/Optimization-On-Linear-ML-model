@@ -29,11 +29,11 @@ public class SVM extends model.SVM {
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
 
     //Parameter:
-    private int lbfgsNumIteration = 2;
+    private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
     private double rel_par = 1.0;
     private double rho = 1e-4;
-    private double maxRho = 5;
+    //private double maxRho = 5;
     private double x_hat[];
     private static DenseVector oldModelZ;
 
@@ -50,7 +50,6 @@ public class SVM extends model.SVM {
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
                     rho, iteNum, localTrainCorpus.get(threadID), "SVMDataParallel", model.z);
-            model.x.plusDense(localADMMState[threadID].x);
         }
     }
 
@@ -88,6 +87,9 @@ public class SVM extends model.SVM {
                     e.printStackTrace();
                 }
         }
+        for(int threadID = 0; threadID < threadNum; threadID++) {
+            model.x.plusDense(localADMMState[threadID].x);
+        }
         model.x.allDividedBy(threadNum);
     }
 
@@ -106,8 +108,20 @@ public class SVM extends model.SVM {
         }
         s = Math.sqrt(s) * rho;
         if(r > miu * s){
+            for(int fID = 0; fID < featureDimension; fID++){
+                model.u.values[fID] /= pi_incr;
+                for(int j = 0; j < threadNum; j++){
+                    localADMMState[j].u.values[fID] /= pi_incr;
+                }
+            }
             return pi_incr * rho;
         }else if(s > miu * r){
+            for(int fID = 0; fID < featureDimension; fID++){
+                model.u.values[fID] *= pi_incr;
+                for(int j = 0; j < threadNum; j++){
+                    localADMMState[j].u.values[fID] *= pi_incr;
+                }
+            }
             return rho / pi_decr;
         }
         return rho;

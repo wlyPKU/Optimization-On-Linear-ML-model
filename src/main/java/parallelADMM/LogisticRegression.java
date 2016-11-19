@@ -34,8 +34,8 @@ public class LogisticRegression extends model.LogisticRegression{
     private static ADMMState model;
     private static int threadNum;
     private double rho = 1e-4;
-    private double maxRho = 5;
-    private int lbfgsNumIteration = 2;
+    //private double maxRho = 5;
+    private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
     private double rel_par = 1.0;
     private ADMMState[] localADMMState;
@@ -57,7 +57,6 @@ public class LogisticRegression extends model.LogisticRegression{
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
                     rho, iteNum, localTrainCorpus.get(threadID), "logisticRegression", model.z);
-            model.x.plusDense(localADMMState[threadID].x);
         }
     }
 
@@ -76,8 +75,20 @@ public class LogisticRegression extends model.LogisticRegression{
         }
         s = Math.sqrt(s) * rho;
         if(r > miu * s){
+            for(int fID = 0; fID < featureDimension; fID++){
+                model.u.values[fID] /= pi_incr;
+                for(int j = 0; j < threadNum; j++){
+                    localADMMState[j].u.values[fID] /= pi_incr;
+                }
+            }
             return pi_incr * rho;
         }else if(s > miu * r){
+            for(int fID = 0; fID < featureDimension; fID++){
+                model.u.values[fID] *= pi_incr;
+                for(int j = 0; j < threadNum; j++){
+                    localADMMState[j].u.values[fID] *= pi_incr;
+                }
+            }
             return rho / pi_decr;
         }
         return rho;
@@ -97,6 +108,9 @@ public class LogisticRegression extends model.LogisticRegression{
                 System.out.println("Waiting.");
                 e.printStackTrace();
             }
+        }
+        for(int threadID = 0; threadID < threadNum; threadID++) {
+            model.x.plusDense(localADMMState[threadID].x);
         }
         model.x.allDividedBy(threadNum);
     }

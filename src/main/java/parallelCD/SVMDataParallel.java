@@ -60,7 +60,6 @@ public class SVMDataParallel extends model.SVM{
                     PG = G;
                 }
                 if(PG != 0) {
-
                     alpha[j] = Math.min(Math.max(0, alpha[j] - G / 3.0 / Q[j]), C);
                     double deltaAlpha = alpha[j] - alpha_old;
                     if(deltaAlpha != 0){
@@ -120,7 +119,10 @@ public class SVMDataParallel extends model.SVM{
             index++;
         }
         alpha = new double[trainCorpus.size()];
-        double C = 1.0 / lambda;
+        double C = Double.MAX_VALUE;
+        if(lambda != 0){
+            C = 1.0 / lambda;
+        }
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
 
@@ -148,7 +150,6 @@ public class SVMDataParallel extends model.SVM{
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model, lambda);
-
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
             if(modelType == 1) {

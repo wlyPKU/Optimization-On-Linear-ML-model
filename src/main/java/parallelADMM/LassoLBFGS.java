@@ -41,13 +41,13 @@ public class LassoLBFGS extends Lasso{
     private double x_hat[];
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
     private double rho = 1e-4;
-    private double maxRho = 5;
-    private int lbfgsNumIteration = 2;
+    //private double maxRho = 5;
+    private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
     double rel_par = 1.0;
 
     private double calculateRho(double rho){
-        //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG23
+        //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG20
         double miu = 10;
         double pi_incr = 2, pi_decr = 2;
         double r = 0;
@@ -61,8 +61,20 @@ public class LassoLBFGS extends Lasso{
         }
         s = Math.sqrt(s) * rho;
         if(r > miu * s){
+            for(int fID = 0; fID < featureDimension; fID++){
+                model.u.values[fID] /= pi_incr;
+                for(int j = 0; j < threadNum; j++){
+                    localADMMState[j].u.values[fID] /= pi_incr;
+                }
+            }
             return pi_incr * rho;
         }else if(s > miu * r){
+            for(int fID = 0; fID < featureDimension; fID++){
+                model.u.values[fID] *= pi_incr;
+                for(int j = 0; j < threadNum; j++){
+                    localADMMState[j].u.values[fID] *= pi_incr;
+                }
+            }
             return rho / pi_decr;
         }
         return rho;
@@ -101,7 +113,6 @@ public class LassoLBFGS extends Lasso{
         for(int threadID = 0; threadID < threadNum; threadID++) {
             model.x.plusDense(localADMMState[threadID].x);
         }
-
         model.x.allDividedBy(threadNum);
     }
     private void updateZ(){
@@ -161,7 +172,7 @@ public class LassoLBFGS extends Lasso{
             System.out.println("trainTime " + trainTime);
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
-            testAndSummary(trainCorpus, testCorpus, model.x, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
@@ -177,6 +188,10 @@ public class LassoLBFGS extends Lasso{
                 }
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
+            if(diverge){
+                System.out.println("Diverge happens!");
+                break;
+            }
         }
     }
 

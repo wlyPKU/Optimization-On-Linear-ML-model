@@ -49,6 +49,7 @@ public class LassoPS extends model.Lasso{
         }
         public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
             double modelPenalty = -lr * lambda / globalCorpusSize;
+            //double modelPenalty = - lr * lambda;
             for (LabeledData labeledData: list) {
                 double scala = labeledData.label - globalModelOfU.dot(labeledData.data)
                         + globalModelOfV.dot(labeledData.data);
@@ -56,9 +57,13 @@ public class LassoPS extends model.Lasso{
                 globalModelOfU.plusSparse(labeledData.data, modelPenalty);
                 globalModelOfU.plusGradient(labeledData.data, scala * lr);
                 globalModelOfU.positiveOrZero(labeledData.data);
+            }
+            for (LabeledData labeledData: list) {
+                double scala = labeledData.label - globalModelOfU.dot(labeledData.data)
+                        + globalModelOfV.dot(labeledData.data);
+                globalModelOfV.plusSparse(labeledData.data, modelPenalty);
                 globalModelOfV.plusGradient(labeledData.data, - scala * lr);
                 //globalModelOfV.allPlusBy(modelPenalty);
-                globalModelOfV.plusSparse(labeledData.data, modelPenalty);
                 globalModelOfV.positiveOrZero(labeledData.data);
 
             }
@@ -92,7 +97,7 @@ public class LassoPS extends model.Lasso{
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), lambda, corpus.size()));
+                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), lambda, trainCorpus.size()));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -112,7 +117,7 @@ public class LassoPS extends model.Lasso{
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
 
             iteration++;
@@ -131,7 +136,10 @@ public class LassoPS extends model.Lasso{
                 }
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-
+            if(diverge){
+                System.out.println("Diverge happens!");
+                break;
+            }
         }
     }
 

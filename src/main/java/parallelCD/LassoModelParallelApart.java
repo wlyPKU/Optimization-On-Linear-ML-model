@@ -139,7 +139,7 @@ public class LassoModelParallelApart extends Lasso{
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             adjustResidual(model, residual);
             if(modelType == 1) {
@@ -156,6 +156,10 @@ public class LassoModelParallelApart extends Lasso{
                 }
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
+            if(diverge){
+                System.out.println("Diverge happens!");
+                break;
+            }
         }
     }
 

@@ -100,7 +100,10 @@ public class SVMModelParallel extends model.SVM{
             index++;
         }
         alpha = new double[threadNum][trainCorpus.size()];
-        double C = 1.0 / (2.0 * lambda);
+        double C = Double.MAX_VALUE;
+        if(lambda != 0){
+            C = 1.0 / lambda;
+        }
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
 

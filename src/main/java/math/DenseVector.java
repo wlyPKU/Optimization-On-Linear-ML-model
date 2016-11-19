@@ -98,7 +98,12 @@ public class DenseVector {
   public void plusSparse(SparseVector other, double scala){
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];
-      values[idx] += scala;
+      if(values[idx] >= 0) {
+        values[idx] -= Math.abs(scala);
+      }
+      else {
+        values[idx] += Math.abs(scala);
+      }
     }
   }
   public void multiplySparse(SparseVector other, double scala){

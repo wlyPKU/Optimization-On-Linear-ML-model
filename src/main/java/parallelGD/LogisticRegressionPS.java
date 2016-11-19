@@ -48,6 +48,7 @@ public class LogisticRegressionPS extends model.LogisticRegression{
             sgdOneEpoch(localList, learningRate, lambda);
         }
         public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
+            //double modelPenalty = - lr * lambda;
             double modelPenalty = -lr * lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
                 double predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
@@ -56,10 +57,11 @@ public class LogisticRegressionPS extends model.LogisticRegression{
                 globalModelOfU.plusSparse(labeledData.data, modelPenalty);
                 globalModelOfU.plusGradient(labeledData.data, scala * lr);
                 globalModelOfU.positiveOrZero(labeledData.data);
-
-                predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
-                tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
-                scala = tmpValue * labeledData.label;
+            }
+            for (LabeledData labeledData: list) {
+                double predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
+                double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
+                double scala = tmpValue * labeledData.label;
                 globalModelOfV.plusSparse(labeledData.data, modelPenalty);
                 globalModelOfV.plusGradient(labeledData.data, - scala * lr);
                 globalModelOfV.positiveOrZero(labeledData.data);
@@ -97,7 +99,7 @@ public class LogisticRegressionPS extends model.LogisticRegression{
 
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), lambda, corpus.size()));
+                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), lambda, trainCorpus.size()));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
