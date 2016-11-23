@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.*;
 import Utils.*;
 
+import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -19,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  predictValue    每个线程共享
 //  可能会发生冲突
-public class LogisticRegressionModelParallel extends model.LogisticRegression{
+public class LogisticRegression extends model.LogisticRegression{
     private static long start;
 
     private static double lambda;
@@ -167,6 +168,9 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
             }
         }
         for (int i = 0; ; i ++) {
+            System.out.println("Iteration " + i + " ---------------");
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
+
             for(int idx = 0; idx < trainCorpus.size(); idx++){
                 LabeledData l = trainCorpus.get(idx);
                 predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
@@ -208,13 +212,15 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
                 model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("------- Iteration " + i + " -------");
-            System.out.println("trainTime " + trainTime + " ");
+            System.out.println("[Information]trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
-            System.out.println("totalIterationTime " + totalIterationTime);
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
+            System.out.println("[Information]totalTrainTime " + totalIterationTime);
+            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                    / 1024 / 1024 + "M");
+            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                    / 1024 / 1024 + "M");
 
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
                     break;
@@ -235,7 +241,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
 
 
     public static void train(List<LabeledData> labeledData) {
-        LogisticRegressionModelParallel lrSCD = new LogisticRegressionModelParallel();
+        LogisticRegression lrSCD = new LogisticRegression();
         //http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf 3197-3200+
         modelOfU = new DenseVector(featureDimension);
         modelOfV = new DenseVector(featureDimension);
@@ -244,11 +250,11 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
         start = System.currentTimeMillis();
         lrSCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
-        System.out.println("Training cost " + cost + " ms totally.");
+        System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.LogisticRegressionModelParallel threadNum FeatureDim SampleDim train_path lamda trainRatio");
+        System.out.println("Usage: parallelCD.LogisticRegression threadNum FeatureDim SampleDim train_path lamda trainRatio");
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         sampleDimension = Integer.parseInt(argv[2]);
@@ -280,23 +286,22 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression{
                 }
             }
         }
-        System.out.println("ThreadNum " + threadNum);
-        System.out.println("StopDelta " + stopDelta);
-        System.out.println("FeatureDimension " + featureDimension);
-        System.out.println("SampleDimension " + sampleDimension);
-        System.out.println("File Path " + path);
-        System.out.println("Lambda " + lambda);
-        System.out.println("TrainRatio " + trainRatio);
-        System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("ModelType " + modelType);
-        System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]ThreadNum " + threadNum);
+        System.out.println("[Parameter]StopDelta " + stopDelta);
+        System.out.println("[Parameter]FeatureDimension " + featureDimension);
+        System.out.println("[Parameter]SampleDimension " + sampleDimension);
+        System.out.println("[Parameter]File Path " + path);
+        System.out.println("[Parameter]Lambda " + lambda);
+        System.out.println("[Parameter]TrainRatio " + trainRatio);
+        System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
+        System.out.println("[Parameter]ModelType " + modelType);
+        System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
-
         long startLoad = System.currentTimeMillis();
         features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
-        System.out.println("Loading corpus completed, takes " + loadTime + " ms");
+        System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);
     }
 }

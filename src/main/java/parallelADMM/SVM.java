@@ -171,6 +171,7 @@ public class SVM extends model.SVM {
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
+            System.out.println("[Information]Iteration " + i + " ---------------");
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
 
             long startTrain = System.currentTimeMillis();

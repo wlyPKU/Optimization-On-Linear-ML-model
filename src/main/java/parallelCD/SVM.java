@@ -8,6 +8,7 @@ import Utils.LabeledData;
 import Utils.Utils;
 import math.DenseVector;
 
+import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 //  model           每个线程共享
 //  predictValue    每个线程共享
 //  可能会发生冲突
-public class SVMDataParallel extends model.SVM{
+public class SVM extends model.SVM{
     private static long start;
 
     private static double trainRatio = 0.5;
@@ -128,6 +129,9 @@ public class SVMDataParallel extends model.SVM{
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
+            System.out.println("[Information]Iteration " + i + " ---------------");
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
+
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             long startTrain = System.currentTimeMillis();
             //Coordinate Descent
@@ -145,13 +149,14 @@ public class SVMDataParallel extends model.SVM{
             }
             fixConflictError();
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("------- Iteration " + i + " -------");
-            System.out.println("trainTime " + trainTime + " ");
+            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
-            System.out.println("totalIterationTime " + totalIterationTime);
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            System.out.println("[Information]totalTrainTime " + totalIterationTime);
+            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                    / 1024 / 1024 + "M");
+            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                    / 1024 / 1024 + "M");
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
                     break;
@@ -171,22 +176,22 @@ public class SVMDataParallel extends model.SVM{
     }
 
     public static void train(List<LabeledData> corpus) {
-        SVMDataParallel svmCD = new SVMDataParallel();
+        SVM svmCD = new SVM();
         model = new DenseVector(featureDimension);
         start = System.currentTimeMillis();
         svmCD.trainCore(corpus);
         long cost = System.currentTimeMillis() - start;
-        System.out.println("Training cost " + cost + " ms totally.");
+        System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.SVMModelParallel threadNum dim train_path lambda [trainRatio]");
+        System.out.println("Usage: parallelCD.SVM threadNum dim train_path lambda [trainRatio]");
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
-        System.out.println("Loading corpus completed, takes " + loadTime + " ms");
+        System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         lambda = Double.parseDouble(argv[3]);
         for(int i = 0; i < argv.length - 1; i++){
             if(argv[i].equals("Model")){
@@ -210,15 +215,15 @@ public class SVMDataParallel extends model.SVM{
                 }
             }
         }
-        System.out.println("ThreadNum " + threadNum);
-        System.out.println("StopDelta " + stopDelta);
-        System.out.println("FeatureDimension " + featureDimension);
-        System.out.println("File Path " + path);
-        System.out.println("Lambda " + lambda);
-        System.out.println("TrainRatio " + trainRatio);
-        System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("ModelType " + modelType);
-        System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]ThreadNum " + threadNum);
+        System.out.println("[Parameter]StopDelta " + stopDelta);
+        System.out.println("[Parameter]FeatureDimension " + featureDimension);
+        System.out.println("[Parameter]File Path " + path);
+        System.out.println("[Parameter]Lambda " + lambda);
+        System.out.println("[Parameter]TrainRatio " + trainRatio);
+        System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
+        System.out.println("[Parameter]ModelType " + modelType);
+        System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
         train(corpus);
     }
