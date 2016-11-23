@@ -1,7 +1,9 @@
 package parallelGD;
-import Utils.*;
+
+import Utils.LabeledData;
 import Utils.Utils;
 import math.DenseVector;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -10,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class LinearRegression extends model.LinearRegression{
+public class LinearRegressionPS extends model.LinearRegression{
     public static long start;
 
     public DenseVector globalModel;
@@ -19,7 +21,6 @@ public class LinearRegression extends model.LinearRegression{
 
     public static double learningRate = 0.005;
     public int iteration = 0;
-    public static DenseVector localModel[];
 
     public void setNewLearningRate(){
     }
@@ -27,19 +28,17 @@ public class LinearRegression extends model.LinearRegression{
     {
         List<LabeledData> localList;
         int threadID;
-        public executeRunnable(int threadID, List<LabeledData> list, DenseVector model){
+        public executeRunnable(int threadID, List<LabeledData> list){
             this.threadID = threadID;
             localList = list;
-            System.arraycopy(model.values, 0, localModel[threadID].values, 0, model.dim);
-
         }
         public void run() {
-            sgdOneEpoch(localList, localModel[threadID], learningRate);
+            sgdOneEpoch(localList, learningRate);
         }
-        public void sgdOneEpoch(List<LabeledData> list, DenseVector model, double lr) {
+        public void sgdOneEpoch(List<LabeledData> list, double lr) {
             for (LabeledData labeledData: list) {
-                double scala = labeledData.label - model.dot(labeledData.data);
-                model.plusGradient(labeledData.data, scala * lr);
+                double scala = labeledData.label - globalModel.dot(labeledData.data);
+                globalModel.plusGradient(labeledData.data, scala * lr);
             }
         }
     }
@@ -60,10 +59,6 @@ public class LinearRegression extends model.LinearRegression{
         DenseVector oldModel = new DenseVector(model.dim);
 
         globalModel = new DenseVector(model.dim);
-        localModel = new DenseVector[threadNum];
-        for(int i = 0; i < threadNum; i++){
-            localModel[i] =new DenseVector(model.dim);
-        }
 
         long totalBegin = System.currentTimeMillis();
         long totalIterationTime = 0;
@@ -73,7 +68,7 @@ public class LinearRegression extends model.LinearRegression{
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), model));
+                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID)));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -84,32 +79,32 @@ public class LinearRegression extends model.LinearRegression{
                     e.printStackTrace();
                 }
             }
-            for(int threadID = 0; threadID < threadNum; threadID++) {
-                globalModel.plusDense(localModel[threadID]);
-            }
-            globalModel.allDividedBy(threadNum);
-            System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
 
             long trainTime = System.currentTimeMillis() - startTrain;
+            System.out.println("Iteration " + i);
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model);
-
-
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            if(converge(oldModel, model)){
-                if(earlyStop)
-                    break;
-            }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-            Arrays.fill(globalModel.values, 0);
             iteration++;
             setNewLearningRate();
-            if(totalIterationTime > maxTimeLimit) {
-                break;
-                //break;
+            if(modelType == 1) {
+                if (totalIterationTime > maxTimeLimit) {
+                    break;
+                }
+            }else if(modelType == 0){
+                if(i > maxIteration){
+                    break;
+                }
+            }else if (modelType == 2){
+                if(converge(oldModel, model)){
+                    break;
+                }
             }
+            System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
+
         }
     }
 
@@ -124,9 +119,6 @@ public class LinearRegression extends model.LinearRegression{
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("Loading corpus completed, takes " + loadTime + " ms");
         for(int i = 0; i < argv.length - 1; i++){
-            if(argv[i].equals("EarlyStop")){
-                earlyStop = Boolean.parseBoolean(argv[i + 1]);
-            }
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
@@ -138,7 +130,15 @@ public class LinearRegression extends model.LinearRegression{
                 if(trainRatio >= 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
-                }            }
+                }
+            }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
+            }
+            if(argv[i].equals("Model")){
+                //0: maxIteration  1: maxTime 2: earlyStop
+                modelType = Integer.parseInt(argv[i + 1]);
+            }
         }
         System.out.println("ThreadNum " + threadNum);
         System.out.println("StopDelta " + stopDelta);
@@ -148,7 +148,11 @@ public class LinearRegression extends model.LinearRegression{
         System.out.println("TrainRatio " + trainRatio);
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("EarlyStop " + earlyStop);
-        LinearRegression linear = new LinearRegression();
+        System.out.println("ModelType " + modelType);
+        System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
+
+        LinearRegressionPS linear = new LinearRegressionPS();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
         start = System.currentTimeMillis();

@@ -15,14 +15,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
-public class SVM extends model.SVM{
+public class SVMPS extends model.SVM{
     public static long start;
 
     public DenseVector globalModel;
     public static double trainRatio = 0.5;
     public static int threadNum;
     public static double lambda = 0.1;
-    public static DenseVector localModel[];
 
     public static double learningRate = 0.001;
     public int iteration = 0;
@@ -36,28 +35,27 @@ public class SVM extends model.SVM{
         double lambda;
         int globalCorpusSize;
         int threadID;
-        public executeRunnable(int threadID, List<LabeledData> list, DenseVector model, double lambda, int globalCorpusSize){
+        public executeRunnable(int threadID, List<LabeledData> list, double lambda, int globalCorpusSize){
             this.threadID = threadID;
             localList = list;
-            System.arraycopy(model.values, 0, localModel[threadID].values, 0, model.dim);
             this.lambda = lambda;
             this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
-            sgdOneEpoch(localList, localModel[threadID], learningRate, lambda, globalCorpusSize);
+            sgdOneEpoch(localList, learningRate, lambda, globalCorpusSize);
         }
-        public void sgdOneEpoch(List<LabeledData> list, DenseVector model,
-                                double lr, double lambda, double globalCorpusSize) {
+        public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda, double globalCorpusSize) {
             double modelPenalty = -2 * lr * lambda / globalCorpusSize;
+            //double modelPenalty = - 2 * lr * lambda;
             for (LabeledData labeledData : list) {
                 //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
                 /* model pennalty */
                 //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
-                model.multiplySparse(labeledData.data, modelPenalty);
-                double dotProd = model.dot(labeledData.data);
+                globalModel.multiplySparse(labeledData.data, modelPenalty);
+                double dotProd = globalModel.dot(labeledData.data);
                 if (1 - dotProd * labeledData.label > 0) {
                     /* residual pennalty */
-                    model.plusGradient(labeledData.data, lr * labeledData.label);
+                    globalModel.plusGradient(labeledData.data, lr * labeledData.label);
                 }
             }
         }
@@ -81,10 +79,6 @@ public class SVM extends model.SVM{
         DenseVector oldModel = new DenseVector(model.values.length);
         globalModel = new DenseVector(model.dim);
 
-        localModel = new DenseVector[threadNum];
-        for(int i = 0; i < threadNum; i++){
-            localModel[i] =new DenseVector(model.dim);
-        }
         long totalBegin = System.currentTimeMillis();
 
         long totalIterationTime = 0;
@@ -95,8 +89,7 @@ public class SVM extends model.SVM{
             //StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID),
-                        model, lambda, trainCorpus.size()));
+                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID),lambda, trainCorpus.size()));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -107,31 +100,33 @@ public class SVM extends model.SVM{
                     e.printStackTrace();
                 }
             }
-            for(int id = 0; id < threadNum; id++) {
-                globalModel.plusDense(localModel[id]);
-            }
-
-            globalModel.allDividedBy(threadNum);
             System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
-            Arrays.fill(globalModel.values, 0);
 
             long trainTime = System.currentTimeMillis() - startTrain;
+            System.out.println("Iteration " + i);
+
             System.out.println("trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("totalIterationTime " + totalIterationTime);
             testAndSummary(trainCorpus, testCorpus, model, lambda);
             System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-            if(converge(oldModel, model)){
-                if(earlyStop)
-                    break;
-            }
-            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
+
             iteration++;
             setNewLearningRate();
-            if(totalIterationTime > maxTimeLimit) {
-                break;
-                //break;
+            if(modelType == 1) {
+                if (totalIterationTime > maxTimeLimit) {
+                    break;
+                }
+            }else if(modelType == 0){
+                if(i > maxIteration){
+                    break;
+                }
+            }else if (modelType == 2){
+                if(converge(oldModel, model)){
+                    break;
+                }
             }
+            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
 
         }
     }
@@ -148,9 +143,6 @@ public class SVM extends model.SVM{
         lambda = Double.parseDouble(argv[3]);
         learningRate = Double.parseDouble(argv[4]);
         for(int i = 0; i < argv.length - 1; i++){
-            if(argv[i].equals("EarlyStop")){
-                earlyStop = Boolean.parseBoolean(argv[i + 1]);
-            }
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
@@ -162,7 +154,15 @@ public class SVM extends model.SVM{
                 if(trainRatio >= 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
-                }            }
+                }
+            }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
+            }
+            if(argv[i].equals("Model")){
+                //0: maxIteration  1: maxTime 2: earlyStop
+                modelType = Integer.parseInt(argv[i + 1]);
+            }
         }
         System.out.println("ThreadNum " + threadNum);
         System.out.println("StopDelta " + stopDelta);
@@ -173,7 +173,11 @@ public class SVM extends model.SVM{
         System.out.println("TrainRatio " + trainRatio);
         System.out.println("TimeLimit " + maxTimeLimit);
         System.out.println("EarlyStop " + earlyStop);
-        SVM svm = new SVM();
+        System.out.println("ModelType " + modelType);
+        System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("------------------------------------");
+
+        SVMPS svm = new SVMPS();
         DenseVector model = new DenseVector(dim);
         start = System.currentTimeMillis();
         svm.train(corpus, model);
