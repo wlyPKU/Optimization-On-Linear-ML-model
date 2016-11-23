@@ -27,14 +27,16 @@ public class Lasso {
         double trainResidual = test(trainCorpus, x);
         double testResidual = test(testCorpus, x);
         long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("trainLoss=" + trainLoss + " testLoss=" + testLoss +
-                " trainResidual=" + trainResidual + " testResidual=" + testResidual +
-                " testTime=" + testTime);
+        System.out.println("[Information]TrainLoss=" + trainLoss + " TestLoss=" + testLoss +
+                " TrainResidual=" + trainResidual + " TestResidual=" + testResidual +
+                " TestTime=" + testTime);
+        System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size() +
+                " AverageTrainResidual=" + trainResidual / trainCorpus.size() + " AverageTestResidual=" + testResidual / testCorpus.size());
         double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, x);
         double []testAccuracy = Utils.LinearAccuracy(testCorpus, x);
-        System.out.println("trainAccuracy:");
+        //System.out.println("trainAccuracy:");
         //Utils.printAccuracy(trainAccuracy);
-        System.out.println("testAccuracy:");
+        //System.out.println("testAccuracy:");
         //Utils.printAccuracy(testAccuracy);
         if(trainResidual > 1e100){
             return true;
@@ -76,7 +78,7 @@ public class Lasso {
         for(int i = 0; i < oldModel.values.length; i++){
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
-        System.out.println("This iteration average changes " + delta);
+        System.out.println("[Information]ParameterChanged " + delta);
         if(delta < stopDelta){
             return true;
         }else{

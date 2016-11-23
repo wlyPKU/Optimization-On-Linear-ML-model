@@ -46,7 +46,7 @@ public class splitExperimentData {
                     trainAucBufferWriter.close();trainAucWriter.close();
                     testAucBufferWriter.close();testAucWriter.close();
                     changesBufferWriter.close();changesWriter.close();
-                }else if(filesList[i].getName().startsWith("LassoLBFGS") || filesList[i].getName().startsWith("Linear")) {
+                }else if(filesList[i].getName().startsWith("Lasso") || filesList[i].getName().startsWith("Linear")) {
                     File loss = new File(filesList[i].getName() + "loss");
                     File testResidual = new File(filesList[i].getName() + "residual");
                     File changes = new File(filesList[i].getName() + "changes");

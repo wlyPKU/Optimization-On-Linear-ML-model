@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
 
+import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -19,16 +20,15 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  residual    每个线程共享
 //  可能会发生冲突
-public class LinearRegressionModelParallelApart extends model.LinearRegression{
+public class LinearRegression extends model.LinearRegression{
     private static long start;
 
-    private static int threadNum;
     private static double residual[];
     private static DenseVector model;
     private static double featureSquare[];
     private static SparseMap[] features;
     private static double trainRatio = 0.5;
-
+    private static int threadNum;
     private static int featureDimension;
     private static int sampleDimension;
 
@@ -54,8 +54,7 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
                 updateValue /= featureSquare[j];
                 model.values[j] += updateValue;
 
-                iter = features[j].map.int2DoubleEntrySet().iterator();
-
+                iter =  features[j].map.int2DoubleEntrySet().iterator();
                 double deltaChange = model.values[j] - oldValue;
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
@@ -112,6 +111,8 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
+            System.out.println("[Information]Iteration " + i + " ---------------");
+            testAndSummary(trainCorpus, testCorpus, model);
             long startTrain = System.currentTimeMillis();
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -130,15 +131,15 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
             }
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("------- Iteration " + i + " -------");
-            System.out.println("trainTime " + trainTime + " ");
-            testAndSummary(trainCorpus, testCorpus, model);
-
+            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
-            System.out.println("totalIterationTime " + totalIterationTime);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("[Information]totalTrainTime " + totalIterationTime);
+            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                    / 1024 / 1024 + "M");
+            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                    / 1024 / 1024 + "M");
             adjustResidual(model, residual);
-
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
                     break;
@@ -158,18 +159,18 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
     }
 
     public static void train(List<LabeledData> labeledData) {
-        LinearRegressionModelParallelApart linearCD = new LinearRegressionModelParallelApart();
+        LinearRegression linearCD = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);
         start = System.currentTimeMillis();
         linearCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
-        System.out.println("Training cost " + cost + " ms totally.");
+        System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.LinearRegressionModelParallel threadNum FeatureDim SampleDim train_path trainRatio");
+        System.out.println("Usage: parallelCD.LinearRegression threadNum FeatureDim SampleDim train_path trainRatio");
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         sampleDimension = Integer.parseInt(argv[2]);
@@ -197,22 +198,22 @@ public class LinearRegressionModelParallelApart extends model.LinearRegression{
                 }
             }
         }
-        System.out.println("ThreadNum " + threadNum);
-        System.out.println("StopDelta " + stopDelta);
-        System.out.println("FeatureDimension " + featureDimension);
-        System.out.println("SampleDimension " + sampleDimension);
-        System.out.println("File Path " + path);
-        System.out.println("TrainRatio " + trainRatio);
-        System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("ModelType " + modelType);
-        System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]ThreadNum " + threadNum);
+        System.out.println("[Parameter]StopDelta " + stopDelta);
+        System.out.println("[Parameter]FeatureDimension " + featureDimension);
+        System.out.println("[Parameter]SampleDimension " + sampleDimension);
+        System.out.println("[Parameter]File Path " + path);
+        System.out.println("[Parameter]TrainRatio " + trainRatio);
+        System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
+        System.out.println("[Parameter]ModelType " + modelType);
+        System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
 
         long startLoad = System.currentTimeMillis();
         features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
-        System.out.println("Loading corpus completed, takes " + loadTime + " ms");
+        System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);
     }
 }

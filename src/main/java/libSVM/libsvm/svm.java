@@ -1551,7 +1551,7 @@ public class svm {
 		return f;
 	}
 
-	// Platt's binary SVMDataParallel Probablistic Output: an improvement from Lin et al.
+	// Platt's binary SVM Probablistic Output: an improvement from Lin et al.
 	private static void sigmoid_train(int l, double[] dec_values, double[] labels, 
 				  double[] probAB)
 	{
@@ -1891,7 +1891,7 @@ public class svm {
 		//
 		// Labels are ordered by their first occurrence in the training set. 
 		// However, for two-class sets with -1/+1 labels and -1 appears first, 
-		// we swap labels to ensure that internally the binary SVMDataParallel has positive data corresponding to the +1 instances.
+		// we swap labels to ensure that internally the binary SVM has positive data corresponding to the +1 instances.
 		//
 		if (nr_class == 2 && label[0] == -1 && label[1] == +1)
 		{
@@ -2766,7 +2766,7 @@ public class svm {
 
 		if(param.probability == 1 &&
 		   svm_type == svm_parameter.ONE_CLASS)
-			return "one-class SVMDataParallel probability output not supported yet";
+			return "one-class SVM probability output not supported yet";
 		
 		// check whether nu-svc is feasible
 	

@@ -2,7 +2,6 @@ package parallelADMM;
 
 import Utils.*;
 import math.DenseVector;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -10,32 +9,32 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.lang.management.ManagementFactory;
 
 /**
  * Created by 王羚宇 on 2016/7/26.
  */
 public class SVM extends model.SVM {
     private static long start;
-
     private static double lambda;
+    private static int threadNum;
     private static double trainRatio = 0.5;
     private static int featureDimension;
-    private static int threadNum;
 
+    private static DenseVector oldModelZ;
     private static List<LabeledData> labeledData;
     private static ADMMState model;
-
     private ADMMState[] localADMMState;
-    private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
 
-    //Parameter:
+    private double x_hat[];
+    private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
+    private static double rho = 0.1;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
-    private double rel_par = 1.0;
-    private static double rho = 0.1;
-    //private double maxRho = 5;
-    private double x_hat[];
-    private static DenseVector oldModelZ;
+    double rel_par = 1.0;
+
+    static double ABSTOL = 1e-4;
+    static double RELTOL = 1e-3;
 
     private class executeRunnable implements Runnable {
         int threadID;
@@ -49,31 +48,26 @@ public class SVM extends model.SVM {
         public void run() {
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
-                    rho, iteNum, localTrainCorpus.get(threadID), "SVMDataParallel", model.z);
-            model.x.plusDense(localADMMState[threadID].x);
+                    rho, iteNum, localTrainCorpus.get(threadID), "SVM", model.z);
         }
     }
 
-    private void updateZ(){
-        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, featureDimension);
-        for(int id = 0; id < featureDimension; id++){
-            x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
-            //z=Soft_threshold(lambda/rho,x+u);
-            model.z.values[id] = (rho / (1.0 / lambda + threadNum * rho)) * (x_hat[id] + model.u.values[id]);
+    private class updateUThread implements Runnable
+    {
+        int threadID;
+        private updateUThread(int threadID){
+            this.threadID = threadID;
         }
-    }
-    private void updateU(){
-        Arrays.fill(model.u.values, 0);
-        for(int j = 0; j < threadNum; j++){
+        public void run() {
             for(int fID = 0; fID < featureDimension; fID++){
-                localADMMState[j].u.values[fID] += (localADMMState[j].x.values[fID] - model.z.values[fID]);
-                model.u.values[fID] += localADMMState[j].u.values[fID];
+                localADMMState[threadID].u.values[fID] += (localADMMState[threadID].x.values[fID] - model.z.values[fID]);
+                model.u.values[fID] += localADMMState[threadID].u.values[fID];
             }
         }
-        model.u.allDividedBy(threadNum);
     }
 
     private void updateX(int iteNumber){
+        long startTrain = System.currentTimeMillis();
         Arrays.fill(model.x.values, 0);
         ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
         for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -82,13 +76,41 @@ public class SVM extends model.SVM {
         threadPool.shutdown();
         while (!threadPool.isTerminated()) {
             try {
-                    threadPool.awaitTermination(1, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                System.out.println("Waiting.");
-                    e.printStackTrace();
+                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        for(int threadID = 0; threadID < threadNum; threadID++) {
+            model.x.plusDense(localADMMState[threadID].x);
         }
         model.x.allDividedBy(threadNum);
+        System.out.println("[Information]Update X costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
+    }
+    private void updateZ(){
+        long startTrain = System.currentTimeMillis();
+        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, featureDimension);
+        for(int id = 0; id < featureDimension; id++){
+            x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
+            //z=Soft_threshold(lambda/rho,x+u);
+            model.z.values[id] = (threadNum * rho / (1.0 / lambda + threadNum * rho)) * (x_hat[id] + model.u.values[id]);
+        }
+        System.out.println("Update Z costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
+
+    }
+    private void updateU(){
+        long startTrain = System.currentTimeMillis();
+        Arrays.fill(model.u.values, 0);
+        for (int threadID = 0; threadID < threadNum; threadID++) {
+            for(int fID = 0; fID < featureDimension; fID++){
+                localADMMState[threadID].u.values[fID] += (localADMMState[threadID].x.values[fID] - model.z.values[fID]);
+                model.u.values[fID] += localADMMState[threadID].u.values[fID];
+            }
+        }
+        model.u.allDividedBy(threadNum);
+        System.out.println("[Information]Update U costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
+
     }
 
     private double calculateRho(double rho){
@@ -132,8 +154,7 @@ public class SVM extends model.SVM {
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
-        oldModelZ = new DenseVector(featureDimension);
-
+        x_hat = new double[model.featureNum];
         DenseVector oldModel = new DenseVector(featureDimension);
 
         localADMMState = new ADMMState[threadNum];
@@ -144,11 +165,14 @@ public class SVM extends model.SVM {
             List<LabeledData> localData = trainCorpus.subList(from, to);
             localTrainCorpus.add(localData);
         }
-
-        x_hat = new double[model.featureNum];
         long totalBegin = System.currentTimeMillis();
+
+        oldModelZ = new DenseVector(featureDimension);
+
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
+            testAndSummary(trainCorpus, testCorpus, model.x, lambda);
+
             long startTrain = System.currentTimeMillis();
             //Update x;
             updateX(i);
@@ -159,14 +183,16 @@ public class SVM extends model.SVM {
             if(!rhoFixed){
                 rho = calculateRho(rho);
             }
-            System.out.println("------- Iteration " + i + " -------");
-            System.out.println("Current rho is " + rho);
+            System.out.println("[Information]Current rho is " + rho);
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("trainTime " + trainTime + " ");
-            testAndSummary(trainCorpus, testCorpus, model.x, lambda);
+            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
-            System.out.println("totalIterationTime " + totalIterationTime);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("[Information]totalTrainTime " + totalIterationTime);
+            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                    / 1024 / 1024 + "M");
+            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                    / 1024 / 1024 + "M");
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
                     break;
@@ -179,6 +205,7 @@ public class SVM extends model.SVM {
                 if(converge(oldModel, model.x)){
                     break;
                 }
+                judgeConverge();
             }
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
         }
@@ -190,7 +217,41 @@ public class SVM extends model.SVM {
         start = System.currentTimeMillis();
         svmADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
-        System.out.println("Training cost " + cost + " ms totally.");
+        System.out.println("[Information]Training cost " + cost + " ms totally.");
+    }
+
+
+    private boolean judgeConverge(){
+        double R_Norm = 0;
+        double S_Norm = 0;
+        for(int i = 0; i < threadNum; i++){
+            for(int j = 0; j < featureDimension; j++) {
+                R_Norm += (localADMMState[i].x.values[j] - model.z.values[j])
+                        * (localADMMState[i].x.values[j] - model.z.values[j]);
+                S_Norm += (model.z.values[j] - oldModelZ.values[j]) * rho
+                        * (model.z.values[j] - oldModelZ.values[j]) * rho;
+            }
+        }
+        R_Norm = Math.sqrt(R_Norm);
+        S_Norm = Math.sqrt(S_Norm);
+        double tmpNormX = 0, tmpNormZ = 0, tmpNormU = 0;
+        for(int i = 0; i < threadNum; i++){
+            for(int j = 0; j < featureDimension; j++) {
+                tmpNormX += localADMMState[i].x.values[j] * localADMMState[i].x.values[j];
+                tmpNormZ += model.z.values[j] * model.z.values[j];
+                tmpNormU += localADMMState[i].u.values[j] * localADMMState[i].u.values[j];
+            }
+        }
+        tmpNormX = Math.sqrt(tmpNormX);
+        tmpNormZ = Math.sqrt(tmpNormZ);
+        tmpNormU = Math.sqrt(tmpNormU);
+        double EPS_PRI = Math.sqrt(threadNum) * ABSTOL +RELTOL * Math.max(tmpNormX, tmpNormZ);
+        double EPS_DUAL = Math.sqrt(threadNum) * ABSTOL + RELTOL * rho * tmpNormU;
+        System.out.println("AbsoluteErrorDelta " + (EPS_PRI - R_Norm) + " RelativeErrorDelta " + (EPS_DUAL - S_Norm));
+        if(R_Norm < EPS_PRI && S_Norm < EPS_DUAL){
+            return true;
+        }
+        return false;
     }
 
     public static void main(String[] argv) throws Exception {
@@ -207,17 +268,17 @@ public class SVM extends model.SVM {
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
-            if(argv[i].equals("RhoFixed")){
-                rhoFixed = Boolean.parseBoolean(argv[i + 1]);
-            }
             if(argv[i].equals("StopDelta")){
-                stopDelta = Double.parseDouble(argv[i + 1]);
+                ABSTOL = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
             }
             if(argv[i].equals("RhoInitial")){
                 rho = Double.parseDouble(argv[i + 1]);
             }
-            if(argv[i].equals("MaxIteration")){
-                maxIteration = Integer.parseInt(argv[i + 1]);
+            if(argv[i].equals("RhoFixed")){
+                rhoFixed = Boolean.parseBoolean(argv[i + 1]);
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
@@ -227,23 +288,23 @@ public class SVM extends model.SVM {
                 }
             }
         }
-        System.out.println("ThreadNum " + threadNum);
-        System.out.println("StopDelta " + stopDelta);
-        System.out.println("FeatureDimension " + featureDimension);
-        System.out.println("File Path " + path);
-        System.out.println("Lambda " + lambda);
-        System.out.println("TrainRatio " + trainRatio);
-        System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("ModelType " + modelType);
-        System.out.println("Iteration Limit " + maxIteration);
-        System.out.println("Rho Fixed " + rhoFixed);
-        System.out.println("Rho " + rho);
+        System.out.println("[Parameter]ThreadNum " + threadNum);
+        System.out.println("[Parameter]StopDelta " + stopDelta);
+        System.out.println("[Parameter]FeatureDimension " + featureDimension);
+        System.out.println("[Parameter]File Path " + path);
+        System.out.println("[Parameter]Lambda " + lambda);
+        System.out.println("[Parameter]TrainRatio " + trainRatio);
+        System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
+        System.out.println("[Parameter]ModelType " + modelType);
+        System.out.println("[Parameter]Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]Rho Fixed " + rhoFixed);
+        System.out.println("[Parameter]Rho " + rho);
         System.out.println("------------------------------------");
 
         long startLoad = System.currentTimeMillis();
         labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
-        System.out.println("Loading corpus completed, takes " + loadTime + " ms");
+        System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train();
     }
 }

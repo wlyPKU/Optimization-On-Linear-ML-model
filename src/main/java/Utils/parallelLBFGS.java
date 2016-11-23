@@ -42,7 +42,7 @@ public class parallelLBFGS {
 
         double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm);
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
-
+        LOG.info(loss);
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
@@ -50,7 +50,7 @@ public class parallelLBFGS {
 
             String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss;
-            ////LOG.info(infoMsg);
+            //LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
 
@@ -78,7 +78,7 @@ public class parallelLBFGS {
         }
 
         for (LabeledData l : trainCorpus) {
-            if(algorithm.equals("logisticRegression")) {
+            if(algorithm.equals("LogisticRegression")) {
                 double score = 0;
                 int index[] = l.data.indices;
                 for (int i = 0; i < index.length; i++) {
@@ -98,27 +98,30 @@ public class parallelLBFGS {
                         g[l.data.indices[i]] += gradient * l.data.values[i];
                     }
                 }
-            }else if(algorithm.equals("SVMDataParallel")){
+            }else if(algorithm.equals("SVM")){
                 double score = 0;
-                for (int i = 0; i < l.data.indices.length; i++) {
+                int index[] = l.data.indices;
+                for (int i = 0; i < index.length; i++) {
                     if (l.data.values != null) {
-                        score += localX[l.data.indices[i]] * l.data.values[i];
+                        score += localX[index[i]] * l.data.values[i];
                     } else {
-                        score += localX[l.data.indices[i]];
+                        score += localX[index[i]];
                     }
                 }
-                score = l.label * score;
-                loss += Math.max(1 - score, 0);
-                if(1 - score > 0){
-                    for (int i = 0; i < l.data.indices.length; i++) {
+                score = 1 - l.label * score;
+
+                if(score > 0)
+                {
+                    loss += score;
+                    for (int i = 0; i < index.length; i++) {
                         if (l.data.values == null) {
-                            g[l.data.indices[i]] -= 1 * l.label;
+                            g[index[i]] -= l.label;
                         } else {
-                            g[l.data.indices[i]] -= l.data.values[i] * l.label;
+                            g[index[i]] -= l.data.values[i] * l.label;
                         }
                     }
                 }
-            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegressionModelParallel")){
+            }else if(algorithm.equals("Lasso") || algorithm.equals("LinearRegression")){
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values != null) {
@@ -157,7 +160,7 @@ public class parallelLBFGS {
 
         Iterator<LabeledData> iter = trainCorpus.iterator();
         while (iter.hasNext()) {
-            if(algorithm.equals("logisticRegression")) {
+            if(algorithm.equals("LogisticRegression")) {
                 LabeledData l = iter.next();
                 double score = 0;
                 int[] indices = l.data.indices;
@@ -170,7 +173,7 @@ public class parallelLBFGS {
                 }
                 score *= l.label;
                 loss += Math.log(1.0 + Math.exp(-score));
-            }else if(algorithm.equals("SVMDataParallel")){
+            }else if(algorithm.equals("SVM")){
                 LabeledData l = iter.next();
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
@@ -180,9 +183,11 @@ public class parallelLBFGS {
                         score += localX[l.data.indices[i]];
                     }
                 }
-                score = l.label * score;
-                loss += Math.max(1 - score, 0);
-            }else if(algorithm.equals("LassoLBFGS") || algorithm.equals("LinearRegressionModelParallel")){
+                score = 1 - l.label * score;
+                if(score > 0){
+                    loss += score;
+                }
+            }else if(algorithm.equals("Lasso") || algorithm.equals("LinearRegression")){
                 LabeledData l = iter.next();
                 double score = 0;
                 for (int i = 0; i < l.data.indices.length; i++) {
@@ -248,7 +253,11 @@ public class parallelLBFGS {
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
         if (origDirDeriv >= 0) {
-            LOG.error(String.format("L-BFGS chose a non-descent direction, check your gradient!"));
+            LOG.info(String.format("L-BFGS chose a non-descent direction, check your gradient!"));
+            return 0.0;
+        }
+        if(Double.isNaN(origDirDeriv)){
+            LOG.info("NaN happens!");
             return 0.0;
         }
 
@@ -267,13 +276,12 @@ public class parallelLBFGS {
             loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm);
             String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
-                    + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha);
-            //LOG.info(infoMsg);
+                    + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv;
+            LOG.info(infoMsg);
             alpha *= backoff;
             i ++;
             step -= 1;
         }
-
         getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
         return loss;
     }
@@ -334,8 +342,9 @@ public class parallelLBFGS {
 
     private static double dot(double [] a, double [] b, int length) {
         double ret = 0.0;
-        for (int i = 0; i < length; i ++)
+        for (int i = 0; i < length; i ++){
             ret += a[i] * b[i];
+        }
         return ret;
     }
 }

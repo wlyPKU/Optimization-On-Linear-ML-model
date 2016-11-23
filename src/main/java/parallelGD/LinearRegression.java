@@ -4,15 +4,15 @@ import Utils.LabeledData;
 import Utils.Utils;
 import math.DenseVector;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class LinearRegressionPS extends model.LinearRegression{
+public class LinearRegression extends model.LinearRegression{
     public static long start;
 
     public DenseVector globalModel;
@@ -63,8 +63,11 @@ public class LinearRegressionPS extends model.LinearRegression{
         long totalBegin = System.currentTimeMillis();
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
+            System.out.println("[Information]Iteration " + i + " ---------------");
+            testAndSummary(trainCorpus, testCorpus, model);
+
             long startTrain = System.currentTimeMillis();
-            System.out.println("learning rate " + learningRate);
+            System.out.println("[Information]Learning rate " + learningRate);
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -81,12 +84,15 @@ public class LinearRegressionPS extends model.LinearRegression{
             }
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("Iteration " + i);
-            System.out.println("trainTime " + trainTime + " ");
+            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
-            System.out.println("totalIterationTime " + totalIterationTime);
-            testAndSummary(trainCorpus, testCorpus, model);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("[Information]totalTrainTime " + totalIterationTime);
+            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                    / 1024 / 1024 + "M");
+            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                    / 1024 / 1024 + "M");
+
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             iteration++;
             setNewLearningRate();
@@ -117,13 +123,20 @@ public class LinearRegressionPS extends model.LinearRegression{
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
-        System.out.println("Loading corpus completed, takes " + loadTime + " ms");
+        System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         for(int i = 0; i < argv.length - 1; i++){
+            if(argv[i].equals("Model")){
+                //0: maxIteration  1: maxTime 2: earlyStop
+                modelType = Integer.parseInt(argv[i + 1]);
+            }
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
             if(argv[i].equals("StopDelta")){
                 stopDelta = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
@@ -132,32 +145,24 @@ public class LinearRegressionPS extends model.LinearRegression{
                     System.exit(1);
                 }
             }
-            if(argv[i].equals("MaxIteration")){
-                maxIteration = Integer.parseInt(argv[i + 1]);
-            }
-            if(argv[i].equals("Model")){
-                //0: maxIteration  1: maxTime 2: earlyStop
-                modelType = Integer.parseInt(argv[i + 1]);
-            }
         }
-        System.out.println("ThreadNum " + threadNum);
-        System.out.println("StopDelta " + stopDelta);
-        System.out.println("FeatureDimension " + dim);
-        System.out.println("LearningRate " + learningRate);
-        System.out.println("File Path " + path);
-        System.out.println("TrainRatio " + trainRatio);
-        System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("EarlyStop " + earlyStop);
-        System.out.println("ModelType " + modelType);
-        System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]ThreadNum " + threadNum);
+        System.out.println("[Parameter]StopDelta " + stopDelta);
+        System.out.println("[Parameter]FeatureDimension " + dim);
+        System.out.println("[Parameter]LearningRate " + learningRate);
+        System.out.println("[Parameter]File Path " + path);
+        System.out.println("[Parameter]TrainRatio " + trainRatio);
+        System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
+        System.out.println("[Parameter]ModelType " + modelType);
+        System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
 
-        LinearRegressionPS linear = new LinearRegressionPS();
+        LinearRegression linear = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         DenseVector model = new DenseVector(dim);
         start = System.currentTimeMillis();
         linear.train(corpus, model);
         long cost = System.currentTimeMillis() - start;
-        System.out.println("Training cost " + cost + " ms totally.");
+        System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 }

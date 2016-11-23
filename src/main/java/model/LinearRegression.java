@@ -23,14 +23,15 @@ public class LinearRegression {
         double loss = test(trainCorpus, model);
         double accuracy = test(testCorpus, model);
         long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("trainLoss=" + loss + " testLoss=" + accuracy +
-                " testTime=" + testTime);
+        System.out.println("[Information]TrainLoss=" + loss + " TestLoss=" + accuracy +
+                " TestTime=" + testTime);
+        System.out.println("[Information]AverageTrainLoss=" + loss / trainCorpus.size() + " AverageTestLoss=" + accuracy / testCorpus.size());
         double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
         double []testAccuracy = Utils.LinearAccuracy(testCorpus, model);
-        System.out.println("trainAccuracy:");
-        Utils.printAccuracy(trainAccuracy);
-        System.out.println("testAccuracy:");
-        Utils.printAccuracy(testAccuracy);
+        //System.out.println("trainAccuracy:");
+        //Utils.printAccuracy(trainAccuracy);
+        //System.out.println("testAccuracy:");
+        //Utils.printAccuracy(testAccuracy);
     }
 
 
@@ -47,7 +48,7 @@ public class LinearRegression {
         for(int i = 0; i < oldModel.values.length; i++){
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
-        System.out.println("This iteration average changes " + delta);
+        System.out.println("[Information]ParameterChanged " + delta);
         if(delta < stopDelta){
             return true;
         }else{

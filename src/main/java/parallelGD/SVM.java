@@ -4,8 +4,8 @@ import Utils.LabeledData;
 import Utils.Utils;
 import math.DenseVector;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
-public class SVMPS extends model.SVM{
+public class SVM extends model.SVM{
     public static long start;
 
     public DenseVector globalModel;
@@ -63,12 +63,11 @@ public class SVMPS extends model.SVM{
 
     public void train(List<LabeledData> corpus, DenseVector model) {
         Collections.shuffle(corpus);
-
+        List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
-        List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;
             int to = end * (threadID + 1) / threadNum;
@@ -83,13 +82,15 @@ public class SVMPS extends model.SVM{
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
-            long startTrain = System.currentTimeMillis();
-            System.out.println("learning rate " + learningRate);
+            System.out.println("[Information]Iteration " + i + " ---------------");
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
 
-            //StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
+            long startTrain = System.currentTimeMillis();
+            System.out.println("[Information]Learning rate " + learningRate);
+            //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID),lambda, trainCorpus.size()));
+                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), lambda, trainCorpus.size()));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -103,14 +104,14 @@ public class SVMPS extends model.SVM{
             System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
 
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("Iteration " + i);
-
-            System.out.println("trainTime " + trainTime + " ");
+            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
-            System.out.println("totalIterationTime " + totalIterationTime);
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
-            System.out.println("totaltime " + (System.currentTimeMillis() - totalBegin) );
-
+            System.out.println("[Information]totalTrainTime " + totalIterationTime);
+            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                    / 1024 / 1024 + "M");
+            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                    / 1024 / 1024 + "M");
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -123,7 +124,7 @@ public class SVMPS extends model.SVM{
                 }
             }else if (modelType == 2){
                 if(converge(oldModel, model)){
-                    break;
+                        break;
                 }
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
@@ -136,18 +137,25 @@ public class SVMPS extends model.SVM{
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
+        lambda = Double.parseDouble(argv[3]);
+        learningRate = Double.parseDouble(argv[4]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
-        System.out.println("Loading corpus completed, takes " + loadTime + " ms");
-        lambda = Double.parseDouble(argv[3]);
-        learningRate = Double.parseDouble(argv[4]);
+        System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         for(int i = 0; i < argv.length - 1; i++){
+            if(argv[i].equals("Model")){
+                //0: maxIteration  1: maxTime 2: earlyStop
+                modelType = Integer.parseInt(argv[i + 1]);
+            }
             if(argv[i].equals("TimeLimit")){
                 maxTimeLimit = Double.parseDouble(argv[i + 1]);
             }
             if(argv[i].equals("StopDelta")){
                 stopDelta = Double.parseDouble(argv[i + 1]);
+            }
+            if(argv[i].equals("MaxIteration")){
+                maxIteration = Integer.parseInt(argv[i + 1]);
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
@@ -156,33 +164,25 @@ public class SVMPS extends model.SVM{
                     System.exit(1);
                 }
             }
-            if(argv[i].equals("MaxIteration")){
-                maxIteration = Integer.parseInt(argv[i + 1]);
-            }
-            if(argv[i].equals("Model")){
-                //0: maxIteration  1: maxTime 2: earlyStop
-                modelType = Integer.parseInt(argv[i + 1]);
-            }
         }
-        System.out.println("ThreadNum " + threadNum);
-        System.out.println("StopDelta " + stopDelta);
-        System.out.println("FeatureDimension " + dim);
-        System.out.println("LearningRate " + learningRate);
-        System.out.println("File Path " + path);
-        System.out.println("Lambda " + lambda);
-        System.out.println("TrainRatio " + trainRatio);
-        System.out.println("TimeLimit " + maxTimeLimit);
-        System.out.println("EarlyStop " + earlyStop);
-        System.out.println("ModelType " + modelType);
-        System.out.println("Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]ThreadNum " + threadNum);
+        System.out.println("[Parameter]StopDelta " + stopDelta);
+        System.out.println("[Parameter]FeatureDimension " + dim);
+        System.out.println("[Parameter]LearningRate " + learningRate);
+        System.out.println("[Parameter]File Path " + path);
+        System.out.println("[Parameter]Lambda " + lambda);
+        System.out.println("[Parameter]TrainRatio " + trainRatio);
+        System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
+        System.out.println("[Parameter]ModelType " + modelType);
+        System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
 
-        SVMPS svm = new SVMPS();
+        SVM svm = new SVM();
         DenseVector model = new DenseVector(dim);
         start = System.currentTimeMillis();
         svm.train(corpus, model);
 
         long cost = System.currentTimeMillis() - start;
-        System.out.println("Training cost " + cost + " ms totally.");
+        System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 }

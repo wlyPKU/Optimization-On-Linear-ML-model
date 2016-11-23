@@ -28,9 +28,10 @@ public class LogisticRegression {
         double trainAuc = auc(trainCorpus, model);
         double testAuc = auc(testCorpus, model);
         long testTime = System.currentTimeMillis() - startTest;
-        System.out.println("trainLoss=" + trainLoss + " testLoss=" + testLoss +
-                " trainAuc=" + trainAuc + " testAuc=" + testAuc +
-                " testTime=" + testTime);
+        System.out.println("[Information]TrainLoss=" + trainLoss + " TestLoss=" + testLoss +
+                " TrainAuc=" + trainAuc + " TestAuc=" + testAuc +
+                " TestTime=" + testTime);
+        System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size());
     }
 
     public double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
@@ -151,7 +152,7 @@ public class LogisticRegression {
         for(int i = 0; i < oldModel.values.length; i++){
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
-        System.out.println("This iteration average changes " + delta);
+        System.out.println("[Information]ParameterChanged " + delta);
         if(delta < stopDelta){
             return true;
         }else{

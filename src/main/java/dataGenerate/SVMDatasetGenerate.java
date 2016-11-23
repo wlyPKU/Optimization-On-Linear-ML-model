@@ -1,0 +1,56 @@
+package dataGenerate;
+
+import java.util.Arrays;
+import java.util.Random;
+
+/**
+ * Created by 王羚宇 on 2016/10/18.
+ */
+public class SVMDatasetGenerate {
+
+    public static void main(String[] argv)
+    {
+        Random random = new Random(System.currentTimeMillis());
+        //System.out.println("Usage: dataGenerate.SVMDatasetGenerate featureNum sampleNum density");
+        int featureDimension = Integer.parseInt(argv[0]);
+        int sampleNumber = Integer.parseInt(argv[1]);
+        double density = Double.parseDouble(argv[2]);
+        if(density > 1 || density <= 0){
+            System.out.println("Density need to be in 0 - 1.");
+        }
+        double realWeights[] = new double[featureDimension];
+        double tuple[] = new double[featureDimension];
+        double tupleValue = 0.0;
+        Arrays.fill(tuple, 0);
+        Arrays.fill(realWeights, 0);
+        for(int i = 0; i < featureDimension; i++){
+            realWeights[i] = random.nextGaussian();
+        }
+        for(int i = 0; i < sampleNumber; i++){
+            tupleValue = 0;
+            for(int j = 0; j < featureDimension; j++){
+                if(random.nextDouble() <= density){
+                    tuple[j] = random.nextGaussian();
+                    tupleValue += tuple[j] * realWeights[j];
+                }
+            }
+            tupleValue += random.nextGaussian();
+            if(tupleValue > 0){
+                tupleValue = 1;
+            }else {
+                tupleValue = -1;
+            }
+            System.out.print(tupleValue);
+            for(int j = 0; j < featureDimension; j++){
+                if(tuple[j] != 0){
+                    System.out.print(" ");
+                    System.out.print(j);
+                    System.out.print(":");
+                    System.out.print(tuple[j]);
+                }
+                tuple[j] = 0;
+            }
+            System.out.println();
+        }
+    }
+}
