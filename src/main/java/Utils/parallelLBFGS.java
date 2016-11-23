@@ -42,7 +42,6 @@ public class parallelLBFGS {
 
         double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm);
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
-        LOG.info(loss);
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
@@ -277,7 +276,7 @@ public class parallelLBFGS {
             String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv;
-            LOG.info(infoMsg);
+            //LOG.info(infoMsg);
             alpha *= backoff;
             i ++;
             step -= 1;

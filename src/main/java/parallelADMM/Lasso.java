@@ -7,8 +7,11 @@ package parallelADMM;
 
 import Utils.*;
 import math.DenseVector;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.lang.management.ManagementFactory;
 
 //According to https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
+//https://web.stanford.edu/~boyd/papers/admm/
 /**
  * Created by 王羚宇 on 2016/7/24.
  */
@@ -251,12 +255,12 @@ public class Lasso extends model.Lasso {
                 if(i > maxIteration){
                     break;
                 }
-            }else if (modelType == 2){
-                if(converge(oldModel, model.x)){
-                    break;
-                }
-                judgeConverge();
             }
+            if(converge(oldModel, model.x)) {
+                if (modelType == 2)
+                    break;
+            }
+            judgeConverge();
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             if(diverge){
                 System.out.println("[Warning]Diverge happens!");
@@ -275,6 +279,8 @@ public class Lasso extends model.Lasso {
     }
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelADMM.Lasso threadNum featureDimension train_path lambda trainRatio");
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+        System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];

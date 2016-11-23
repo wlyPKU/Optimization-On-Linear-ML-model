@@ -2,8 +2,11 @@ package parallelADMM;
 
 import Utils.*;
 import math.DenseVector;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -12,6 +15,7 @@ import java.lang.management.ManagementFactory;
 
 //TODO: To be checked...
 //According to the angel ADMM logistic regression
+//https://web.stanford.edu/~boyd/papers/admm/
 
 /**
  * Created by 王羚宇 on 2016/7/24.
@@ -238,7 +242,7 @@ public class LogisticRegression extends model.LogisticRegression{
             if(!rhoFixed){
                 rho = calculateRho(rho);
             }
-            System.out.println("Current rho is " + rho);
+            System.out.println("[Information]Current rho is " + rho);
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
@@ -256,12 +260,12 @@ public class LogisticRegression extends model.LogisticRegression{
                 if(i > maxIteration){
                     break;
                 }
-            }else if (modelType == 2){
-                if(converge(oldModel, model.x)){
-                    break;
-                }
-                judgeConverge();
             }
+            if(converge(oldModel, model.x)) {
+                if (modelType == 2)
+                    break;
+            }
+            judgeConverge();
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
         }
     }
@@ -278,6 +282,8 @@ public class LogisticRegression extends model.LogisticRegression{
     }
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelADMM.LogisticRegression threadNum FeatureDim train_path lambda trainRatio");
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+        System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];

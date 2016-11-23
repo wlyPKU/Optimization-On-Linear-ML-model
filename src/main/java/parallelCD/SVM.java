@@ -9,8 +9,10 @@ import Utils.Utils;
 import math.DenseVector;
 
 import java.lang.management.ManagementFactory;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -165,10 +167,10 @@ public class SVM extends model.SVM{
                 if(i > maxIteration){
                     break;
                 }
-            }else if (modelType == 2){
-                if(converge(oldModel, model)){
+            }
+            if(converge(oldModel, model)){
+                if (modelType == 2)
                     break;
-                }
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
 
@@ -185,6 +187,8 @@ public class SVM extends model.SVM{
     }
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelCD.SVM threadNum dim train_path lambda [trainRatio]");
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+        System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];

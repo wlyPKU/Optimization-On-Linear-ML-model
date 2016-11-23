@@ -6,7 +6,9 @@ import math.*;
 import Utils.*;
 
 import java.lang.management.ManagementFactory;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -229,10 +231,10 @@ public class LogisticRegression extends model.LogisticRegression{
                 if(i > maxIteration){
                     break;
                 }
-            }else if (modelType == 2){
-                if(converge(oldModel, model)){
+            }
+            if(converge(oldModel, model)){
+                if (modelType == 2)
                     break;
-                }
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
 
@@ -255,6 +257,8 @@ public class LogisticRegression extends model.LogisticRegression{
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelCD.LogisticRegression threadNum FeatureDim SampleDim train_path lamda trainRatio");
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+        System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         sampleDimension = Integer.parseInt(argv[2]);

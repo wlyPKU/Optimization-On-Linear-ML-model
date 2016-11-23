@@ -5,8 +5,10 @@ import Utils.Utils;
 import math.DenseVector;
 
 import java.lang.management.ManagementFactory;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -104,10 +106,10 @@ public class LinearRegression extends model.LinearRegression{
                 if(i > maxIteration){
                     break;
                 }
-            }else if (modelType == 2){
-                if(converge(oldModel, model)){
+            }
+            if(converge(oldModel, model)){
+                if (modelType == 2)
                     break;
-                }
             }
             System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
 
@@ -116,6 +118,8 @@ public class LinearRegression extends model.LinearRegression{
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.LinearRegression threadNum dim train_path learningRate[trainRatio]");
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+        System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
