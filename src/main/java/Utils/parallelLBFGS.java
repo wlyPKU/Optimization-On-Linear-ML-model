@@ -13,9 +13,11 @@ public class parallelLBFGS {
 
     private static final Log LOG = LogFactory.getLog(parallelLBFGS.class);
 
+    private static int threadNum;
     public static void train(ADMMState state,
                              int maxIterNum,
                              int lbfgshistory,
+                             int threadNum,
                              double rhoADMM,
                              int iterationADMM,
                              List<LabeledData> trainCorpus,
@@ -23,6 +25,7 @@ public class parallelLBFGS {
                              DenseVector z) {
 
         int localFeatureNum = state.featureNum;
+        parallelLBFGS.threadNum = threadNum;
 
         double[] xx    = new double[localFeatureNum];
         double[] xNew  = new double[localFeatureNum];
@@ -40,12 +43,12 @@ public class parallelLBFGS {
 
         int iter = 1;
 
-        double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm);
+        double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm) ;
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
-            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z.values, trainCorpus, algorithm);
+            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z.values, trainCorpus, algorithm) ;
 
             String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss;
@@ -72,7 +75,7 @@ public class parallelLBFGS {
 
         for (int i = 0; i < localFeatureNum; i ++) {
             double temp = localX[i] - z[i] + state.u.values[i];
-            g[i] = rhoADMM * temp;
+            g[i] = rhoADMM * temp ;
             loss += 0.5 * rhoADMM * temp * temp;
         }
 
@@ -133,9 +136,9 @@ public class parallelLBFGS {
                 loss += 0.5 * score * score;
                 for (int i = 0; i < l.data.indices.length; i++) {
                     if (l.data.values == null) {
-                        g[l.data.indices[i]] += score;
+                        g[l.data.indices[i]] += score  ;
                     } else {
-                        g[l.data.indices[i]] += l.data.values[i] * score;
+                        g[l.data.indices[i]] += l.data.values[i] * score  ;
                     }
                 }
             }
@@ -272,7 +275,7 @@ public class parallelLBFGS {
 
         while ((loss > oldLoss + c1 * origDirDeriv * alpha) && (step > 0)) {
             timesBy(xNew, x, dir, alpha, localFeatureNum);
-            loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm);
+            loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm) ;
             String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv;

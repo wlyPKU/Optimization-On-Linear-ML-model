@@ -1,4 +1,3 @@
-
 package parallelGD;
 
 import Utils.LabeledData;
@@ -7,65 +6,68 @@ import math.DenseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by 王羚宇 on 2016/7/20.
+ * Created by WLY on 2016/9/3.
  */
-public class Lasso extends model.Lasso{
+public class LogisticRegressionDataParallel extends model.LogisticRegression{
     public static long start;
 
     public DenseVector globalModelOfU;
     public DenseVector globalModelOfV;
+    public DenseVector localModelOfU[];
+    public DenseVector localModelOfV[];
     public static int threadNum;
     public static double lambda = 0.1;
     public static double trainRatio = 0.5;
 
-    public static double learningRate = 0.005;
+    public static double learningRate = 0.001;
     public int iteration = 0;
+
 
     public void setNewLearningRate(){
     }
 
     public class executeRunnable implements Runnable
     {
-        public List<LabeledData> localList;
-        public double lambda;
-        public int globalCorpusSize;
+        List<LabeledData> localList;
+        double lambda;
+        int globalCorpusSize;
         int threadID;
-        public executeRunnable(int threadID, List<LabeledData> list, double lambda, int globalCorpusSize){
+        public executeRunnable(int threadID,List<LabeledData> list, double lambda, int globalCorpusSize){
             this.threadID = threadID;
             localList = list;
             this.lambda = lambda;
             this.globalCorpusSize = globalCorpusSize;
+
         }
         public void run() {
             sgdOneEpoch(localList, learningRate, lambda);
         }
         public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
-            double modelPenalty = -lr * lambda / globalCorpusSize;
             //double modelPenalty = - lr * lambda;
+            double modelPenalty = -lr * lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
-                double scala = labeledData.label - globalModelOfU.dot(labeledData.data)
-                        + globalModelOfV.dot(labeledData.data);
-                globalModelOfU.plusSparse(labeledData.data, modelPenalty);
-                globalModelOfU.plusGradient(labeledData.data, scala * lr);
-                globalModelOfU.positiveOrZero(labeledData.data);
-                globalModelOfV.plusSparse(labeledData.data, modelPenalty);
-                globalModelOfV.plusGradient(labeledData.data, - scala * lr);
-                globalModelOfV.positiveOrZero(labeledData.data);
-
+                double predictValue = localModelOfU[threadID].dot(labeledData.data) - localModelOfV[threadID].dot(labeledData.data);
+                double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
+                double scala = tmpValue * labeledData.label;
+                localModelOfU[threadID].plusSparse(labeledData.data, modelPenalty);
+                localModelOfU[threadID].plusGradient(labeledData.data, scala * lr);
+                localModelOfU[threadID].positiveOrZero(labeledData.data);
+                localModelOfV[threadID].plusSparse(labeledData.data, modelPenalty);
+                localModelOfV[threadID].plusGradient(labeledData.data, - scala * lr);
+                localModelOfV[threadID].positiveOrZero(labeledData.data);
             }
+            globalModelOfU.plusDense(localModelOfU[threadID]);
+            globalModelOfV.plusDense(localModelOfV[threadID]);
         }
     }
 
-    public void train(List<LabeledData> corpus, int dimension) {
+    public void train(List<LabeledData> corpus, DenseVector modelOfU, DenseVector modelOfV) {
         Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -78,18 +80,26 @@ public class Lasso extends model.Lasso{
             List<LabeledData> threadCorpus = corpus.subList(from, to);
             ThreadTrainCorpus.add(threadCorpus);
         }
-        DenseVector model = new DenseVector(dimension);
-        DenseVector oldModel = new DenseVector(dimension);
+        DenseVector model = new DenseVector(modelOfU.dim);
+        DenseVector oldModel = new DenseVector(model.dim);
 
-        globalModelOfU = new DenseVector(dimension);
-        globalModelOfV = new DenseVector(dimension);
+        globalModelOfU = new DenseVector(modelOfU.dim);
+        globalModelOfV = new DenseVector(modelOfU.dim);
+
+        localModelOfU = new DenseVector[threadNum];
+        localModelOfV = new DenseVector[threadNum];
+        for(int i = 0; i < threadNum; i++){
+            localModelOfV[i] = new DenseVector(modelOfU.dim);
+            localModelOfU[i] = new DenseVector(modelOfV.dim);
+        }
         long totalBegin = System.currentTimeMillis();
 
         int totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
-
+            testAndSummary(trainCorpus, testCorpus, model, lambda);
+            Arrays.fill(globalModelOfU.values, 0);
+            Arrays.fill(globalModelOfV.values, 0);
             long startTrain = System.currentTimeMillis();
             System.out.println("[Information]Learning rate " + learningRate);
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
@@ -106,8 +116,11 @@ public class Lasso extends model.Lasso{
                     e.printStackTrace();
                 }
             }
-
-            for(int j = 0; j < dimension; j++){
+            globalModelOfV.allDividedBy(threadNum);
+            globalModelOfU.allDividedBy(threadNum);
+            System.arraycopy(globalModelOfU.values, 0, modelOfU.values, 0, modelOfU.dim);
+            System.arraycopy(globalModelOfV.values, 0, modelOfV.values, 0, modelOfV.dim);
+            for(int j = 0; j < model.dim; j++){
                 model.values[j] = globalModelOfU.values[j] - globalModelOfV.values[j];
             }
             long trainTime = System.currentTimeMillis() - startTrain;
@@ -136,26 +149,24 @@ public class Lasso extends model.Lasso{
                     break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-            if(diverge){
-                System.out.println("[Warning]Diverge happens!");
-                break;
+            for(int id = 0; id < threadNum; id++){
+                System.arraycopy(globalModelOfU.values, 0, localModelOfU[id].values, 0, globalModelOfU.dim);
+                System.arraycopy(globalModelOfV.values, 0, localModelOfV[id].values, 0, globalModelOfV.dim);
             }
         }
     }
 
-
-
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda learningRate [trainRatio]");
+        System.out.println("Usage: parallelGD.LogisticRegression threadID FeatureDim train_path lambda learningRate [trainRatio]");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
-        int dim = Integer.parseInt(argv[1]);
+        int dimension = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
         learningRate = Double.parseDouble(argv[4]);
         long startLoad = System.currentTimeMillis();
-        List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
+        List<LabeledData> corpus = Utils.loadLibSVM(path, dimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         for(int i = 0; i < argv.length - 1; i++){
@@ -182,7 +193,7 @@ public class Lasso extends model.Lasso{
         }
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
-        System.out.println("[Parameter]FeatureDimension " + dim);
+        System.out.println("[Parameter]FeatureDimension " + dimension);
         System.out.println("[Parameter]LearningRate " + learningRate);
         System.out.println("[Parameter]File Path " + path);
         System.out.println("[Parameter]Lambda " + lambda);
@@ -192,10 +203,12 @@ public class Lasso extends model.Lasso{
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
 
-        Lasso lasso = new Lasso();
+        LogisticRegressionDataParallel lr = new LogisticRegressionDataParallel();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
+        DenseVector modelOfU = new DenseVector(dimension);
+        DenseVector modelOfV = new DenseVector(dimension);
         start = System.currentTimeMillis();
-        lasso.train(corpus, dim);
+        lr.train(corpus, modelOfU, modelOfV);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }

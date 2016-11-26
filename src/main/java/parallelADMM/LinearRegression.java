@@ -4,10 +4,7 @@ import Utils.*;
 import math.DenseVector;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -47,17 +44,19 @@ public class LinearRegression extends model.LinearRegression{
         //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG23
         double miu = 10;
         double pi_incr = 2, pi_decr = 2;
-        double r = 0;
-        for(int i = 0; i < featureDimension; i++){
-            r += (model.x.values[i] - model.z.values[i]) * (model.x.values[i] - model.z.values[i]);
+        double R_Norm = 0;
+        double S_Norm = 0;
+        for(int i = 0; i < threadNum; i++){
+            for(int j = 0; j < featureDimension; j++) {
+                R_Norm += (localADMMState[i].x.values[j] - model.z.values[j])
+                        * (localADMMState[i].x.values[j] - model.z.values[j]);
+                S_Norm += (model.z.values[j] - oldModelZ.values[j]) * rho
+                        * (model.z.values[j] - oldModelZ.values[j]) * rho;
+            }
         }
-        r = Math.sqrt(r);
-        double s = 0;
-        for(int i = 0; i < featureDimension; i++){
-            s += (oldModelZ.values[i] - model.z.values[i]) * (oldModelZ.values[i] - model.z.values[i]);
-        }
-        s = Math.sqrt(s) * rho;
-        if(r > miu * s){
+        R_Norm = Math.sqrt(R_Norm);
+        S_Norm = Math.sqrt(S_Norm);
+        if(R_Norm > miu * S_Norm){
             for(int fID = 0; fID < featureDimension; fID++){
                 model.u.values[fID] /= pi_incr;
                 for(int j = 0; j < threadNum; j++){
@@ -65,7 +64,7 @@ public class LinearRegression extends model.LinearRegression{
                 }
             }
             return pi_incr * rho;
-        }else if(s > miu * r){
+        }else if(S_Norm > miu * R_Norm){
             for(int fID = 0; fID < featureDimension; fID++){
                 model.u.values[fID] *= pi_incr;
                 for(int j = 0; j < threadNum; j++){
@@ -88,7 +87,7 @@ public class LinearRegression extends model.LinearRegression{
 
         public void run() {
             //Update x;
-            parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,
+            parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory, threadNum,
                     rho, iteNum, localTrainCorpus.get(threadID), "LinearRegression", model.z);
             model.x.plusDense(localADMMState[threadID].x);
         }
@@ -194,6 +193,7 @@ public class LinearRegression extends model.LinearRegression{
     }
 
     private void trainCore() {
+        Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);

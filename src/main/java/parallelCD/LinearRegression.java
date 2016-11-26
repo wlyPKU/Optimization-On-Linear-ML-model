@@ -9,9 +9,7 @@ import math.SparseMap;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -28,11 +26,11 @@ public class LinearRegression extends model.LinearRegression{
     private static double residual[];
     private static DenseVector model;
     private static double featureSquare[];
+    private static SparseMap[] tmpFeatures;
     private static SparseMap[] features;
     private static double trainRatio = 0.5;
     private static int threadNum;
     private static int featureDimension;
-    private static int sampleDimension;
 
     public class executeRunnable implements Runnable
     {
@@ -88,12 +86,13 @@ public class LinearRegression extends model.LinearRegression{
     }
 
     private void trainCore(List<LabeledData> labeledData) {
+        shuffle(labeledData, tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         featureSquare = new double[featureDimension];
-        residual = new double[sampleDimension];
+        residual = new double[labeledData.size()];
         for(int i = 0; i < featureDimension; i++){
             featureSquare[i] = 0;
             for(Double v: features[i].map.values()){
@@ -160,6 +159,40 @@ public class LinearRegression extends model.LinearRegression{
         }
     }
 
+    private void shuffle(List<LabeledData> labeledData, SparseMap[] tmpFeatures) {
+        List<Integer> list = new ArrayList<Integer>();
+        for (int i = 0; i < labeledData.size(); i++) {
+            list.add(i);
+        }
+        Collections.shuffle(list);
+        List<LabeledData> tmpSet = new ArrayList<LabeledData>();
+        for (int i = 0; i < labeledData.size(); i++) {
+            tmpSet.add(labeledData.get(list.get(i)));
+        }
+        labeledData.clear();
+        for (int i = 0; i < tmpSet.size(); i++) {
+            labeledData.add(tmpSet.get(i));
+        }
+        features = new SparseMap[featureDimension + 1];
+        for (int i = 0; i <= featureDimension; i++) {
+            features[i] = new SparseMap();
+        }
+        int map[] = new int[labeledData.size()];
+        for(int i = 0; i < map.length; i++){
+            map[i] = list.indexOf(i);
+        }
+        for (int i = 0; i < features.length; i++) {
+            ObjectIterator<Int2DoubleMap.Entry> iter = tmpFeatures[i].map.int2DoubleEntrySet().iterator();
+            while (iter.hasNext()) {
+                Int2DoubleMap.Entry entry = iter.next();
+                int idx = entry.getIntKey();
+                double value = entry.getDoubleValue();
+                if (map[idx] < trainRatio * labeledData.size())
+                    features[i].add(map[idx], value);
+            }
+        }
+    }
+
     public static void train(List<LabeledData> labeledData) {
         LinearRegression linearCD = new LinearRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
@@ -172,13 +205,12 @@ public class LinearRegression extends model.LinearRegression{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.LinearRegression threadNum FeatureDim SampleDim train_path trainRatio");
+        System.out.println("Usage: parallelCD.LinearRegression threadNum FeatureDim train_path trainRatio");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
-        sampleDimension = Integer.parseInt(argv[2]);
-        String path = argv[3];
+        String path = argv[2];
         trainRatio = 0.5;
         for(int i = 0; i < argv.length - 1; i++){
             if(argv[i].equals("Model")){
@@ -205,7 +237,6 @@ public class LinearRegression extends model.LinearRegression{
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
         System.out.println("[Parameter]FeatureDimension " + featureDimension);
-        System.out.println("[Parameter]SampleDimension " + sampleDimension);
         System.out.println("[Parameter]File Path " + path);
         System.out.println("[Parameter]TrainRatio " + trainRatio);
         System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
@@ -214,7 +245,7 @@ public class LinearRegression extends model.LinearRegression{
         System.out.println("------------------------------------");
 
         long startLoad = System.currentTimeMillis();
-        features = Utils.LoadLibSVMByFeature(path, featureDimension, sampleDimension, trainRatio);
+        tmpFeatures = Utils.LoadLibSVMByFeature(path, featureDimension);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");

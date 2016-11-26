@@ -63,7 +63,7 @@ public class SVM extends model.SVM{
                     PG = G;
                 }
                 if(PG != 0) {
-                    alpha[j] = Math.min(Math.max(0, alpha[j] - G / 3.0 / Q[j]), C);
+                    alpha[j] = Math.min(Math.max(0, alpha[j] - G / Q[j]), C);
                     double deltaAlpha = alpha[j] - alpha_old;
                     if(deltaAlpha != 0){
                         if (labeledData.data.values == null) {

@@ -116,8 +116,7 @@ public class Utils {
   }
 
 
-  public static SparseMap[] LoadLibSVMByFeature(String path, int featureDim,
-             int sampleDim, double trainRatio) throws IOException{
+  public static SparseMap[] LoadLibSVMByFeature(String path, int featureDim) throws IOException{
     //Feature and Label(dimension: featureDim+1)
     SparseMap[] features = new SparseMap[featureDim + 1];
     for(int i = 0; i <= featureDim; i++){
@@ -126,7 +125,7 @@ public class Utils {
     BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
     String line;
     int cnt = 0;
-    while ((line = reader.readLine()) != null && cnt < trainRatio * sampleDim) {
+    while ((line = reader.readLine()) != null) {
       String []parts = line.split(" ");
       //Label(y)
       features[featureDim].add(cnt, Double.parseDouble(parts[0]));
