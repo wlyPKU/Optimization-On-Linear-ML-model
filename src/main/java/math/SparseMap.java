@@ -19,27 +19,30 @@ public class SparseMap {
     }
     public double multiply(SparseMap other){
         double result = 0;
-        if(map.size() < other.map.size()){
-            ObjectIterator<Int2DoubleMap.Entry> iter =  map.int2DoubleEntrySet().iterator();
-            while (iter.hasNext()) {
-                Int2DoubleMap.Entry entry = iter.next();
-                int idx = entry.getIntKey();
+        ObjectIterator<Int2DoubleMap.Entry> iter =  map.int2DoubleEntrySet().iterator();
+        ObjectIterator<Int2DoubleMap.Entry> anotherIter =  other.map.int2DoubleEntrySet().iterator();
+        Int2DoubleMap.Entry entry = null;
+        Int2DoubleMap.Entry anotherEntry = null;
+        if(iter.hasNext()) {
+            entry = iter.next();
+        }
+        if(anotherIter.hasNext()) {
+            anotherEntry = anotherIter.next();
+        }
+        while (entry != null && (anotherEntry != null)) {
+            int idx = entry.getIntKey();
+            int anotherIdx = anotherEntry.getIntKey();
+
+            if (idx < anotherIdx) {
+                entry = iter.hasNext()?iter.next():null;
+            }else if(idx > anotherIdx){
+                anotherEntry = anotherIter.hasNext()?anotherIter.next():null;
+            }else{
                 double value = entry.getDoubleValue();
-                if(other.map.containsKey(idx)){
-                    double otherValue = other.map.get(idx);
-                    result += value * otherValue;
-                }
-            }
-        }else{
-            ObjectIterator<Int2DoubleMap.Entry> iter =  other.map.int2DoubleEntrySet().iterator();
-            while (iter.hasNext()) {
-                Int2DoubleMap.Entry entry = iter.next();
-                int idx = entry.getIntKey();
-                double otherValue = entry.getDoubleValue();
-                if(map.containsKey(idx)){
-                    double value = map.get(idx);
-                    result += value * otherValue;
-                }
+                double anotherValue = anotherEntry.getDoubleValue();
+                result += value * anotherValue;
+                entry = iter.hasNext()?iter.next():null;
+                anotherEntry = anotherIter.hasNext()?anotherIter.next():null;
             }
         }
         return result;
