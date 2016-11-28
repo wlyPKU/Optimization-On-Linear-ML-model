@@ -56,12 +56,15 @@ public class LinearRegression extends model.LinearRegression{
 
                 iter =  features[j].map.int2DoubleEntrySet().iterator();
                 double deltaChange = model.values[j] - oldValue;
-                while (iter.hasNext()) {
-                    Int2DoubleMap.Entry entry = iter.next();
-                    int idx = entry.getIntKey();
-                    double value = entry.getDoubleValue();
-                    residual[idx] -= deltaChange * value;
+                if(deltaChange != 0){
+                    while (iter.hasNext()) {
+                        Int2DoubleMap.Entry entry = iter.next();
+                        int idx = entry.getIntKey();
+                        double value = entry.getDoubleValue();
+                        residual[idx] -= deltaChange * value;
+                    }
                 }
+
             }
         }
     }

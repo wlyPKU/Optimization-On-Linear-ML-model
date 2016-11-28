@@ -46,7 +46,6 @@ public class Lasso extends model.Lasso {
             for(int j = from; j < to; j++){
                 double oldValue = model.values[j];
                 double updateValue = 0;
-
                 ObjectIterator<Int2DoubleMap.Entry> iter =  features[j].map.int2DoubleEntrySet().iterator();
                 while (iter.hasNext()) {
                     Int2DoubleMap.Entry entry = iter.next();
@@ -59,11 +58,13 @@ public class Lasso extends model.Lasso {
                 model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
                 iter =  features[j].map.int2DoubleEntrySet().iterator();
                 double deltaChange = model.values[j] - oldValue;
-                while (iter.hasNext()) {
-                    Int2DoubleMap.Entry entry = iter.next();
-                    int idx = entry.getIntKey();
-                    double value = entry.getDoubleValue();
-                    residual[idx] -= deltaChange * value;
+                if(deltaChange != 0) {
+                    while (iter.hasNext()) {
+                        Int2DoubleMap.Entry entry = iter.next();
+                        int idx = entry.getIntKey();
+                        double value = entry.getDoubleValue();
+                        residual[idx] -= deltaChange * value;
+                    }
                 }
             }
         }

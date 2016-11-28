@@ -226,12 +226,13 @@ public class Lasso extends model.Lasso {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             long startTrain = System.currentTimeMillis();
-            //Update x
-            updateX(i);
             //Update z
             updateZ();
             //Update u
             updateU();
+            //Update x
+            updateX(i);
+
             //rho = Math.min(rho * 1.1, maxRho);
             if(!rhoFixed){
                 rho = calculateRho(rho);

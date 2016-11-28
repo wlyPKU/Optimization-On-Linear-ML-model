@@ -5,14 +5,11 @@ package parallelADMM;
  * Created by WLY on 2016/9/4.
  */
 
-import Utils.ADMMState;
+import Utils.ADMMFeatureState;
 import Utils.LabeledData;
 import Utils.Utils;
-import Utils.parallelLBFGS;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import Utils.parallelLBFGSFeature;
 import math.DenseVector;
-import math.SparseMap;
 import math.SparseVector;
 
 import java.lang.management.ManagementFactory;
@@ -35,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 //https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
-public class LassoExact extends model.Lasso {
+public class LassoFeature extends model.Lasso {
     private static long start;
     private static double lambda;
     private static int threadNum;
@@ -44,16 +41,12 @@ public class LassoExact extends model.Lasso {
 
     private static DenseVector oldModelZ;
     private static List<LabeledData> labeledData;
-    private static ADMMState model;
-    private ADMMState[] localADMMState;
-    private static SparseMap[][] features;
-
-    private double [][][]AtA_rhoI;
-    private double [][]Atbi;
+    private List<List<LabeledData>> localLabeledData = new ArrayList<List<LabeledData>>();
+    private static ADMMFeatureState model;
+    private ADMMFeatureState[] localADMMState;
 
     private double x_hat[];
-    private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
-    private static double rho = 1;
+    private static double rho = 0.001;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
     double rel_par = 1.0;
@@ -107,25 +100,21 @@ public class LassoExact extends model.Lasso {
         }
         public void run() {
             //Update x;
-            Arrays.fill(localADMMState[threadID].x.values, 0);
-            for(int i = 0; i < featureDimension; i++){
-                for(int j = 0; j < featureDimension; j++)
-                localADMMState[threadID].x.values[i] += AtA_rhoI[threadID][i][j] *
-                        (Atbi[threadID][j] + rho * (model.z.values[j] -  localADMMState[threadID].u.values[j]));
+            parallelLBFGSFeature.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory, threadNum,
+                    rho, iteNum, localLabeledData.get(threadID), "Lasso", model.z);
+            computeAx(localADMMState[threadID], localLabeledData.get(threadID));
+        }
+        public double computeAXi(DenseVector x, LabeledData data){
+            double result = 0;
+            SparseVector s = data.data;
+            for(int i = 0; i < s.indices.length; i++){
+                result += (s.values == null? 1:s.values[i]) * x.values[s.indices[i]];
             }
-            model.x.plusDense(localADMMState[threadID].x);
+            return result;
         }
-    }
-
-    private class updateUThread implements Runnable {
-        int threadID;
-        private updateUThread(int threadID){
-            this.threadID = threadID;
-        }
-        public void run() {
-            for(int fID = 0; fID < featureDimension; fID++){
-                localADMMState[threadID].u.values[fID] += (localADMMState[threadID].x.values[fID] - model.z.values[fID]);
-                model.u.values[fID] += localADMMState[threadID].u.values[fID];
+        public void computeAx(ADMMFeatureState state, List<LabeledData> labeledData){
+            for(int i = 0; i < state.sampleDimension; i++){
+                state.AX[i] = computeAXi(state.x, labeledData.get(i));
             }
         }
     }
@@ -146,38 +135,25 @@ public class LassoExact extends model.Lasso {
                 e.printStackTrace();
             }
         }
-        model.x.allDividedBy(threadNum);
         System.out.println("[Information]Update X costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
     }
     private void updateZ(){
         long startTrain = System.currentTimeMillis();
-        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, featureDimension);
-        for(int id = 0; id < featureDimension; id++){
-            x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
-            //z=Soft_threshold(lambda/rho,x+u);
-            model.z.values[id] = Utils.soft_threshold(lambda / rho / threadNum, x_hat[id]
-                    + model.u.values[id]);
+        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, (int)(trainRatio * labeledData.size()));
+        for(int id = 0; id < (int)(trainRatio * labeledData.size()); id++){
+            model.z.values[id] = (labeledData.get(id).label + rho * model.AX[id] + rho * model.u.values[id]) / (threadNum + rho);
         }
         System.out.println("[Information]Update Z costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
     }
 
     private void updateU(){
         long startTrain = System.currentTimeMillis();
-        Arrays.fill(model.u.values, 0);
-        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
-        for (int threadID = 0; threadID < threadNum; threadID++) {
-            threadPool.execute(new updateUThread(threadID));
+        for (int id = 0; id < (int)(trainRatio * labeledData.size()); id++) {
+            model.u.values[id] += model.AX[id] - model.z.values[id];
         }
-        threadPool.shutdown();
-        while (!threadPool.isTerminated()) {
-            try {
-                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        for(int i = 0; i < threadNum; i++){
+            System.arraycopy(model.u.values, 0, localADMMState[i].u.values, 0, (int)(trainRatio * labeledData.size()));
         }
-        model.u.allDividedBy(threadNum);
         System.out.println("[Information]Update U costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
 
     }
@@ -210,78 +186,73 @@ public class LassoExact extends model.Lasso {
         double EPS_DUAL = Math.sqrt(threadNum) * ABSTOL + RELTOL * rho * tmpNormU;
         System.out.println("[Information]AbsoluteErrorDelta " + (EPS_PRI - R_Norm));
         System.out.println("[Information]RelativeErrorDelta " + (EPS_DUAL - S_Norm));
-        if(R_Norm < EPS_PRI && S_Norm < EPS_DUAL){
-            return true;
-        }
-        return false;
+        return R_Norm < EPS_PRI && S_Norm < EPS_DUAL;
     }
 
-    private void preCompute(){
-        AtA_rhoI = new double[threadNum][featureDimension][featureDimension];
-        Atbi = new double[threadNum][featureDimension];
-        features = new SparseMap[threadNum][featureDimension];
-        for(int i = 0; i < threadNum; i++){
-            List<LabeledData> localCorpus = localTrainCorpus.get(i);
-            for(int j = 0; j < featureDimension; j++){
-                features[i][j] = new SparseMap();
-            }
-            for(int id = 0; id < localCorpus.size(); id++){
-                SparseVector tmpData = localCorpus.get(id).data;
-                for(int index = 0; index < tmpData.indices.length; index++){
-                    if(tmpData.values == null) {
-                        features[i][tmpData.indices[index]].add(id, 1);
-                    }else{
-                        features[i][tmpData.indices[index]].add(id, tmpData.values[index]);
-                    }
+    private List<LabeledData> processLocalCorpus(int begin, int end){
+        List<LabeledData> list = new ArrayList<LabeledData>();
+        for(int id = 0; id < (int)(trainRatio * labeledData.size()); id++){
+            LabeledData l = labeledData.get(id);
+            SparseVector data = l.data;
+            double value = l.label;
+            List<Integer> featureIndex = new ArrayList<Integer>();
+            List<Double> featureValue = new ArrayList<Double>();
+            for(int i = 0; i < data.indices.length; i++){
+                if(data.indices[i] >= end){
+                    break;
                 }
+                if(data.indices[i] < begin){
+                    continue;
+                }
+                if(data.values == null){
+                    featureIndex.add(data.indices[i] - begin);
+                }else{
+                    featureIndex.add(data.indices[i] - begin);
+                    featureValue.add(data.values[i]);
+                }
+            }
+            int index[] = new int[featureIndex.size()];
+            if(data.values == null){
+                for(int i = 0; i < index.length; i++){
+                    index[i] = featureIndex.get(i);
+                }
+                SparseVector newVector = new SparseVector(index.length, index);
+                LabeledData insertData = new LabeledData(newVector, value);
+                list.add(insertData);
+            }else{
+                double values[] = new double[featureIndex.size()];
+                for(int i = 0; i < index.length; i++){
+                    index[i] = featureIndex.get(i);
+                    values[i] = featureValue.get(i);
+                }
+                SparseVector newVector = new SparseVector(index.length, index, values);
+                LabeledData insertData = new LabeledData(newVector, value);
+                list.add(insertData);
             }
         }
-
-        for(int id = 0; id < threadNum; id++){
-            Arrays.fill(Atbi[id], 0);
-            for(int i = 0; i < featureDimension; i++){
-                Arrays.fill(AtA_rhoI[id][i], 0);
-                for(int j = 0; j < featureDimension; j++){
-                    AtA_rhoI[id][i][j] = features[id][i].multiply(features[id][j]);
-                }
-                AtA_rhoI[id][i][i] += rho;
-                ObjectIterator<Int2DoubleMap.Entry> iter =  features[id][i].map.int2DoubleEntrySet().iterator();
-                while (iter.hasNext()) {
-                    Int2DoubleMap.Entry entry = iter.next();
-                    int idx = entry.getIntKey();
-                    double xj = entry.getDoubleValue();
-                    Atbi[id][i] += localTrainCorpus.get(id).get(idx).label * xj;
-                }
-                if(i % 100 == 0){
-                    System.out.println(i);
-                }
-            }
-        }
+        return list;
     }
 
     private void trainCore() {
-        //Collections.shuffle(labeledData);
+        Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
-        x_hat = new double[model.featureNum];
         DenseVector oldModel = new DenseVector(featureDimension);
 
-        localADMMState = new ADMMState[threadNum];
+        localADMMState = new ADMMFeatureState[threadNum];
         for (int threadID = 0; threadID < threadNum; threadID++) {
-            localADMMState[threadID] = new ADMMState(featureDimension);
-            int from = trainCorpus.size() * threadID / threadNum;
-            int to = trainCorpus.size() * (threadID + 1) / threadNum;
-            List<LabeledData> localData = trainCorpus.subList(from, to);
-            localTrainCorpus.add(localData);
+            int beginOffset = featureDimension * threadID / threadNum;
+            int dimension = featureDimension / threadNum;
+            localADMMState[threadID] = new ADMMFeatureState(dimension, trainCorpus.size(), beginOffset);
+            localLabeledData.add(processLocalCorpus(beginOffset, beginOffset + dimension));
         }
         long totalBegin = System.currentTimeMillis();
 
         oldModelZ = new DenseVector(featureDimension);
 
         long totalIterationTime = 0;
-        preCompute();
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
@@ -292,6 +263,21 @@ public class LassoExact extends model.Lasso {
             updateU();
             //Update x
             updateX(i);
+            for(int id = 0; id < threadNum; id++){
+                System.arraycopy(localADMMState[id].x.values, 0, model.x.values, localADMMState[id].beginOffset,
+                        localADMMState[id].x.values.length);
+            }
+            //mergeAx
+            Arrays.fill(model.AX, 0);
+            for(int j = 0; j < trainCorpus.size(); j++){
+                for(int id = 0; id < threadNum; id++){
+                    model.AX[j] += localADMMState[id].AX[j];
+                }
+                model.AX[j] /= threadNum;
+            }
+            for(int id = 0; id < threadNum; id++){
+                System.arraycopy(model.AX, 0, localADMMState[id].AX, 0, model.AX.length);
+            }
             //rho = Math.min(rho * 1.1, maxRho);
             if(!rhoFixed){
                 rho = calculateRho(rho);
@@ -319,7 +305,7 @@ public class LassoExact extends model.Lasso {
                 if (modelType == 2)
                     break;
             }
-            judgeConverge();
+            //judgeConverge();
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
             if(diverge){
                 System.out.println("[Warning]Diverge happens!");
@@ -329,8 +315,8 @@ public class LassoExact extends model.Lasso {
     }
 
     private static void train() {
-        LassoExact lassoLBFGS = new LassoExact();
-        model = new ADMMState(featureDimension);
+        LassoFeature lassoLBFGS = new LassoFeature();
+        model = new ADMMFeatureState(featureDimension, (int)(trainRatio * labeledData.size()), 0);
         start = System.currentTimeMillis();
         lassoLBFGS.trainCore();
         long cost = System.currentTimeMillis() - start;
@@ -367,7 +353,7 @@ public class LassoExact extends model.Lasso {
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
-                if(trainRatio > 1 || trainRatio <= 0){
+                if(trainRatio >= 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
                 }
@@ -388,6 +374,7 @@ public class LassoExact extends model.Lasso {
 
         long startLoad = System.currentTimeMillis();
         labeledData = Utils.loadLibSVM(path, featureDimension);
+
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train();

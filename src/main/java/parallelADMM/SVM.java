@@ -95,7 +95,7 @@ public class SVM extends model.SVM {
         for(int id = 0; id < featureDimension; id++){
             x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
             //z=Soft_threshold(lambda/rho,x+u);
-            model.z.values[id] = (threadNum * rho / (1.0 / lambda + threadNum * rho)) * (x_hat[id] + model.u.values[id]);
+            model.z.values[id] = (rho / (1.0 / lambda + threadNum * rho)) * (x_hat[id] + model.u.values[id]);
         }
         System.out.println("Update Z costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
 
@@ -177,12 +177,13 @@ public class SVM extends model.SVM {
             testAndSummary(trainCorpus, testCorpus, model.x, lambda);
 
             long startTrain = System.currentTimeMillis();
-            //Update x;
-            updateX(i);
             //Update z
             updateZ();
             //Update u
             updateU();
+            //Update x;
+            updateX(i);
+
             if(!rhoFixed){
                 rho = calculateRho(rho);
             }

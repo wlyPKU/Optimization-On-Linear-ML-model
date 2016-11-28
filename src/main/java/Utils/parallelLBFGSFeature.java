@@ -1,7 +1,10 @@
 package Utils;
+
 import math.DenseVector;
+import math.SparseVector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -9,12 +12,12 @@ import java.util.List;
 /**
  * Created by leleyu on 2015/9/24.
  */
-public class parallelLBFGS {
+public class parallelLBFGSFeature {
 
-    private static final Log LOG = LogFactory.getLog(parallelLBFGS.class);
+    private static final Log LOG = LogFactory.getLog(parallelLBFGSFeature.class);
 
     private static int threadNum;
-    public static void train(ADMMState state,
+    public static void train(ADMMFeatureState state,
                              int maxIterNum,
                              int lbfgshistory,
                              int threadNum,
@@ -24,8 +27,8 @@ public class parallelLBFGS {
                              String algorithm,
                              DenseVector z) {
 
-        int localFeatureNum = state.featureNum;
-        parallelLBFGS.threadNum = threadNum;
+        int localFeatureNum = state.featureDimension;
+        parallelLBFGSFeature.threadNum = threadNum;
 
         double[] xx    = new double[localFeatureNum];
         double[] xNew  = new double[localFeatureNum];
@@ -50,7 +53,7 @@ public class parallelLBFGS {
 
             loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z.values, trainCorpus, algorithm) ;
 
-            String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
+            String infoMsg = "state feature num=" + state.featureDimension + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss;
             //LOG.info(infoMsg);
 
@@ -60,9 +63,10 @@ public class parallelLBFGS {
         }
 
         System.arraycopy(xx, 0, state.x.values, 0, localFeatureNum);
+        System.out.println("Value " + getLoss(state, xx, rhoADMM, z.values, trainCorpus, "Lasso"));
     }
 
-    private static double getGradientLoss(ADMMState state,
+    private static double getGradientLoss(ADMMFeatureState state,
                                           double[] localX,
                                           double rhoADMM,
                                           double[] g,
@@ -71,80 +75,33 @@ public class parallelLBFGS {
                                           String algorithm) {
         double loss = 0.0;
 
-        int localFeatureNum = state.featureNum;
+        int localFeatureNum = state.featureDimension;
 
         for (int i = 0; i < localFeatureNum; i ++) {
-            double temp = localX[i] - z[i] + state.u.values[i];
-            g[i] = rhoADMM * temp ;
-            loss += 0.5 * rhoADMM * temp * temp;
+            g[i] = rhoADMM * (localX[i] > 0? 1:-1) ;
+            loss += rhoADMM * Math.abs(localX[i]);
         }
-        for (LabeledData l : trainCorpus) {
+        for (int id = 0; id < trainCorpus.size(); id++) {
+            LabeledData l = trainCorpus.get(id);
             if(algorithm.equals("LogisticRegression")) {
-                double score = 0;
-                int index[] = l.data.indices;
-                for (int i = 0; i < index.length; i++) {
-                    if (l.data.values != null) {
-                        score += localX[index[i]] * l.data.values[i];
-                    } else {
-                        score += localX[index[i]];
-                    }
-                }
-                score *= l.label;
-                loss += Math.log(1.0 + Math.exp(-score));
-                double gradient = - Math.exp(-score) / (1.0 + Math.exp(-score)) * l.label;
-                for (int i = 0; i < l.data.indices.length; i++) {
-                    if (l.data.values == null) {
-                        g[l.data.indices[i]] += gradient;
-                    } else {
-                        g[l.data.indices[i]] += gradient * l.data.values[i];
-                    }
-                }
-            }else if(algorithm.equals("SVM")){
-                double score = 0;
-                int index[] = l.data.indices;
-                for (int i = 0; i < index.length; i++) {
-                    if (l.data.values != null) {
-                        score += localX[index[i]] * l.data.values[i];
-                    } else {
-                        score += localX[index[i]];
-                    }
-                }
-                score = 1 - l.label * score;
 
-                if(score > 0)
-                {
-                    loss += score;
-                    for (int i = 0; i < index.length; i++) {
-                        if (l.data.values == null) {
-                            g[index[i]] -= l.label;
-                        } else {
-                            g[index[i]] -= l.data.values[i] * l.label;
-                        }
-                    }
-                }
+            }else if(algorithm.equals("SVM")){
+
             }else if(algorithm.equals("Lasso") || algorithm.equals("LinearRegression")){
-                double score = 0;
-                for (int i = 0; i < l.data.indices.length; i++) {
-                    if (l.data.values != null) {
-                        score += localX[l.data.indices[i]] * l.data.values[i];
-                    } else {
-                        score += localX[l.data.indices[i]];
-                    }
+                double AX = 0;
+                for(int i = 0; i < l.data.indices.length; i++){
+                    AX += (l.data.values == null? 1:l.data.values[i]) * localX[l.data.indices[i]];
                 }
-                score = score - l.label;
-                loss += 0.5 * score * score;
-                for (int i = 0; i < l.data.indices.length; i++) {
-                    if (l.data.values == null) {
-                        g[l.data.indices[i]] += score;
-                    } else {
-                        g[l.data.indices[i]] += l.data.values[i] * score;
-                    }
+                double score = AX - state.AX[id] - z[id] + state.globalAX[id] + state.u.values[id];
+                loss += score * score * rhoADMM / 2.0;
+                for(int i = 0; i < l.data.indices.length; i++){
+                    g[l.data.indices[i]] += rhoADMM * score * (l.data.values == null? 1:l.data.values[i]);
                 }
             }
         }
         return loss;
     }
-    public static double getLoss(ADMMState state,
+    public static double getLoss(ADMMFeatureState state,
                                  double[] localX,
                                  double rhoADMM,
                                  double[] z,
@@ -152,54 +109,24 @@ public class parallelLBFGS {
                                   String algorithm) {
         double loss = 0.0;
 
-        int localFeatureNum = state.featureNum;
+        int localFeatureNum = state.featureDimension;
 
         for (int i = 0; i < localFeatureNum; i ++) {
-            double temp = localX[i] - z[i] + state.u.values[i];
-            loss += 0.5 * rhoADMM * temp * temp;
+            loss += rhoADMM * Math.abs(localX[i]);
         }
-
-        Iterator<LabeledData> iter = trainCorpus.iterator();
-        while (iter.hasNext()) {
+        for (int id = 0; id < trainCorpus.size(); id++) {
+            LabeledData l = trainCorpus.get(id);
             if(algorithm.equals("LogisticRegression")) {
-                LabeledData l = iter.next();
-                double score = 0;
-                int[] indices = l.data.indices;
-                for (int i = 0; i < indices.length; i++) {
-                    if (l.data.values != null) {
-                        score += localX[indices[i]] * l.data.values[i];
-                    } else {
-                        score += localX[indices[i]];
-                    }
-                }
-                score *= l.label;
-                loss += Math.log(1.0 + Math.exp(-score));
+
             }else if(algorithm.equals("SVM")){
-                LabeledData l = iter.next();
-                double score = 0;
-                for (int i = 0; i < l.data.indices.length; i++) {
-                    if (l.data.values != null) {
-                        score += localX[l.data.indices[i]] * l.data.values[i];
-                    } else {
-                        score += localX[l.data.indices[i]];
-                    }
-                }
-                score = 1 - l.label * score;
-                if(score > 0){
-                    loss += score;
-                }
+
             }else if(algorithm.equals("Lasso") || algorithm.equals("LinearRegression")){
-                LabeledData l = iter.next();
-                double score = 0;
-                for (int i = 0; i < l.data.indices.length; i++) {
-                    if (l.data.values != null) {
-                        score += localX[l.data.indices[i]] * l.data.values[i];
-                    } else {
-                        score += localX[l.data.indices[i]];
-                    }
+                double AX = 0;
+                for(int i = 0; i < l.data.indices.length; i++){
+                    AX += (l.data.values == null? 1:l.data.values[i]) * localX[l.data.indices[i]];
                 }
-                score = l.label - score;
-                loss += 0.5 * score * score;
+                double score = AX - state.AX[id] - z[id] + state.globalAX[id] + state.u.values[id];
+                loss += score * score * rhoADMM / 2.0;
             }
         }
         return loss;
@@ -240,13 +167,13 @@ public class parallelLBFGS {
                                        double[] gNew,
                                        double oldLoss,
                                        int iteration,
-                                       ADMMState state,
+                                       ADMMFeatureState state,
                                        double rhoADMM,
                                        double[] z,
                                        List<LabeledData> trainCorpus,
                                        String algorithm) {
 
-        int localFeatureNum = state.featureNum;
+        int localFeatureNum = state.featureDimension;
 
         double loss = Double.MAX_VALUE;
         double origDirDeriv = dot(dir, gNew, localFeatureNum);
@@ -275,7 +202,7 @@ public class parallelLBFGS {
         while ((loss > oldLoss + c1 * origDirDeriv * alpha) && (step > 0)) {
             timesBy(xNew, x, dir, alpha, localFeatureNum);
             loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm) ;
-            String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
+            String infoMsg = "state feature num=" + state.featureDimension + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv;
             //LOG.info(infoMsg);
