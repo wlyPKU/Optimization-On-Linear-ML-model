@@ -21,23 +21,23 @@ import java.util.concurrent.TimeUnit;
 public class Lasso extends model.Lasso{
     public static long start;
 
-    public DenseVector globalModelOfU;
-    public DenseVector globalModelOfV;
+    private DenseVector globalModelOfU;
+    private DenseVector globalModelOfV;
     public static int threadNum;
     public static double lambda = 0.1;
     public static double trainRatio = 0.5;
 
-    public static double learningRate = 0.005;
+    private static double learningRate = 0.005;
     public int iteration = 0;
 
-    public void setNewLearningRate(){
+    private void setNewLearningRate(){
     }
 
     public class executeRunnable implements Runnable
     {
-        public List<LabeledData> localList;
+        List<LabeledData> localList;
         public double lambda;
-        public int globalCorpusSize;
+        int globalCorpusSize;
         int threadID;
         public executeRunnable(int threadID, List<LabeledData> list, double lambda, int globalCorpusSize){
             this.threadID = threadID;
@@ -48,29 +48,25 @@ public class Lasso extends model.Lasso{
         public void run() {
             sgdOneEpoch(localList, learningRate, lambda);
         }
-        public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
-            double modelPenalty = -lr * lambda / globalCorpusSize;
+        void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
+            double modelPenalty = lr * lambda;
             //double modelPenalty = - lr * lambda;
             for (LabeledData labeledData: list) {
                 double scala = labeledData.label - globalModelOfU.dot(labeledData.data)
                         + globalModelOfV.dot(labeledData.data);
-                globalModelOfU.plusSparse(labeledData.data, modelPenalty);
-                globalModelOfU.plusGradient(labeledData.data, scala * lr);
-                globalModelOfU.positiveOrZero(labeledData.data);
-                globalModelOfV.plusSparse(labeledData.data, modelPenalty);
-                globalModelOfV.plusGradient(labeledData.data, - scala * lr);
-                globalModelOfV.positiveOrZero(labeledData.data);
-
+                globalModelOfU.update(labeledData.data, modelPenalty, lr * scala);
+                globalModelOfV.update(labeledData.data, modelPenalty, - lr * scala);
             }
         }
     }
 
     public void train(List<LabeledData> corpus, int dimension) {
+        double startCompute = System.currentTimeMillis();
         Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
-        List<LabeledData> trainCorpus = corpus.subList(0, end + 1);
+        List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;
@@ -84,7 +80,7 @@ public class Lasso extends model.Lasso{
         globalModelOfU = new DenseVector(dimension);
         globalModelOfV = new DenseVector(dimension);
         long totalBegin = System.currentTimeMillis();
-
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         int totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
@@ -142,8 +138,6 @@ public class Lasso extends model.Lasso{
             }
         }
     }
-
-
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda learningRate [trainRatio]");

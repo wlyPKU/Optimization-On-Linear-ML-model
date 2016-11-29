@@ -20,15 +20,15 @@ import java.util.concurrent.TimeUnit;
 public class SVM extends model.SVM{
     public static long start;
 
-    public DenseVector globalModel;
+    private DenseVector globalModel;
     public static double trainRatio = 0.5;
     public static int threadNum;
     public static double lambda = 0.1;
 
-    public static double learningRate = 0.001;
+    private static double learningRate = 0.001;
     public int iteration = 0;
 
-    public void setNewLearningRate(){
+    private void setNewLearningRate(){
     }
 
     public class executeRunnable implements Runnable
@@ -44,9 +44,9 @@ public class SVM extends model.SVM{
             this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
-            sgdOneEpoch(localList, learningRate, lambda, globalCorpusSize);
+            sgdOneEpoch(localList, learningRate, lambda);
         }
-        public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda, double globalCorpusSize) {
+        void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
             double modelPenalty = -2 * lr * lambda;
             //double modelPenalty = - 2 * lr * lambda;
             for (LabeledData labeledData : list) {

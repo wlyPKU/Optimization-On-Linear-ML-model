@@ -109,7 +109,7 @@ public class Utils {
     return new LabeledData(data, label);
   }
 
-  public static int[] generateRandomPermutation(int size) {
+  static int[] generateRandomPermutation(int size) {
     int[] array = new int[size];
     for (int i = 0; i < size; i ++)
       array[i] = i;
@@ -138,7 +138,7 @@ public class Utils {
       }
       return result;
   }
-
+  @SuppressWarnings("unused")
   public static SparseMap[] LoadLibSVMByFeature(String path, int featureDim) throws IOException{
     //Feature and Label(dimension: featureDim+1)
     SparseMap[] features = new SparseMap[featureDim + 1];
@@ -184,7 +184,7 @@ public class Utils {
     }
     return features;
   }
-
+  @SuppressWarnings("unused")
   public static SparseMap[] LoadLibSVMByFeature(String path, int featureDim, int sampleDim, double trainRatio) throws IOException{
     //Feature and Label(dimension: featureDim+1)
     SparseMap[] features = new SparseMap[featureDim + 1];
@@ -209,7 +209,7 @@ public class Utils {
     }
     return features;
   }
-
+  @SuppressWarnings("unused")
   public static SparseMap[][] LoadLibSVMByFeatureSplit(String path, int featureDim,
       int sampleDim, double trainRatio, int splitNum) throws IOException{
     //Feature and Label(dimension: featureDim+1)
@@ -312,6 +312,7 @@ public class Utils {
     }
     return table;
   }
+  @SuppressWarnings("unused")
   public static void printAccuracy(double[] accuracy){
     System.out.println("-----Loss<0.01: " + accuracy[0] * 100 + "%");
     System.out.println("-----Loss<0.02: " + accuracy[1] * 100 + "%");

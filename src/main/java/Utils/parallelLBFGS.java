@@ -144,11 +144,11 @@ public class parallelLBFGS {
         }
         return loss;
     }
-    public static double getLoss(ADMMState state,
-                                 double[] localX,
-                                 double rhoADMM,
-                                 double[] z,
-                                 List<LabeledData> trainCorpus,
+    private static double getLoss(ADMMState state,
+                                  double[] localX,
+                                  double rhoADMM,
+                                  double[] z,
+                                  List<LabeledData> trainCorpus,
                                   String algorithm) {
         double loss = 0.0;
 
@@ -254,7 +254,7 @@ public class parallelLBFGS {
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
         if (origDirDeriv >= 0) {
-            LOG.info(String.format("L-BFGS chose a non-descent direction, check your gradient!"));
+            LOG.info("L-BFGS chose a non-descent direction, check your gradient!");
             return 0.0;
         }
         if(Double.isNaN(origDirDeriv)){

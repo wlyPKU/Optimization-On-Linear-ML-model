@@ -23,13 +23,11 @@ import java.util.concurrent.TimeUnit;
 //  residual    每个线程共享
 //  可能会发生冲突
 public class Lasso extends model.Lasso {
-    private static long start;
 
     private static double residual[];
     private static DenseVector model;
     private static double featureSquare[];
-    private static SparseMap[] features;
-    private static SparseVector[] tmpF;
+    private static SparseVector[] features;
     private static double lambda;
     private static double trainRatio = 0.5;
     private static int threadNum;
@@ -48,9 +46,9 @@ public class Lasso extends model.Lasso {
                 if(featureSquare[j] != 0) {
                     double oldValue = model.values[j];
                     double updateValue = 0;
-                    for(int i = 0; i < tmpF[j].indices.length; i++){
-                        int idx = tmpF[j].indices[i];
-                        double xj = tmpF[j].values[i];
+                    for(int i = 0; i < features[j].indices.length; i++){
+                        int idx = features[j].indices[i];
+                        double xj = features[j].values[i];
                         updateValue += xj * residual[idx];
                     }
                     updateValue /= featureSquare[j];
@@ -58,9 +56,9 @@ public class Lasso extends model.Lasso {
                     model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
                     double deltaChange = model.values[j] - oldValue;
                     if (deltaChange != 0) {
-                        for(int i = 0; i < tmpF[j].indices.length; i++){
-                            int idx = tmpF[j].indices[i];
-                            double value = tmpF[j].values[i];
+                        for(int i = 0; i < features[j].indices.length; i++){
+                            int idx = features[j].indices[i];
+                            double value = features[j].values[i];
                             residual[idx] -= value * deltaChange;
                         }
                     }
@@ -70,16 +68,16 @@ public class Lasso extends model.Lasso {
     }
 
     private void adjustResidual(DenseVector model, double[] residual){
-        for (int i = 0; i < tmpF[featureDimension].indices.length; i++) {
-            int idx = tmpF[featureDimension].indices[i];
-            double value = tmpF[featureDimension].values[i];
+        for (int i = 0; i < features[featureDimension].indices.length; i++) {
+            int idx = features[featureDimension].indices[i];
+            double value = features[featureDimension].values[i];
             residual[idx] = value;
         }
 
         for(int j = 0; j < featureDimension; j++) {
-            for (int i = 0; i < tmpF[j].indices.length; i++) {
-                int idx = tmpF[j].indices[i];
-                double value = tmpF[j].values[i];
+            for (int i = 0; i < features[j].indices.length; i++) {
+                int idx = features[j].indices[i];
+                double value = features[j].values[i];
                 residual[idx] -= value * model.values[j];
             }
         }
@@ -87,8 +85,8 @@ public class Lasso extends model.Lasso {
 
     private void shuffle(List<LabeledData> labeledData) {
         Collections.shuffle(labeledData);
-        features = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
-        tmpF = Utils.generateSpareVector(features);
+        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        features = Utils.generateSpareVector(tmpFeatures);
     }
 
     private void trainCore(List<LabeledData> labeledData) {
@@ -102,13 +100,13 @@ public class Lasso extends model.Lasso {
         residual = new double[trainCorpus.size()];
         for(int i = 0; i < featureDimension; i++){
             featureSquare[i] = 0;
-            for(Double v: tmpF[i].values){
+            for(Double v: features[i].values){
                 featureSquare[i] += v * v;
             }
         }
 
-        for(int i = 0; i < tmpF[featureDimension].indices.length; i++){
-            residual[tmpF[featureDimension].indices[i]] = tmpF[featureDimension].values[i];
+        for(int i = 0; i < features[featureDimension].indices.length; i++){
+            residual[features[featureDimension].indices[i]] = features[featureDimension].values[i];
         }
         DenseVector oldModel = new DenseVector(featureDimension);
 
@@ -173,14 +171,14 @@ public class Lasso extends model.Lasso {
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         lassoModelParallelCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.Lasso threadNum FeatureDim train_path lambda trainRatio");
+        System.out.println("Usage: parallelCD.Lasso threadNum FeatureDimension train_path lambda trainRatio");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);

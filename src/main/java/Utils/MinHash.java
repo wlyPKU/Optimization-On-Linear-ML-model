@@ -7,12 +7,12 @@ import math.SparseVector;
  */
 public class MinHash {
 
-  public int numPerm;
+  private int numPerm;
   public int dim;
   public int b;
-  public int[][] permutations;
+  private int[][] permutations;
 
-  public int[] integersTempArray;
+  private int[] integersTempArray;
 
   public MinHash(int K, int dim, int b) {
     this.numPerm = K;
@@ -75,12 +75,13 @@ public class MinHash {
 
     System.out.println(sb.toString());
   }
-
+  @SuppressWarnings("unused")
   public int[] generateMinHashBits(SparseVector data) {
     int[] ints = generateIntegers(data);
     return generateBinaryBits(ints);
   }
 
+  @SuppressWarnings("unused")
   public int getHashedDim() {
     return (int) Math.pow(2, b) * numPerm;
   }

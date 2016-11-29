@@ -52,10 +52,6 @@ public class LinearRegression {
         System.out.println("[Information]ParameterChanged " + delta);
         System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
 
-        if(delta < stopDelta){
-            return true;
-        }else{
-            return false;
-        }
+        return delta < stopDelta;
     }
 }

@@ -38,8 +38,9 @@ public class Lasso {
         //Utils.printAccuracy(trainAccuracy);
         //System.out.println("testAccuracy:");
         //Utils.printAccuracy(testAccuracy);
-        return trainResidual > 2e100 || Double.isInfinite(trainResidual) || Double.isNaN(trainResidual);
+        return (trainResidual > 2e100) || Double.isInfinite(trainResidual) || Double.isNaN(trainResidual);
     }
+    @SuppressWarnings("unused")
     public double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
@@ -59,7 +60,7 @@ public class Lasso {
         }
         return residual;
     }
-    public double lassoLoss(List<LabeledData> list, DenseVector model, double lambda) {
+    private double lassoLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double predictValue = model.dot(labeledData.data);
@@ -77,10 +78,6 @@ public class Lasso {
         }
         System.out.println("[Information]ParameterChanged " + delta);
         System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
-        if(delta < stopDelta){
-            return true;
-        }else{
-            return false;
-        }
+        return delta < stopDelta;
     }
 }

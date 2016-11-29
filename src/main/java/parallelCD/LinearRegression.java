@@ -22,13 +22,11 @@ import java.util.concurrent.TimeUnit;
 //  residual    每个线程共享
 //  可能会发生冲突
 public class LinearRegression extends model.LinearRegression{
-    private static long start;
 
     private static double residual[];
     private static DenseVector model;
     private static double featureSquare[];
-    private static SparseVector[] tmpF;
-    private static SparseMap[] features;
+    private static SparseVector[] features;
     private static double trainRatio = 0.5;
     private static int threadNum;
     private static int featureDimension;
@@ -46,18 +44,18 @@ public class LinearRegression extends model.LinearRegression{
                 if(featureSquare[j] != 0) {
                     double oldValue = model.values[j];
                     double updateValue = 0;
-                    for(int i = 0; i < tmpF[j].indices.length; i++){
-                        int idx = tmpF[j].indices[i];
-                        double xj = tmpF[j].values[i];
+                    for(int i = 0; i < features[j].indices.length; i++){
+                        int idx = features[j].indices[i];
+                        double xj = features[j].values[i];
                         updateValue += xj * residual[idx];
                     }
                     updateValue /= featureSquare[j];
                     model.values[j] += updateValue;
                     double deltaChange = model.values[j] - oldValue;
                     if (deltaChange != 0) {
-                        for(int i = 0; i < tmpF[j].indices.length; i++){
-                            int idx = tmpF[j].indices[i];
-                            double value = tmpF[j].values[i];
+                        for(int i = 0; i < features[j].indices.length; i++){
+                            int idx = features[j].indices[i];
+                            double value = features[j].values[i];
                             residual[idx] -= value * deltaChange;
                         }
                     }
@@ -67,16 +65,16 @@ public class LinearRegression extends model.LinearRegression{
     }
 
     private void adjustResidual(DenseVector model, double[] residual){
-        for (int i = 0; i < tmpF[featureDimension].indices.length; i++) {
-            int idx = tmpF[featureDimension].indices[i];
-            double value = tmpF[featureDimension].values[i];
+        for (int i = 0; i < features[featureDimension].indices.length; i++) {
+            int idx = features[featureDimension].indices[i];
+            double value = features[featureDimension].values[i];
             residual[idx] = value;
         }
 
         for(int j = 0; j < featureDimension; j++) {
-            for (int i = 0; i < tmpF[j].indices.length; i++) {
-                int idx = tmpF[j].indices[i];
-                double value = tmpF[j].values[i];
+            for (int i = 0; i < features[j].indices.length; i++) {
+                int idx = features[j].indices[i];
+                double value = features[j].values[i];
                 residual[idx] -= value * model.values[j];
             }
         }
@@ -84,8 +82,8 @@ public class LinearRegression extends model.LinearRegression{
 
     private void shuffle(List<LabeledData> labeledData) {
         Collections.shuffle(labeledData);
-        features = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
-        tmpF = Utils.generateSpareVector(features);
+        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        features = Utils.generateSpareVector(tmpFeatures);
     }
 
     private void trainCore(List<LabeledData> labeledData) {
@@ -99,13 +97,13 @@ public class LinearRegression extends model.LinearRegression{
         residual = new double[trainCorpus.size()];
         for(int i = 0; i < featureDimension; i++){
             featureSquare[i] = 0;
-            for(Double v: tmpF[i].values){
+            for(Double v: features[i].values){
                 featureSquare[i] += v * v;
             }
         }
 
-        for(int i = 0; i < tmpF[featureDimension].indices.length; i++){
-            residual[tmpF[featureDimension].indices[i]] = tmpF[featureDimension].values[i];
+        for(int i = 0; i < features[featureDimension].indices.length; i++){
+            residual[features[featureDimension].indices[i]] = features[featureDimension].values[i];
         }
         DenseVector oldModel = new DenseVector(featureDimension);
 
@@ -170,7 +168,7 @@ public class LinearRegression extends model.LinearRegression{
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         linearCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");

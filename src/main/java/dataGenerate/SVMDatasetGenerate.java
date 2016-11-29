@@ -20,7 +20,7 @@ public class SVMDatasetGenerate {
         }
         double realWeights[] = new double[featureDimension];
         double tuple[] = new double[featureDimension];
-        double tupleValue = 0.0;
+        double tupleValue;
         Arrays.fill(tuple, 0);
         Arrays.fill(realWeights, 0);
         for(int i = 0; i < featureDimension; i++){

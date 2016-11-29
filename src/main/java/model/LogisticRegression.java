@@ -36,7 +36,7 @@ public class LogisticRegression {
 
     }
 
-    public double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
+    private double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double p = model.dot(labeledData.data);
@@ -62,7 +62,7 @@ public class LogisticRegression {
         }
         return 1.0 * N_RIGHT / N_TOTAL;
     }
-    public double auc(List<LabeledData> list, DenseVector model) {
+    private double auc(List<LabeledData> list, DenseVector model) {
         int length = list.size();
         double[] scores = new double[length];
         double[] labels = new double[length];
@@ -115,6 +115,7 @@ public class LogisticRegression {
         System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
         return auc;
     }
+    @SuppressWarnings("unused")
     public double lossFunctionValue(List<LabeledData> labeledData,
                                     DenseVector model, double lambda){
         double result = 0;
@@ -128,7 +129,7 @@ public class LogisticRegression {
         }
         return result;
     }
-
+    @SuppressWarnings("unused")
     public double getVectorLength(DenseVector model){
         double length = 0;
         for(Double w: model.values){
@@ -136,6 +137,7 @@ public class LogisticRegression {
         }
         return Math.sqrt(length);
     }
+    @SuppressWarnings("unused")
     public double logLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
@@ -157,10 +159,6 @@ public class LogisticRegression {
         System.out.println("[Information]ParameterChanged " + delta);
         System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
 
-        if(delta < stopDelta){
-            return true;
-        }else{
-            return false;
-        }
+        return delta < stopDelta;
     }
 }

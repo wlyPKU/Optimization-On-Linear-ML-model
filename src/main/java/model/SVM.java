@@ -39,7 +39,7 @@ public class SVM {
         return trainLoss > 1e200 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
     }
 
-    public double auc(List<LabeledData> list, DenseVector model) {
+    private double auc(List<LabeledData> list, DenseVector model) {
         int length = list.size();
         System.out.println(length);
         double[] scores = new double[length];
@@ -91,7 +91,7 @@ public class SVM {
         System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
         return auc;
     }
-    public double accuracy(List<LabeledData> labeledData, DenseVector model){
+    private double accuracy(List<LabeledData> labeledData, DenseVector model){
         double result = 0;
         for(LabeledData l : labeledData) {
             double predictValue = model.dot(l.data);
@@ -116,7 +116,7 @@ public class SVM {
 
         return 1.0 * N_RIGHT / N_TOTAL;
     }
-    public double SVMLoss(List<LabeledData> list, DenseVector model, double lambda) {
+    private double SVMLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData : list) {
             double dotProd = model.dot(labeledData.data);
@@ -127,6 +127,7 @@ public class SVM {
         }
         return loss;
     }
+    @SuppressWarnings("unused")
     public double SVMLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData : list) {
@@ -146,10 +147,6 @@ public class SVM {
         System.out.println("[Information]ParameterChanged " + delta);
         System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
 
-        if(delta < stopDelta){
-            return true;
-        }else{
-            return false;
-        }
+        return delta < stopDelta;
     }
 }

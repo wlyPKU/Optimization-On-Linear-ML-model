@@ -17,14 +17,14 @@ import java.util.concurrent.TimeUnit;
 public class LinearRegression extends model.LinearRegression{
     public static long start;
 
-    public DenseVector globalModel;
+    private DenseVector globalModel;
     public static double trainRatio = 0.5;
     public static int threadNum;
 
-    public static double learningRate = 0.005;
+    private static double learningRate = 0.005;
     public int iteration = 0;
 
-    public void setNewLearningRate(){
+    private void setNewLearningRate(){
     }
     public class executeRunnable implements Runnable
     {
@@ -37,7 +37,7 @@ public class LinearRegression extends model.LinearRegression{
         public void run() {
             sgdOneEpoch(localList, learningRate);
         }
-        public void sgdOneEpoch(List<LabeledData> list, double lr) {
+        void sgdOneEpoch(List<LabeledData> list, double lr) {
             for (LabeledData labeledData: list) {
                 double scala = labeledData.label - globalModel.dot(labeledData.data);
                 globalModel.plusGradient(labeledData.data, scala * lr);

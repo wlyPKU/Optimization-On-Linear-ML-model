@@ -26,7 +26,6 @@ import java.lang.management.ManagementFactory;
 
 //https://web.stanford.edu/~boyd/papers/admm/logreg-l1/logreg.html
 public class LogisticRegression extends model.LogisticRegression{
-    private static long start;
 
     private static double lambda;
     private static int threadNum;
@@ -43,10 +42,10 @@ public class LogisticRegression extends model.LogisticRegression{
     private static double rho = 0.1;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
-    double rel_par = 1.0;
+    private double rel_par = 1.0;
 
-    static double ABSTOL = 1e-4;
-    static double RELTOL = 1e-3;
+    private static double ABSTOL = 1e-4;
+    private static double RELTOL = 1e-3;
 
 
 
@@ -201,10 +200,7 @@ public class LogisticRegression extends model.LogisticRegression{
         double EPS_DUAL = Math.sqrt(threadNum) * ABSTOL + RELTOL * rho * tmpNormU;
         System.out.println("[Information]AbsoluteErrorDelta " + (EPS_PRI - R_Norm));
         System.out.println("[Information]RelativeErrorDelta " + (EPS_DUAL - S_Norm));
-        if(R_Norm < EPS_PRI && S_Norm < EPS_DUAL){
-            return true;
-        }
-        return false;
+        return R_Norm < EPS_PRI && S_Norm < EPS_DUAL;
     }
 
     private void trainCore() {
@@ -281,7 +277,7 @@ public class LogisticRegression extends model.LogisticRegression{
         LogisticRegression lrADMM = new LogisticRegression();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new ADMMState(featureDimension);
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         lrADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println("Training cost " + cost + " ms totally.");

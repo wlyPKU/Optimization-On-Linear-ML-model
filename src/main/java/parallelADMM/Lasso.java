@@ -28,7 +28,6 @@ import java.lang.management.ManagementFactory;
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 public class Lasso extends model.Lasso {
-    private static long start;
     private static double lambda;
     private static int threadNum;
     private static double trainRatio = 0.5;
@@ -44,10 +43,10 @@ public class Lasso extends model.Lasso {
     private static double rho = 1;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
-    double rel_par = 1.0;
+    private double rel_par = 1.0;
 
-    static double ABSTOL = 1e-3;
-    static double RELTOL = 1e-3;
+    private static double ABSTOL = 1e-3;
+    private static double RELTOL = 1e-3;
 
     private double calculateRho(double rho){
         //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG20
@@ -194,10 +193,7 @@ public class Lasso extends model.Lasso {
         double EPS_DUAL = Math.sqrt(threadNum) * ABSTOL + RELTOL * rho * tmpNormU;
         System.out.println("[Information]AbsoluteErrorDelta " + (EPS_PRI - R_Norm));
         System.out.println("[Information]RelativeErrorDelta " + (EPS_DUAL - S_Norm));
-        if(R_Norm < EPS_PRI && S_Norm < EPS_DUAL){
-            return true;
-        }
-        return false;
+        return R_Norm < EPS_PRI && S_Norm < EPS_DUAL;
     }
 
     private void trainCore() {
@@ -274,7 +270,7 @@ public class Lasso extends model.Lasso {
     private static void train() {
         Lasso lassoLBFGS = new Lasso();
         model = new ADMMState(featureDimension);
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         lassoLBFGS.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");

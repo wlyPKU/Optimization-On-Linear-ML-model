@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 //  predictValue    每个线程共享
 //  可能会发生冲突
 public class SVM extends model.SVM{
-    private static long start;
 
     private static double trainRatio = 0.5;
     private static double lambda = 0.5;
@@ -187,7 +186,7 @@ public class SVM extends model.SVM{
     public static void train(List<LabeledData> corpus) {
         SVM svmCD = new SVM();
         model = new DenseVector(featureDimension);
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         svmCD.trainCore(corpus);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");

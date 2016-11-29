@@ -32,10 +32,10 @@ public class SVM extends model.SVM {
     private static double rho = 0.1;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
-    double rel_par = 1.0;
+    private double rel_par = 1.0;
 
-    static double ABSTOL = 1e-4;
-    static double RELTOL = 1e-3;
+    private static double ABSTOL = 1e-4;
+    private static double RELTOL = 1e-3;
 
     private class executeRunnable implements Runnable {
         int threadID;
@@ -50,20 +50,6 @@ public class SVM extends model.SVM {
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory,threadNum,
                     rho, iteNum, localTrainCorpus.get(threadID), "SVM", model.z);
-        }
-    }
-
-    private class updateUThread implements Runnable
-    {
-        int threadID;
-        private updateUThread(int threadID){
-            this.threadID = threadID;
-        }
-        public void run() {
-            for(int fID = 0; fID < featureDimension; fID++){
-                localADMMState[threadID].u.values[fID] += (localADMMState[threadID].x.values[fID] - model.z.values[fID]);
-                model.u.values[fID] += localADMMState[threadID].u.values[fID];
-            }
         }
     }
 
@@ -258,10 +244,7 @@ public class SVM extends model.SVM {
         double EPS_PRI = Math.sqrt(threadNum) * ABSTOL +RELTOL * Math.max(tmpNormX, tmpNormZ);
         double EPS_DUAL = Math.sqrt(threadNum) * ABSTOL + RELTOL * rho * tmpNormU;
         System.out.println("AbsoluteErrorDelta " + (EPS_PRI - R_Norm) + " RelativeErrorDelta " + (EPS_DUAL - S_Norm));
-        if(R_Norm < EPS_PRI && S_Norm < EPS_DUAL){
-            return true;
-        }
-        return false;
+        return R_Norm < EPS_PRI && S_Norm < EPS_DUAL;
     }
 
     public static void main(String[] argv) throws Exception {

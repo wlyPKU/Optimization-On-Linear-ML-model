@@ -1,12 +1,10 @@
 package Utils;
 
 import math.DenseVector;
-import math.SparseVector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -101,11 +99,11 @@ public class parallelLBFGSFeature {
         }
         return loss;
     }
-    public static double getLoss(ADMMFeatureState state,
-                                 double[] localX,
-                                 double rhoADMM,
-                                 double[] z,
-                                 List<LabeledData> trainCorpus,
+    private static double getLoss(ADMMFeatureState state,
+                                  double[] localX,
+                                  double rhoADMM,
+                                  double[] z,
+                                  List<LabeledData> trainCorpus,
                                   String algorithm) {
         double loss = 0.0;
 
@@ -181,7 +179,7 @@ public class parallelLBFGSFeature {
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
         if (origDirDeriv >= 0) {
-            LOG.info(String.format("L-BFGS chose a non-descent direction, check your gradient!"));
+            LOG.info("L-BFGS chose a non-descent direction, check your gradient!");
             return 0.0;
         }
         if(Double.isNaN(origDirDeriv)){

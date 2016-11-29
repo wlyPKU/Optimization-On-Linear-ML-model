@@ -1,7 +1,5 @@
 package math;
 
-import Utils.LabeledData;
-
 import java.util.Arrays;
 
 /**
@@ -23,6 +21,8 @@ public class DenseVector {
     System.arraycopy(a.values, 0, values, 0, dim);
   }
   //For NesterovMomentum:
+  @SuppressWarnings("unused")
+
   public double dotNesterovMomentum(SparseVector other, double[] v_t, double gamma) {
     int[] indices = other.indices;
     double ret = 0.0;
@@ -51,6 +51,7 @@ public class DenseVector {
     }
     return ret;
   }
+    @SuppressWarnings("unused")
 
   public void plusBy(SparseVector other, double x) {
     int[] indices = other.indices;
@@ -58,7 +59,9 @@ public class DenseVector {
       values[i] += x;
     }
   }
-  public void allPlusBy(double x){
+    @SuppressWarnings("unused")
+
+    public void allPlusBy(double x){
     for(int i = 0; i < values.length; i++){
       values[i] += x;
     }
@@ -69,18 +72,22 @@ public class DenseVector {
       values[i] /= x;
     }
   }
+  @SuppressWarnings("unused")
   public void positiveOrZero(SparseVector other){
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];
       values[idx] = Math.max(0, values[idx]);
     }
   }
+  @SuppressWarnings("unused")
   public void positiveOrZero(){
     for(int i = 0; i < values.length; i++){
       values[i] = Math.max(0, values[i]);
     }
   }
-  public void plusAndPositive(double x){
+  @SuppressWarnings("unused")
+
+    public void plusAndPositive(double x){
     for(int i = 0; i < values.length; i++){
       values[i] += x;
       values[i] = Math.max(0, values[i]);
@@ -96,6 +103,7 @@ public class DenseVector {
       }
     }
   }
+    @SuppressWarnings("unused")
 
   public void plusSparse(SparseVector other, double scala){
     for(int i = 0; i <  other.indices.length; i++){
@@ -131,7 +139,6 @@ public class DenseVector {
         else {
             values[idx] = Math.max(values[idx] + Math.abs(modelPenalty) + gradient * (other.values==null? 1: other.values[i]), 0);
         }
-
     }
   }
 }

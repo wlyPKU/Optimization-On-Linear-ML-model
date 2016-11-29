@@ -11,6 +11,7 @@ public class splitExperimentData {
         String inputDir = args[0];
         File file = new File(inputDir);
         File[] filesList = file.listFiles();
+        assert filesList != null;
         for(int i = 0; i < filesList.length; i++){
             if(filesList[i].isFile() && filesList[i].getName().endsWith(".log")){
                 if(filesList[i].getName().startsWith("SVM") || filesList[i].getName().startsWith("LR")) {

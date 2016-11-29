@@ -20,17 +20,17 @@ import java.util.concurrent.TimeUnit;
 public class LogisticRegression extends model.LogisticRegression{
     public static long start;
 
-    public DenseVector globalModelOfU;
-    public DenseVector globalModelOfV;
+    private DenseVector globalModelOfU;
+    private DenseVector globalModelOfV;
     public static int threadNum;
     public static double lambda = 0.1;
     public static double trainRatio = 0.5;
 
-    public static double learningRate = 0.001;
+    private static double learningRate = 0.001;
     public int iteration = 0;
 
 
-    public void setNewLearningRate(){
+    private void setNewLearningRate(){
     }
 
     public class executeRunnable implements Runnable
@@ -49,19 +49,15 @@ public class LogisticRegression extends model.LogisticRegression{
         public void run() {
             sgdOneEpoch(localList, learningRate, lambda);
         }
-        public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
+        void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
             //double modelPenalty = - lr * lambda;
-            double modelPenalty = -lr * lambda;
+            double modelPenalty = -lr * lambda / globalCorpusSize;
             for (LabeledData labeledData: list) {
                 double predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
                 double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
                 double scala = tmpValue * labeledData.label;
-                globalModelOfU.plusSparse(labeledData.data, modelPenalty);
-                globalModelOfU.plusGradient(labeledData.data, scala * lr);
-                globalModelOfU.positiveOrZero(labeledData.data);
-                globalModelOfV.plusSparse(labeledData.data, modelPenalty);
-                globalModelOfV.plusGradient(labeledData.data, - scala * lr);
-                globalModelOfV.positiveOrZero(labeledData.data);
+                globalModelOfU.update(labeledData.data, -modelPenalty, scala * lr);
+                globalModelOfV.update(labeledData.data, -modelPenalty, -scala * lr);
             }
         }
     }
@@ -91,7 +87,7 @@ public class LogisticRegression extends model.LogisticRegression{
         System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             long startTrain = System.currentTimeMillis();
             System.out.println("[Information]Learning rate " + learningRate);
@@ -140,7 +136,10 @@ public class LogisticRegression extends model.LogisticRegression{
                     break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-
+            if(diverge){
+                System.out.println("[Warning]Diverge happens!");
+                break;
+            }
         }
     }
 

@@ -37,8 +37,8 @@ public class LinearRegression extends model.LinearRegression{
     private int lbfgsHistory = 10;
     double rel_par = 1.0;
 
-    static double ABSTOL = 1e-4;
-    static double RELTOL = 1e-3;
+    private static double ABSTOL = 1e-4;
+    private static double RELTOL = 1e-3;
 
     private double calculateRho(double rho){
         //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG23
@@ -186,10 +186,7 @@ public class LinearRegression extends model.LinearRegression{
         double EPS_DUAL = Math.sqrt(threadNum) * ABSTOL + RELTOL * rho * tmpNormU;
         System.out.println("[Information]AbsoluteErrorDelta " + (EPS_PRI - R_Norm));
         System.out.println("[Information]RelativeErrorDelta " + (EPS_DUAL - S_Norm));
-        if(R_Norm < EPS_PRI && S_Norm < EPS_DUAL){
-            return true;
-        }
-        return false;
+        return R_Norm < EPS_PRI && S_Norm < EPS_DUAL;
     }
 
     private void trainCore() {
