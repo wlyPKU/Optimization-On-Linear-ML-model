@@ -201,6 +201,7 @@ public class Lasso extends model.Lasso {
     }
 
     private void trainCore() {
+        double startCompute = System.currentTimeMillis();
         Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
@@ -220,6 +221,7 @@ public class Lasso extends model.Lasso {
         long totalBegin = System.currentTimeMillis();
 
         oldModelZ = new DenseVector(featureDimension);
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {

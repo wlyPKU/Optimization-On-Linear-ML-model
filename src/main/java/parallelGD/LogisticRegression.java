@@ -51,7 +51,7 @@ public class LogisticRegression extends model.LogisticRegression{
         }
         public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
             //double modelPenalty = - lr * lambda;
-            double modelPenalty = -lr * lambda / globalCorpusSize;
+            double modelPenalty = -lr * lambda;
             for (LabeledData labeledData: list) {
                 double predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
                 double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
@@ -62,12 +62,12 @@ public class LogisticRegression extends model.LogisticRegression{
                 globalModelOfV.plusSparse(labeledData.data, modelPenalty);
                 globalModelOfV.plusGradient(labeledData.data, - scala * lr);
                 globalModelOfV.positiveOrZero(labeledData.data);
-
             }
         }
     }
 
     public void train(List<LabeledData> corpus, DenseVector modelOfU, DenseVector modelOfV) {
+        double startCompute = System.currentTimeMillis();
         Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -88,6 +88,7 @@ public class LogisticRegression extends model.LogisticRegression{
         long totalBegin = System.currentTimeMillis();
 
         int totalIterationTime = 0;
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             testAndSummary(trainCorpus, testCorpus, model, lambda);

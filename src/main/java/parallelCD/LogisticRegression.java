@@ -1,9 +1,12 @@
 package parallelCD;
 
+import Utils.LabeledData;
+import Utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import math.*;
-import Utils.*;
+import math.DenseVector;
+import math.SparseMap;
+import math.SparseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
@@ -27,8 +30,10 @@ public class LogisticRegression extends model.LogisticRegression{
     private static double trainRatio = 0.5;
     private static int threadNum;
     private static int featureDimension;
-    private static SparseMap[] tmpFeatures;
     private static SparseMap[] features;
+
+    private static SparseVector[] tmpF;
+
     private static DenseVector modelOfU;
     private static DenseVector modelOfV;
     private static double predictValue[];
@@ -51,36 +56,33 @@ public class LogisticRegression extends model.LogisticRegression{
                 C = 1.0 / lambda;
             }
             for(int fIdx = from; fIdx < to; fIdx++){
-                //First Order L:
-                double firstOrderL = 0;
-                double oldValue = modelOfU.values[fIdx];
-                ObjectIterator<Int2DoubleMap.Entry> iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
-                while (iter.hasNext()) {
-                    Int2DoubleMap.Entry entry = iter.next();
-                    int idx = entry.getIntKey();
-                    if(idx < trainCorpus.size()) {
-                        double xj = entry.getDoubleValue();
+                if(featureSquare[fIdx] != 0) {
+                    //First Order L:
+                    double firstOrderL = 0;
+                    double oldValue = modelOfU.values[fIdx];
+                    for (int i = 0; i < tmpF[fIdx].indices.length; i++) {
+                        int idx = tmpF[fIdx].indices[i];
+                        double xj = tmpF[fIdx].values[i];
                         LabeledData l = trainCorpus.get(idx);
-                        double tao = 1 / (1 + Math.exp( -l.label * predictValue[idx]));
+                        if(-l.label * predictValue[idx] > 20){
+                            continue;
+                        }
+                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
-                }
-                firstOrderL *= C;
-                //误差的来源,0.25.
-                double Uj = 0.25 * C * featureSquare[fIdx];
-                double updateValue = (1 + firstOrderL) / Uj;
-                if(updateValue > modelOfU.values[fIdx]){
-                    modelOfU.values[fIdx] = 0;
-                }else{
-                    modelOfU.values[fIdx] -= updateValue;
-                }
-                //Update predictValue
-                iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
-                while (iter.hasNext()) {
-                    Int2DoubleMap.Entry entry = iter.next();
-                    int idx = entry.getIntKey();
-                    if(idx < trainCorpus.size()) {
-                        double value = entry.getDoubleValue();
+                    firstOrderL *= C;
+                    //误差的来源,0.25.
+                    double Uj = 0.25 * C * featureSquare[fIdx];
+                    double updateValue = (1 + firstOrderL) / Uj;
+                    if (updateValue > modelOfU.values[fIdx]) {
+                        modelOfU.values[fIdx] = 0;
+                    } else {
+                        modelOfU.values[fIdx] -= updateValue;
+                    }
+                    //Update predictValue
+                    for (int i = 0; i < tmpF[fIdx].indices.length; i++) {
+                        int idx = tmpF[fIdx].indices[i];
+                        double value = tmpF[fIdx].values[i];
                         predictValue[idx] += value * (modelOfU.values[fIdx] - oldValue);
                     }
                 }
@@ -102,35 +104,31 @@ public class LogisticRegression extends model.LogisticRegression{
                 C = 1.0 / lambda;
             }
             for(int fIdx = from; fIdx < to; fIdx++){
-                //First Order L:
-                double firstOrderL = 0;
-                double oldValue = modelOfV.values[fIdx];
-                ObjectIterator<Int2DoubleMap.Entry> iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
-                while (iter.hasNext()) {
-                    Int2DoubleMap.Entry entry = iter.next();
-                    int idx = entry.getIntKey();
-                    if(idx < trainCorpus.size()) {
-                        double xj = entry.getDoubleValue();
+                if(featureSquare[fIdx] != 0) {
+                    //First Order L:
+                    double firstOrderL = 0;
+                    double oldValue = modelOfV.values[fIdx];
+                    for (int i = 0; i < tmpF[fIdx].indices.length; i++) {
+                        int idx = tmpF[fIdx].indices[i];
+                        double xj = tmpF[fIdx].values[i];
                         LabeledData l = trainCorpus.get(idx);
+                        if(-l.label * predictValue[idx] > 20){
+                            continue;
+                        }
                         double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
-                }
-                firstOrderL *= C;
-                double Uj = 0.25 * C * featureSquare[fIdx];
-                double updateValue = (1 - firstOrderL) / Uj;
-                if(updateValue > modelOfV.values[fIdx]){
-                    modelOfV.values[fIdx] = 0;
-                }else{
-                    modelOfV.values[fIdx] -= updateValue;
-                }
-
-                iter =  features[fIdx].map.int2DoubleEntrySet().iterator();
-                while (iter.hasNext()) {
-                    Int2DoubleMap.Entry entry = iter.next();
-                    int idx = entry.getIntKey();
-                    if(idx < trainCorpus.size()) {
-                        double value = entry.getDoubleValue();
+                    firstOrderL *= C;
+                    double Uj = 0.25 * C * featureSquare[fIdx];
+                    double updateValue = (1 - firstOrderL) / Uj;
+                    if (updateValue > modelOfV.values[fIdx]) {
+                        modelOfV.values[fIdx] = 0;
+                    } else {
+                        modelOfV.values[fIdx] -= updateValue;
+                    }
+                    for (int i = 0; i < tmpF[fIdx].indices.length; i++) {
+                        int idx = tmpF[fIdx].indices[i];
+                        double value = tmpF[fIdx].values[i];
                         predictValue[idx] -= value * (modelOfV.values[fIdx] - oldValue);
                     }
                 }
@@ -140,10 +138,11 @@ public class LogisticRegression extends model.LogisticRegression{
 
 
     private void trainCore(List<LabeledData> labeledData) {
-        shuffle(labeledData, tmpFeatures);
+        double startCompute = System.currentTimeMillis();
+        shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
-        trainCorpus = labeledData.subList(0, testBegin);
+        trainCorpus = labeledData.subList(0, testBegin + 1);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
 
         predictValue = new double[trainCorpus.size()];
@@ -158,19 +157,14 @@ public class LogisticRegression extends model.LogisticRegression{
         featureSquare = new double[featureDimension];
         Arrays.fill(featureSquare, 0);
         for(int idx = 0; idx < featureDimension; idx++){
-            ObjectIterator<Int2DoubleMap.Entry> iter =  features[idx].map.int2DoubleEntrySet().iterator();
-            while (iter.hasNext()) {
-                Int2DoubleMap.Entry entry = iter.next();
-                int labelIdx = entry.getIntKey();
-                double featureValue = entry.getDoubleValue();
-                if(labelIdx < trainCorpus.size()) {
-                    featureSquare[idx] += featureValue * featureValue;
-                }
+            for (double xj: tmpF[idx].values) {
+                featureSquare[idx] += xj * xj;
             }
         }
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         for (int i = 0; ; i ++) {
             System.out.println("Iteration " + i + " ---------------");
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             for(int idx = 0; idx < trainCorpus.size(); idx++){
                 LabeledData l = trainCorpus.get(idx);
@@ -236,7 +230,10 @@ public class LogisticRegression extends model.LogisticRegression{
                     break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
-
+            if(diverge){
+                System.out.println("[Warning]Diverge happens!");
+                break;
+            }
         }
     }
 
@@ -254,38 +251,10 @@ public class LogisticRegression extends model.LogisticRegression{
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 
-    private void shuffle(List<LabeledData> labeledData, SparseMap[] tmpFeatures) {
-        List<Integer> list = new ArrayList<Integer>();
-        for (int i = 0; i < labeledData.size(); i++) {
-            list.add(i);
-        }
-        Collections.shuffle(list);
-        List<LabeledData> tmpSet = new ArrayList<LabeledData>();
-        for (int i = 0; i < labeledData.size(); i++) {
-            tmpSet.add(labeledData.get(list.get(i)));
-        }
-        labeledData.clear();
-        for (int i = 0; i < tmpSet.size(); i++) {
-            labeledData.add(tmpSet.get(i));
-        }
-        features = new SparseMap[featureDimension + 1];
-        for (int i = 0; i <= featureDimension; i++) {
-            features[i] = new SparseMap();
-        }
-        int map[] = new int[labeledData.size()];
-        for(int i = 0; i < map.length; i++){
-            map[i] = list.indexOf(i);
-        }
-        for (int i = 0; i < features.length; i++) {
-            ObjectIterator<Int2DoubleMap.Entry> iter = tmpFeatures[i].map.int2DoubleEntrySet().iterator();
-            while (iter.hasNext()) {
-                Int2DoubleMap.Entry entry = iter.next();
-                int idx = entry.getIntKey();
-                double value = entry.getDoubleValue();
-                if (map[idx] < trainRatio * labeledData.size())
-                    features[i].add(map[idx], value);
-            }
-        }
+    private void shuffle(List<LabeledData> labeledData) {
+        Collections.shuffle(labeledData);
+        features = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        tmpF = Utils.generateSpareVector(features);
     }
 
     public static void main(String[] argv) throws Exception {
@@ -333,7 +302,6 @@ public class LogisticRegression extends model.LogisticRegression{
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
         long startLoad = System.currentTimeMillis();
-        tmpFeatures = Utils.LoadLibSVMByFeature(path, featureDimension);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");

@@ -70,7 +70,7 @@ public class Lasso extends model.Lasso{
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
-        List<LabeledData> trainCorpus = corpus.subList(0, end);
+        List<LabeledData> trainCorpus = corpus.subList(0, end + 1);
         List<LabeledData> testCorpus = corpus.subList(end, size);
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;

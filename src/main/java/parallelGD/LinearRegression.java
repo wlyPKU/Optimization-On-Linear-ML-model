@@ -46,6 +46,7 @@ public class LinearRegression extends model.LinearRegression{
     }
 
     public void train(List<LabeledData> corpus, DenseVector model) {
+        double startCompute = System.currentTimeMillis();
         Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -64,9 +65,10 @@ public class LinearRegression extends model.LinearRegression{
 
         long totalBegin = System.currentTimeMillis();
         long totalIterationTime = 0;
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            testAndSummary(trainCorpus, testCorpus, model);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model);
 
             long startTrain = System.currentTimeMillis();
             System.out.println("[Information]Learning rate " + learningRate);
@@ -112,7 +114,10 @@ public class LinearRegression extends model.LinearRegression{
                     break;
             }
             System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
-
+            if(diverge){
+                System.out.println("[Warning]Diverge happens!");
+                break;
+            }
         }
     }
 

@@ -47,7 +47,7 @@ public class SVM extends model.SVM{
             sgdOneEpoch(localList, learningRate, lambda, globalCorpusSize);
         }
         public void sgdOneEpoch(List<LabeledData> list, double lr, double lambda, double globalCorpusSize) {
-            double modelPenalty = -2 * lr * lambda / globalCorpusSize;
+            double modelPenalty = -2 * lr * lambda;
             //double modelPenalty = - 2 * lr * lambda;
             for (LabeledData labeledData : list) {
                 //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
@@ -64,6 +64,7 @@ public class SVM extends model.SVM{
     }
 
     public void train(List<LabeledData> corpus, DenseVector model) {
+        double startCompute = System.currentTimeMillis();
         Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -81,11 +82,11 @@ public class SVM extends model.SVM{
         globalModel = new DenseVector(model.dim);
 
         long totalBegin = System.currentTimeMillis();
-
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             long startTrain = System.currentTimeMillis();
             System.out.println("[Information]Learning rate " + learningRate);
@@ -130,7 +131,10 @@ public class SVM extends model.SVM{
                     break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-
+            if(diverge){
+                System.out.println("[Warning]Diverge happens!");
+                break;
+            }
         }
     }
 

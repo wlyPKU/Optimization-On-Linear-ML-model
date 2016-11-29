@@ -20,7 +20,7 @@ public class LogisticRegression {
     public static boolean rhoFixed = true;
 
 
-    public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+    public boolean testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector model, double lambda){
         long startTest = System.currentTimeMillis();
         double trainLoss = logLoss(trainCorpus, model, lambda);
@@ -32,6 +32,8 @@ public class LogisticRegression {
                 " TrainAuc=" + trainAuc + " TestAuc=" + testAuc +
                 " TestTime=" + testTime);
         System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size());
+        return trainLoss > 1e200 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
+
     }
 
     public double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
@@ -153,6 +155,8 @@ public class LogisticRegression {
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
         System.out.println("[Information]ParameterChanged " + delta);
+        System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
+
         if(delta < stopDelta){
             return true;
         }else{

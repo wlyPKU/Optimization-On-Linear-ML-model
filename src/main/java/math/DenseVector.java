@@ -1,5 +1,7 @@
 package math;
 
+import Utils.LabeledData;
+
 import java.util.Arrays;
 
 /**
@@ -117,6 +119,19 @@ public class DenseVector {
     assert (this.dim == d.dim);
     for(int i = 0; i < d.dim; i++){
       values[i] += d.values[i];
+    }
+  }
+
+  public void update(SparseVector other, double modelPenalty, double gradient) {
+    for(int i = 0; i <  other.indices.length; i++){
+        int idx = other.indices[i];
+        if(values[idx] >= 0) {
+            values[idx] = Math.max(values[idx] - Math.abs(modelPenalty) + gradient * (other.values==null? 1: other.values[i]), 0);
+        }
+        else {
+            values[idx] = Math.max(values[idx] + Math.abs(modelPenalty) + gradient * (other.values==null? 1: other.values[i]), 0);
+        }
+
     }
   }
 }

@@ -208,6 +208,7 @@ public class LogisticRegression extends model.LogisticRegression{
     }
 
     private void trainCore() {
+        double startCompute = System.currentTimeMillis();
         Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
@@ -227,11 +228,12 @@ public class LogisticRegression extends model.LogisticRegression{
         long totalBegin = System.currentTimeMillis();
 
         oldModelZ = new DenseVector(featureDimension);
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            testAndSummary(trainCorpus, testCorpus, model.x, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             long startTrain = System.currentTimeMillis();
             //Update x
             updateX(i);
@@ -267,6 +269,10 @@ public class LogisticRegression extends model.LogisticRegression{
             }
             judgeConverge();
             System.arraycopy(model.x.values, 0, oldModel.values, 0, featureDimension);
+            if(diverge){
+                System.out.println("[Warning]Diverge happens!");
+                break;
+            }
         }
     }
 

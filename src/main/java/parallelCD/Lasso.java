@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
+import math.SparseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
@@ -28,7 +29,7 @@ public class Lasso extends model.Lasso {
     private static DenseVector model;
     private static double featureSquare[];
     private static SparseMap[] features;
-    private static SparseMap[] tmpFeatures;
+    private static SparseVector[] tmpF;
     private static double lambda;
     private static double trainRatio = 0.5;
     private static int threadNum;
@@ -44,26 +45,24 @@ public class Lasso extends model.Lasso {
         }
         public void run() {
             for(int j = from; j < to; j++){
-                double oldValue = model.values[j];
-                double updateValue = 0;
-                ObjectIterator<Int2DoubleMap.Entry> iter =  features[j].map.int2DoubleEntrySet().iterator();
-                while (iter.hasNext()) {
-                    Int2DoubleMap.Entry entry = iter.next();
-                    int idx = entry.getIntKey();
-                    double xj = entry.getDoubleValue();
-                    updateValue += xj * residual[idx];
-                }
-                updateValue /= featureSquare[j];
-                model.values[j] += updateValue;
-                model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
-                iter =  features[j].map.int2DoubleEntrySet().iterator();
-                double deltaChange = model.values[j] - oldValue;
-                if(deltaChange != 0) {
-                    while (iter.hasNext()) {
-                        Int2DoubleMap.Entry entry = iter.next();
-                        int idx = entry.getIntKey();
-                        double value = entry.getDoubleValue();
-                        residual[idx] -= deltaChange * value;
+                if(featureSquare[j] != 0) {
+                    double oldValue = model.values[j];
+                    double updateValue = 0;
+                    for(int i = 0; i < tmpF[j].indices.length; i++){
+                        int idx = tmpF[j].indices[i];
+                        double xj = tmpF[j].values[i];
+                        updateValue += xj * residual[idx];
+                    }
+                    updateValue /= featureSquare[j];
+                    model.values[j] += updateValue;
+                    model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
+                    double deltaChange = model.values[j] - oldValue;
+                    if (deltaChange != 0) {
+                        for(int i = 0; i < tmpF[j].indices.length; i++){
+                            int idx = tmpF[j].indices[i];
+                            double value = tmpF[j].values[i];
+                            residual[idx] -= value * deltaChange;
+                        }
                     }
                 }
             }
@@ -71,80 +70,49 @@ public class Lasso extends model.Lasso {
     }
 
     private void adjustResidual(DenseVector model, double[] residual){
-        ObjectIterator<Int2DoubleMap.Entry> iter =  features[featureDimension].map.int2DoubleEntrySet().iterator();
-        while (iter.hasNext()) {
-            Int2DoubleMap.Entry entry = iter.next();
-            int idx = entry.getIntKey();
-            double y = entry.getDoubleValue();
-            residual[idx] = y;
+        for (int i = 0; i < tmpF[featureDimension].indices.length; i++) {
+            int idx = tmpF[featureDimension].indices[i];
+            double value = tmpF[featureDimension].values[i];
+            residual[idx] = value;
         }
-        for(int j = 0; j < featureDimension; j++){
-            iter =  features[j].map.int2DoubleEntrySet().iterator();
-            while (iter.hasNext()) {
-                Int2DoubleMap.Entry entry = iter.next();
-                int idx = entry.getIntKey();
-                double value = entry.getDoubleValue();
-                residual[idx] -= model.values[j] * value;
+
+        for(int j = 0; j < featureDimension; j++) {
+            for (int i = 0; i < tmpF[j].indices.length; i++) {
+                int idx = tmpF[j].indices[i];
+                double value = tmpF[j].values[i];
+                residual[idx] -= value * model.values[j];
             }
         }
     }
 
-    private void shuffle(List<LabeledData> labeledData, SparseMap[] tmpFeatures) {
-        List<Integer> list = new ArrayList<Integer>();
-        for (int i = 0; i < labeledData.size(); i++) {
-            list.add(i);
-        }
-        Collections.shuffle(list);
-        List<LabeledData> tmpSet = new ArrayList<LabeledData>();
-        for (int i = 0; i < labeledData.size(); i++) {
-            tmpSet.add(labeledData.get(list.get(i)));
-        }
-        labeledData.clear();
-        for (int i = 0; i < tmpSet.size(); i++) {
-            labeledData.add(tmpSet.get(i));
-        }
-        features = new SparseMap[featureDimension + 1];
-        for (int i = 0; i <= featureDimension; i++) {
-            features[i] = new SparseMap();
-        }
-        int map[] = new int[labeledData.size()];
-        for(int i = 0; i < map.length; i++){
-            map[i] = list.indexOf(i);
-        }
-        for (int i = 0; i < features.length; i++) {
-            ObjectIterator<Int2DoubleMap.Entry> iter = tmpFeatures[i].map.int2DoubleEntrySet().iterator();
-            while (iter.hasNext()) {
-                Int2DoubleMap.Entry entry = iter.next();
-                int idx = entry.getIntKey();
-                double value = entry.getDoubleValue();
-                if (map[idx] < trainRatio * labeledData.size())
-                    features[i].add(map[idx], value);
-            }
-        }
+    private void shuffle(List<LabeledData> labeledData) {
+        Collections.shuffle(labeledData);
+        features = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        tmpF = Utils.generateSpareVector(features);
     }
 
     private void trainCore(List<LabeledData> labeledData) {
-        shuffle(labeledData, tmpFeatures);
+        double startCompute = System.currentTimeMillis();
+        shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
-        List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
+        List<LabeledData> trainCorpus = labeledData.subList(0, testBegin + 1);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         featureSquare = new double[featureDimension];
-        residual = new double[labeledData.size()];
+        residual = new double[trainCorpus.size()];
         for(int i = 0; i < featureDimension; i++){
             featureSquare[i] = 0;
-            for(Double v: features[i].map.values()){
+            for(Double v: tmpF[i].values){
                 featureSquare[i] += v * v;
             }
         }
-        ObjectIterator<Int2DoubleMap.Entry> iter =  features[featureDimension].map.int2DoubleEntrySet().iterator();
-        while (iter.hasNext()) {
-            Int2DoubleMap.Entry entry = iter.next();
-            int idx = entry.getIntKey();
-            double y = entry.getDoubleValue();
-            residual[idx] = y;
+
+        for(int i = 0; i < tmpF[featureDimension].indices.length; i++){
+            residual[tmpF[featureDimension].indices[i]] = tmpF[featureDimension].values[i];
         }
         DenseVector oldModel = new DenseVector(featureDimension);
+
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
 
         long totalBegin = System.currentTimeMillis();
 
@@ -169,7 +137,7 @@ public class Lasso extends model.Lasso {
                     e.printStackTrace();
                 }
             }
-
+            adjustResidual(model, residual);
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
@@ -179,7 +147,6 @@ public class Lasso extends model.Lasso {
                     / 1024 / 1024 + "M");
             System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
                     / 1024 / 1024 + "M");
-            adjustResidual(model, residual);
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
                     break;
@@ -255,9 +222,7 @@ public class Lasso extends model.Lasso {
         System.out.println("------------------------------------");
 
         long startLoad = System.currentTimeMillis();
-        tmpFeatures = Utils.LoadLibSVMByFeature(path, featureDimension);
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
-
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);

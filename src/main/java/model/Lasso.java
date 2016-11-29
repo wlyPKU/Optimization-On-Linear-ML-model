@@ -38,10 +38,7 @@ public class Lasso {
         //Utils.printAccuracy(trainAccuracy);
         //System.out.println("testAccuracy:");
         //Utils.printAccuracy(testAccuracy);
-        if(trainResidual > 1e100){
-            return true;
-        }
-        return false;
+        return trainResidual > 2e100 || Double.isInfinite(trainResidual) || Double.isNaN(trainResidual);
     }
     public double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {
         double loss = 0.0;
@@ -79,6 +76,7 @@ public class Lasso {
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
         System.out.println("[Information]ParameterChanged " + delta);
+        System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
         if(delta < stopDelta){
             return true;
         }else{

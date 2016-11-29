@@ -51,30 +51,32 @@ public class SVM extends model.SVM{
         }
         public void run() {
             for (int j = threadID * trainCorpus.size() / threadNum; j < (threadID + 1)* trainCorpus.size() / threadNum; j++) {
-                LabeledData labeledData = trainCorpus.get(j);
-                double G = model.dot(labeledData.data) * labeledData.label - 1;
-                double alpha_old = alpha[j];
-                double PG = 0;
-                if(alpha[j] == 0){
-                    PG = Math.min(G, 0);
-                }else if(alpha[j] == C){
-                    PG = Math.max(G, 0);
-                }else if(alpha[j] > 0 && alpha[j] < C){
-                    PG = G;
-                }
-                if(PG != 0) {
-                    alpha[j] = Math.min(Math.max(0, alpha[j] - G / Q[j]), C);
-                    double deltaAlpha = alpha[j] - alpha_old;
-                    if(deltaAlpha != 0){
-                        if (labeledData.data.values == null) {
-                            for (Integer idx : labeledData.data.indices) {
-                                model.values[idx] += deltaAlpha * labeledData.label;
-                            }
-                        }else{
-                            for (int i = 0; i < labeledData.data.indices.length; i++) {
-                                int idx = labeledData.data.indices[i];
-                                double value = labeledData.data.values[i];
-                                model.values[idx] += deltaAlpha * labeledData.label * value;
+                if(Q[j] != 0) {
+                    LabeledData labeledData = trainCorpus.get(j);
+                    double G = model.dot(labeledData.data) * labeledData.label - 1;
+                    double alpha_old = alpha[j];
+                    double PG = 0;
+                    if (alpha[j] == 0) {
+                        PG = Math.min(G, 0);
+                    } else if (alpha[j] == C) {
+                        PG = Math.max(G, 0);
+                    } else if (alpha[j] > 0 && alpha[j] < C) {
+                        PG = G;
+                    }
+                    if (PG != 0) {
+                        alpha[j] = Math.min(Math.max(0, alpha[j] - G / Q[j]), C);
+                        double deltaAlpha = alpha[j] - alpha_old;
+                        if (deltaAlpha != 0) {
+                            if (labeledData.data.values == null) {
+                                for (Integer idx : labeledData.data.indices) {
+                                    model.values[idx] += deltaAlpha * labeledData.label;
+                                }
+                            } else {
+                                for (int i = 0; i < labeledData.data.indices.length; i++) {
+                                    int idx = labeledData.data.indices[i];
+                                    double value = labeledData.data.values[i];
+                                    model.values[idx] += deltaAlpha * labeledData.label * value;
+                                }
                             }
                         }
                     }
@@ -100,10 +102,11 @@ public class SVM extends model.SVM{
         }
     }
     private void trainCore(List<LabeledData> corpus) {
+        double startCompute = System.currentTimeMillis();
         Collections.shuffle(corpus);
         int size = corpus.size();
         int end = (int) (size * trainRatio);
-        trainCorpus = corpus.subList(0, end);
+        trainCorpus = corpus.subList(0, end + 1);
         List<LabeledData> testCorpus = corpus.subList(end, size);
 
         //https://github.com/acharuva/svm_cd/blob/master/svm_cd.py
@@ -128,11 +131,12 @@ public class SVM extends model.SVM{
         }
         DenseVector oldModel = new DenseVector(model.values.length);
         long totalBegin = System.currentTimeMillis();
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            testAndSummary(trainCorpus, testCorpus, model, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             long startTrain = System.currentTimeMillis();
@@ -173,7 +177,10 @@ public class SVM extends model.SVM{
                     break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
-
+            if(diverge){
+                System.out.println("[Warning]Diverge happens!");
+                break;
+            }
         }
     }
 

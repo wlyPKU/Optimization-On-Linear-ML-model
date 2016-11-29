@@ -17,7 +17,7 @@ public class LinearRegression {
     public static boolean rhoFixed = true;
 
 
-    public void testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+    public boolean testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector model){
         long startTest = System.currentTimeMillis();
         double loss = test(trainCorpus, model);
@@ -32,6 +32,7 @@ public class LinearRegression {
         //Utils.printAccuracy(trainAccuracy);
         //System.out.println("testAccuracy:");
         //Utils.printAccuracy(testAccuracy);
+        return loss > 1e200 || Double.isInfinite(loss) || Double.isNaN(loss);
     }
 
 
@@ -49,6 +50,8 @@ public class LinearRegression {
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
         System.out.println("[Information]ParameterChanged " + delta);
+        System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
+
         if(delta < stopDelta){
             return true;
         }else{

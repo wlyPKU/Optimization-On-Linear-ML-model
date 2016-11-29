@@ -1,6 +1,8 @@
 package Utils;
 
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.IntArrays;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
 import math.SparseVector;
@@ -116,6 +118,27 @@ public class Utils {
   }
 
 
+  public static SparseVector[] generateSpareVector(SparseMap[] maps){
+      SparseVector result[] = new SparseVector[maps.length];
+      for(int i = 0; i < maps.length; i++){
+        int indices[] = new int[maps[i].map.int2DoubleEntrySet().size()];
+        double values[] = new double[maps[i].map.int2DoubleEntrySet().size()];
+        ObjectIterator<Int2DoubleMap.Entry> iter =  maps[i].map.int2DoubleEntrySet().iterator();
+        int j = 0;
+        while (iter.hasNext()) {
+          Int2DoubleMap.Entry entry = iter.next();
+          int idx = entry.getIntKey();
+          double value = entry.getDoubleValue();
+          indices[j] = idx;
+          values[j] = value;
+          j++;
+        }
+        result[i] = new SparseVector(indices.length, indices, values);
+
+      }
+      return result;
+  }
+
   public static SparseMap[] LoadLibSVMByFeature(String path, int featureDim) throws IOException{
     //Feature and Label(dimension: featureDim+1)
     SparseMap[] features = new SparseMap[featureDim + 1];
@@ -126,6 +149,52 @@ public class Utils {
     String line;
     int cnt = 0;
     while ((line = reader.readLine()) != null) {
+      String []parts = line.split(" ");
+      //Label(y)
+      features[featureDim].add(cnt, Double.parseDouble(parts[0]));
+      for(int i = 0; i < parts.length - 1; i++){
+        String kv = parts[i + 1];
+        String[] kvParts = kv.split(":");
+        int idx = Integer.parseInt(kvParts[0]);
+        double value = Double.parseDouble(kvParts[1]);
+        features[idx].add(cnt, value);
+      }
+      cnt++;
+    }
+    return features;
+  }
+
+  public static SparseMap[] LoadLibSVMFromLabeledData(List<LabeledData> list, int featureDim, double trainRatio){
+    //Feature and Label(dimension: featureDim+1)
+    SparseMap[] features = new SparseMap[featureDim + 1];
+    for(int i = 0; i <= featureDim; i++){
+      features[i] = new SparseMap();
+    }
+    for(int i = 0; i < (int)(list.size() * trainRatio); i++){
+      LabeledData tmp = list.get(i);
+      for(int j = 0; j < tmp.data.indices.length; j++){
+        if(tmp.data.values == null){
+          features[tmp.data.indices[j]].add(i, 1);
+        }else{
+          features[tmp.data.indices[j]].add(i, tmp.data.values[j]);
+
+        }
+      }
+      features[featureDim].add(i, tmp.label);
+    }
+    return features;
+  }
+
+  public static SparseMap[] LoadLibSVMByFeature(String path, int featureDim, int sampleDim, double trainRatio) throws IOException{
+    //Feature and Label(dimension: featureDim+1)
+    SparseMap[] features = new SparseMap[featureDim + 1];
+    for(int i = 0; i <= featureDim; i++){
+      features[i] = new SparseMap();
+    }
+    BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+    String line;
+    int cnt = 0;
+    while ((line = reader.readLine()) != null && cnt < trainRatio * sampleDim) {
       String []parts = line.split(" ");
       //Label(y)
       features[featureDim].add(cnt, Double.parseDouble(parts[0]));
