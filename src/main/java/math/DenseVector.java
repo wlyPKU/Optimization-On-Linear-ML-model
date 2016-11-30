@@ -1,5 +1,7 @@
 package math;
 
+import Utils.LabeledData;
+
 import java.util.Arrays;
 
 /**
@@ -21,7 +23,6 @@ public class DenseVector {
     System.arraycopy(a.values, 0, values, 0, dim);
   }
   //For NesterovMomentum:
-  @SuppressWarnings("unused")
 
   public double dotNesterovMomentum(SparseVector other, double[] v_t, double gamma) {
     int[] indices = other.indices;
@@ -77,6 +78,9 @@ public class DenseVector {
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];
       values[idx] = Math.max(0, values[idx]);
+      if(Double.isNaN(values[idx]) || Double.isInfinite(values[idx])){
+            System.out.println(idx);
+      }
     }
   }
   @SuppressWarnings("unused")
@@ -108,12 +112,7 @@ public class DenseVector {
   public void plusSparse(SparseVector other, double scala){
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];
-      if(values[idx] >= 0) {
-        values[idx] -= Math.abs(scala);
-      }
-      else {
-        values[idx] += Math.abs(scala);
-      }
+      values[idx] += Math.abs(scala);
     }
   }
   public void multiplySparse(SparseVector other, double scala){

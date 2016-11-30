@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 //https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
 //http://www.simonlucey.com/lasso-using-admm/
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
-public class LassoFeature extends model.Lasso {
+public class LassoModelParallel extends model.Lasso {
     private static long start;
     private static double lambda;
     private static int threadNum;
@@ -101,7 +101,7 @@ public class LassoFeature extends model.Lasso {
         public void run() {
             //Update x;
             parallelLBFGSFeature.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory, threadNum,
-                    rho, iteNum, localLabeledData.get(threadID), "Lasso", model.z);
+                    rho, lambda, iteNum, localLabeledData.get(threadID), "Lasso", model.z);
             computeAx(localADMMState[threadID], localLabeledData.get(threadID));
         }
         public double computeAXi(DenseVector x, LabeledData data){
@@ -139,8 +139,8 @@ public class LassoFeature extends model.Lasso {
     }
     private void updateZ(){
         long startTrain = System.currentTimeMillis();
-        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, (int)(trainRatio * labeledData.size()));
-        for(int id = 0; id < (int)(trainRatio * labeledData.size()); id++){
+        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, model.z.dim);
+        for(int id = 0; id < model.z.dim; id++){
             model.z.values[id] = (labeledData.get(id).label + rho * model.AX[id] + rho * model.u.values[id]) / (threadNum + rho);
         }
         System.out.println("[Information]Update Z costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
@@ -148,11 +148,11 @@ public class LassoFeature extends model.Lasso {
 
     private void updateU(){
         long startTrain = System.currentTimeMillis();
-        for (int id = 0; id < (int)(trainRatio * labeledData.size()); id++) {
+        for (int id = 0; id < model.u.dim; id++) {
             model.u.values[id] += model.AX[id] - model.z.values[id];
         }
         for(int i = 0; i < threadNum; i++){
-            System.arraycopy(model.u.values, 0, localADMMState[i].u.values, 0, (int)(trainRatio * labeledData.size()));
+            System.arraycopy(model.u.values, 0, localADMMState[i].u.values, 0, model.u.dim);
         }
         System.out.println("[Information]Update U costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
 
@@ -240,6 +240,7 @@ public class LassoFeature extends model.Lasso {
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         DenseVector oldModel = new DenseVector(featureDimension);
+        model = new ADMMFeatureState(featureDimension, trainCorpus.size(), 0);
 
         localADMMState = new ADMMFeatureState[threadNum];
         for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -250,7 +251,7 @@ public class LassoFeature extends model.Lasso {
         }
         long totalBegin = System.currentTimeMillis();
 
-        oldModelZ = new DenseVector(featureDimension);
+        oldModelZ = new DenseVector(trainCorpus.size());
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
@@ -276,7 +277,7 @@ public class LassoFeature extends model.Lasso {
                 model.AX[j] /= threadNum;
             }
             for(int id = 0; id < threadNum; id++){
-                System.arraycopy(model.AX, 0, localADMMState[id].AX, 0, model.AX.length);
+                System.arraycopy(model.AX, 0, localADMMState[id].globalAX, 0, model.AX.length);
             }
             //rho = Math.min(rho * 1.1, maxRho);
             if(!rhoFixed){
@@ -315,8 +316,7 @@ public class LassoFeature extends model.Lasso {
     }
 
     private static void train() {
-        LassoFeature lassoLBFGS = new LassoFeature();
-        model = new ADMMFeatureState(featureDimension, (int)(trainRatio * labeledData.size()), 0);
+        LassoModelParallel lassoLBFGS = new LassoModelParallel();
         start = System.currentTimeMillis();
         lassoLBFGS.trainCore();
         long cost = System.currentTimeMillis() - start;

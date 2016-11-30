@@ -14,6 +14,15 @@ public class parallelLBFGS {
     private static final Log LOG = LogFactory.getLog(parallelLBFGS.class);
 
     private static int threadNum;
+    private static double changesOfX(double[] oldX, double [] newX){
+        double result = 0.0D;
+        for(int i = 0; i < oldX.length; i++){
+            result += (oldX[i] - newX[i]) * (oldX[i] - newX[i]);
+        }
+        result = Math.sqrt(result) / oldX.length;
+        return result;
+    }
+
     public static void train(ADMMState state,
                              int maxIterNum,
                              int lbfgshistory,
@@ -42,6 +51,7 @@ public class parallelLBFGS {
         ArrayList<Double> rhoLBFGS = new ArrayList<Double>();
 
         int iter = 1;
+        double[] xtmp = new double[localFeatureNum];
 
         double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm) ;
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
@@ -55,10 +65,14 @@ public class parallelLBFGS {
             //LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
-
+            if(iter > 2 && changesOfX(xx, xtmp) < 1e-5){
+                break;
+            }
+            System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
             iter ++;
         }
 
+        System.out.println("[INFORMATION]L-BFGS uses " + iter + " iterations.");
         System.arraycopy(xx, 0, state.x.values, 0, localFeatureNum);
     }
 
@@ -110,7 +124,6 @@ public class parallelLBFGS {
                     }
                 }
                 score = 1 - l.label * score;
-
                 if(score > 0)
                 {
                     loss += score;

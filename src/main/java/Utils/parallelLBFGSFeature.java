@@ -5,6 +5,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -15,15 +16,28 @@ public class parallelLBFGSFeature {
     private static final Log LOG = LogFactory.getLog(parallelLBFGSFeature.class);
 
     private static int threadNum;
+    private static double lambda;
+
+    private static double changesOfX(double[] oldX, double [] newX){
+        double result = 0.0D;
+        for(int i = 0; i < oldX.length; i++){
+            result += (oldX[i] - newX[i]) * (oldX[i] - newX[i]);
+        }
+        result = Math.sqrt(result) / oldX.length;
+        return result;
+    }
     public static void train(ADMMFeatureState state,
                              int maxIterNum,
                              int lbfgshistory,
                              int threadNum,
                              double rhoADMM,
+                             double lambda,
                              int iterationADMM,
                              List<LabeledData> trainCorpus,
                              String algorithm,
                              DenseVector z) {
+
+        parallelLBFGSFeature.lambda = lambda;
 
         int localFeatureNum = state.featureDimension;
         parallelLBFGSFeature.threadNum = threadNum;
@@ -38,6 +52,7 @@ public class parallelLBFGSFeature {
 
         double[] dir = new double[localFeatureNum];
 
+        Arrays.fill(dir, 0);
         ArrayList<double []> s = new ArrayList<double []>();
         ArrayList<double []> y = new ArrayList<double []>();
         ArrayList<Double> rhoLBFGS = new ArrayList<Double>();
@@ -46,6 +61,8 @@ public class parallelLBFGSFeature {
 
         double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm) ;
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
+
+        double[] xtmp = new double[localFeatureNum];
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
@@ -58,6 +75,10 @@ public class parallelLBFGSFeature {
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
 
             iter ++;
+            if(iter > 2 && changesOfX(xx, xtmp) < 1e-4){
+                break;
+            }
+            System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
         }
 
         System.arraycopy(xx, 0, state.x.values, 0, localFeatureNum);
@@ -72,29 +93,27 @@ public class parallelLBFGSFeature {
                                           List<LabeledData> trainCorpus,
                                           String algorithm) {
         double loss = 0.0;
-
         int localFeatureNum = state.featureDimension;
-
-        for (int i = 0; i < localFeatureNum; i ++) {
-            g[i] = rhoADMM * (localX[i] > 0? 1:-1) ;
-            loss += rhoADMM * Math.abs(localX[i]);
-        }
+        Arrays.fill(g, 0);
         for (int id = 0; id < trainCorpus.size(); id++) {
             LabeledData l = trainCorpus.get(id);
-            if(algorithm.equals("LogisticRegression")) {
-
+            double AX = 0;
+            for(int i = 0; i < l.data.indices.length; i++){
+                AX += (l.data.values == null? 1:l.data.values[i]) * localX[l.data.indices[i]];
+            }
+            double score = AX - state.AX[id] - z[id] + state.globalAX[id] + state.u.values[id];
+            loss += score * score * rhoADMM / 2.0;
+            for(int i = 0; i < l.data.indices.length; i++){
+                g[l.data.indices[i]] += rhoADMM * score * (l.data.values == null? 1:l.data.values[i]);
+            }
+        }
+        for (int i = 0; i < localFeatureNum; i ++) {
+            if(algorithm.equals("Lasso") || algorithm.equals("LogisticRegression")){
+                g[i] += lambda * (localX[i] > 0? 1:-1) ;
+                loss += lambda * Math.abs(localX[i]);
             }else if(algorithm.equals("SVM")){
-
-            }else if(algorithm.equals("Lasso") || algorithm.equals("LinearRegression")){
-                double AX = 0;
-                for(int i = 0; i < l.data.indices.length; i++){
-                    AX += (l.data.values == null? 1:l.data.values[i]) * localX[l.data.indices[i]];
-                }
-                double score = AX - state.AX[id] - z[id] + state.globalAX[id] + state.u.values[id];
-                loss += score * score * rhoADMM / 2.0;
-                for(int i = 0; i < l.data.indices.length; i++){
-                    g[l.data.indices[i]] += rhoADMM * score * (l.data.values == null? 1:l.data.values[i]);
-                }
+                g[i] += 2 * lambda * localX[i];
+                loss += lambda * localX[i] * localX[i];
             }
         }
         return loss;
@@ -106,25 +125,21 @@ public class parallelLBFGSFeature {
                                   List<LabeledData> trainCorpus,
                                   String algorithm) {
         double loss = 0.0;
-
         int localFeatureNum = state.featureDimension;
-
-        for (int i = 0; i < localFeatureNum; i ++) {
-            loss += rhoADMM * Math.abs(localX[i]);
-        }
         for (int id = 0; id < trainCorpus.size(); id++) {
             LabeledData l = trainCorpus.get(id);
-            if(algorithm.equals("LogisticRegression")) {
-
+            double AX = 0;
+            for(int i = 0; i < l.data.indices.length; i++){
+                AX += (l.data.values == null? 1:l.data.values[i]) * localX[l.data.indices[i]];
+            }
+            double score = AX - state.AX[id] - z[id] + state.globalAX[id] + state.u.values[id];
+            loss += score * score * rhoADMM / 2.0;
+        }
+        for (int i = 0; i < localFeatureNum; i ++) {
+            if(algorithm.equals("Lasso")  || algorithm.equals("LogisticRegression") ){
+                loss += lambda * Math.abs(localX[i]);
             }else if(algorithm.equals("SVM")){
-
-            }else if(algorithm.equals("Lasso") || algorithm.equals("LinearRegression")){
-                double AX = 0;
-                for(int i = 0; i < l.data.indices.length; i++){
-                    AX += (l.data.values == null? 1:l.data.values[i]) * localX[l.data.indices[i]];
-                }
-                double score = AX - state.AX[id] - z[id] + state.globalAX[id] + state.u.values[id];
-                loss += score * score * rhoADMM / 2.0;
+                loss += lambda * localX[i] * localX[i];
             }
         }
         return loss;
@@ -184,7 +199,6 @@ public class parallelLBFGSFeature {
         }
         if(Double.isNaN(origDirDeriv)){
             LOG.info("NaN happens!");
-            return 0.0;
         }
 
         double alpha = 1.0;
@@ -247,18 +261,49 @@ public class parallelLBFGSFeature {
     }
 
     private static void times(double [] a, double [] b, double x, int length) {
-        for (int i = 0; i < length; i ++)
+        for (int i = 0; i < length; i ++) {
+            if(Double.isNaN(a[i]) || Double.isInfinite(a[i])){
+                LOG.info("NaN a[i] happens!");
+            }
+            if(Double.isNaN(b[i]) || Double.isInfinite(b[i])){
+                LOG.info("NaN b[i] happens!");
+            }
+            if(Double.isNaN(x) || Double.isInfinite(x)){
+                LOG.info("NaN b[i] happens!");
+            }
             a[i] = b[i] * x;
+        }
     }
 
     private static void timesBy(double [] a, double [] b, double x, int length) {
-        for (int i = 0; i < length; i ++)
+        for (int i = 0; i < length; i ++){
+            if(Double.isNaN(a[i]) || Double.isInfinite(a[i])){
+                LOG.info("NaN a[i] happens!");
+            }
+            if(Double.isNaN(b[i]) || Double.isInfinite(b[i])){
+                LOG.info("NaN b[i] happens!");
+            }
+            if(Double.isNaN(x) || Double.isInfinite(x)){
+                LOG.info("NaN b[i] happens!");
+            }
             a[i] += b[i] * x;
+        }
+
     }
 
     private static void timesBy(double [] a, double [] b, double [] c, double x, int length) {
-        for (int i = 0; i < length; i ++)
+        for (int i = 0; i < length; i ++) {
+            if(Double.isNaN(a[i]) || Double.isInfinite(a[i])){
+                LOG.info("NaN a[i] happens!");
+            }
+            if(Double.isNaN(b[i]) || Double.isInfinite(b[i])){
+                LOG.info("NaN b[i] happens!");
+            }
+            if(Double.isNaN(c[i]) || Double.isInfinite(c[i])){
+                LOG.info("NaN b[i] happens!");
+            }
             a[i] = b[i] + c[i] * x;
+        }
     }
 
     private static void timesBy(double [] a, double x, int length) {
@@ -269,6 +314,12 @@ public class parallelLBFGSFeature {
     private static double dot(double [] a, double [] b, int length) {
         double ret = 0.0;
         for (int i = 0; i < length; i ++){
+            if(Double.isNaN(a[i]) || Double.isInfinite(a[i])){
+                LOG.info("NaN a[i] happens!");
+            }
+            if(Double.isNaN(b[i]) || Double.isInfinite(b[i])){
+                LOG.info("NaN b[i] happens!");
+            }
             ret += a[i] * b[i];
         }
         return ret;

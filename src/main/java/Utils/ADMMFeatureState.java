@@ -14,7 +14,7 @@ public class ADMMFeatureState {
     public DenseVector u;
     public int beginOffset;
     public double AX[];
-    double globalAX[];
+    public double globalAX[];
     public int featureDimension;
     public int sampleDimension;
     public ADMMFeatureState(int featureDimension, int sampleDimension, int beginOffset){
