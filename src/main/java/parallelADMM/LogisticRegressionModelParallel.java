@@ -104,7 +104,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression {
                     rho, lambda, iteNum, localLabeledData.get(threadID), "LogisticRegression", model.z);
             computeAx(localADMMState[threadID], localLabeledData.get(threadID));
         }
-        public double computeAXi(DenseVector x, LabeledData data){
+        double computeAXi(DenseVector x, LabeledData data){
             double result = 0;
             SparseVector s = data.data;
             for(int i = 0; i < s.indices.length; i++){
@@ -112,7 +112,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression {
             }
             return result;
         }
-        public void computeAx(ADMMFeatureState state, List<LabeledData> labeledData){
+        void computeAx(ADMMFeatureState state, List<LabeledData> labeledData){
             for(int i = 0; i < state.sampleDimension; i++){
                 state.AX[i] = computeAXi(state.x, labeledData.get(i));
             }

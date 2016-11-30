@@ -32,7 +32,7 @@ public class LinearRegression {
         //Utils.printAccuracy(trainAccuracy);
         //System.out.println("testAccuracy:");
         //Utils.printAccuracy(testAccuracy);
-        return loss > 1e200 || Double.isInfinite(loss) || Double.isNaN(loss);
+        return loss > 1e100 || Double.isInfinite(loss) || Double.isNaN(loss);
     }
 
 

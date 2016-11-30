@@ -38,7 +38,7 @@ public class Lasso {
         //Utils.printAccuracy(trainAccuracy);
         //System.out.println("testAccuracy:");
         //Utils.printAccuracy(testAccuracy);
-        return (trainResidual > 2e100) || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
+        return (trainResidual > 1e100) || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
     }
     @SuppressWarnings("unused")
     public double lassoLoss(List<LabeledData> list, DenseVector model_x, DenseVector model_z, double lambda) {

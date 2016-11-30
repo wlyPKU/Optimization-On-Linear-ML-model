@@ -32,7 +32,7 @@ public class LogisticRegression {
                 " TrainAuc=" + trainAuc + " TestAuc=" + testAuc +
                 " TestTime=" + testTime);
         System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size());
-        return trainLoss > 1e200 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
+        return trainLoss > 1e100 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
 
     }
 

@@ -51,13 +51,13 @@ public class LogisticRegression extends model.LogisticRegression{
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
             //double modelPenalty = - lr * lambda;
-            double modelPenalty = -lr * lambda / globalCorpusSize;
+            double modelPenalty = lr * lambda;
             for (LabeledData labeledData: list) {
                 double predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
                 double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
                 double scala = tmpValue * labeledData.label;
-                globalModelOfU.update(labeledData.data, -modelPenalty, scala * lr);
-                globalModelOfV.update(labeledData.data, -modelPenalty, -scala * lr);
+                globalModelOfU.update(labeledData.data, modelPenalty, lr * scala);
+                globalModelOfV.update(labeledData.data, modelPenalty, - lr * scala);
             }
         }
     }

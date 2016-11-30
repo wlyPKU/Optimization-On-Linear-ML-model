@@ -23,7 +23,7 @@ public class DenseVector {
     System.arraycopy(a.values, 0, values, 0, dim);
   }
   //For NesterovMomentum:
-
+  @SuppressWarnings("unused")
   public double dotNesterovMomentum(SparseVector other, double[] v_t, double gamma) {
     int[] indices = other.indices;
     double ret = 0.0;
