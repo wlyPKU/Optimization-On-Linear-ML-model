@@ -109,7 +109,11 @@ public class parallelLBFGSFeature {
         }
         for (int i = 0; i < localFeatureNum; i ++) {
             if(algorithm.equals("Lasso") || algorithm.equals("LogisticRegression")){
-                g[i] += lambda * (localX[i] > 0? 1:-1) ;
+                if(localX[i] > 0){
+                    g[i] += lambda;
+                }else if(localX[i] < 0){
+                    g[i] += lambda;
+                }
                 loss += lambda * Math.abs(localX[i]);
             }else if(algorithm.equals("SVM")){
                 g[i] += 2 * lambda * localX[i];

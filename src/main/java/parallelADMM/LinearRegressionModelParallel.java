@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 //http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 public class LinearRegressionModelParallel extends model.LinearRegression {
     private static long start;
-    private static double lambda;
     private static int threadNum;
     private static double trainRatio = 0.5;
     private static int featureDimension;
@@ -323,13 +322,12 @@ public class LinearRegressionModelParallel extends model.LinearRegression {
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelADMM.LinearRegressionModelParallel threadNum featureDimension train_path lambda trainRatio");
+        System.out.println("Usage: parallelADMM.LinearRegressionModelParallel threadNum featureDimension train_path trainRatio");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
-        lambda = Double.parseDouble(argv[3]);
         trainRatio = 0.5;
         for(int i = 0; i < argv.length - 1; i++){
             if(argv[i].equals("Model")){
@@ -363,7 +361,6 @@ public class LinearRegressionModelParallel extends model.LinearRegression {
         System.out.println("[Parameter]StopDelta " + stopDelta);
         System.out.println("[Parameter]FeatureDimension " + featureDimension);
         System.out.println("[Parameter]File Path " + path);
-        System.out.println("[Parameter]Lambda " + lambda);
         System.out.println("[Parameter]TrainRatio " + trainRatio);
         System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
         System.out.println("[Parameter]ModelType " + modelType);

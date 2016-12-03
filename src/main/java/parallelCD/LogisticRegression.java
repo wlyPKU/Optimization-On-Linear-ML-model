@@ -161,7 +161,7 @@ public class LogisticRegression extends model.LogisticRegression{
         }
         System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         for (int i = 0; ; i ++) {
-            System.out.println("Iteration " + i + " ---------------");
+            System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
 
             for(int idx = 0; idx < trainCorpus.size(); idx++){
