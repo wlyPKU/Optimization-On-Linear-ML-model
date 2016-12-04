@@ -7,10 +7,7 @@ import math.DenseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +43,7 @@ public class Lasso extends model.Lasso{
             this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
+            Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
@@ -79,6 +77,7 @@ public class Lasso extends model.Lasso{
 
         globalModelOfU = new DenseVector(dimension);
         globalModelOfV = new DenseVector(dimension);
+
         long totalBegin = System.currentTimeMillis();
         System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         int totalIterationTime = 0;

@@ -44,6 +44,7 @@ public class SVM extends model.SVM{
             this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
+            Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {

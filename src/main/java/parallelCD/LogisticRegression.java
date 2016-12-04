@@ -53,18 +53,21 @@ public class LogisticRegression extends model.LogisticRegression{
             if(lambda != 0){
                 C = 1.0 / lambda;
             }
+            int[] indices;
+            int idx;
+            double firstOrderL, oldValue, xj;
+            double[] values;
             for(int fIdx = from; fIdx < to; fIdx++){
+                indices = features[fIdx].indices;
+                values = features[fIdx].values;
                 if(featureSquare[fIdx] != 0) {
                     //First Order L:
-                    double firstOrderL = 0;
-                    double oldValue = modelOfU.values[fIdx];
-                    for (int i = 0; i < features[fIdx].indices.length; i++) {
-                        int idx = features[fIdx].indices[i];
-                        double xj = features[fIdx].values[i];
+                    firstOrderL = 0;
+                    oldValue = modelOfV.values[fIdx];
+                    for (int i = 0; i < indices.length; i++) {
+                        idx = indices[i];
+                        xj = values[i];
                         LabeledData l = trainCorpus.get(idx);
-                        if(-l.label * predictValue[idx] > 20){
-                            continue;
-                        }
                         double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
@@ -77,11 +80,12 @@ public class LogisticRegression extends model.LogisticRegression{
                     } else {
                         modelOfU.values[fIdx] -= updateValue;
                     }
-                    //Update predictValue
-                    for (int i = 0; i < features[fIdx].indices.length; i++) {
-                        int idx = features[fIdx].indices[i];
-                        double value = features[fIdx].values[i];
-                        predictValue[idx] += value * (modelOfU.values[fIdx] - oldValue);
+                    if(modelOfU.values[fIdx] - oldValue != 0) {
+                        //Update predictValue
+                        for (int i = 0; i < indices.length; i++) {
+                            idx = indices[i];
+                            predictValue[idx] += values[i] * (modelOfU.values[fIdx] - oldValue);
+                        }
                     }
                 }
             }
@@ -101,18 +105,21 @@ public class LogisticRegression extends model.LogisticRegression{
             if(lambda != 0){
                 C = 1.0 / lambda;
             }
+            int[] indices;
+            int idx;
+            double firstOrderL, oldValue, xj;
+            double[] values;
             for(int fIdx = from; fIdx < to; fIdx++){
+                indices = features[fIdx].indices;
+                values = features[fIdx].values;
                 if(featureSquare[fIdx] != 0) {
                     //First Order L:
-                    double firstOrderL = 0;
-                    double oldValue = modelOfV.values[fIdx];
-                    for (int i = 0; i < features[fIdx].indices.length; i++) {
-                        int idx = features[fIdx].indices[i];
-                        double xj = features[fIdx].values[i];
+                    firstOrderL = 0;
+                    oldValue = modelOfV.values[fIdx];
+                    for (int i = 0; i < indices.length; i++) {
+                        idx = indices[i];
+                        xj = values[i];
                         LabeledData l = trainCorpus.get(idx);
-                        if(-l.label * predictValue[idx] > 20){
-                            continue;
-                        }
                         double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
@@ -124,10 +131,10 @@ public class LogisticRegression extends model.LogisticRegression{
                     } else {
                         modelOfV.values[fIdx] -= updateValue;
                     }
-                    for (int i = 0; i < features[fIdx].indices.length; i++) {
-                        int idx = features[fIdx].indices[i];
-                        double value = features[fIdx].values[i];
-                        predictValue[idx] -= value * (modelOfV.values[fIdx] - oldValue);
+                    if(modelOfV.values[fIdx] - oldValue != 0){
+                        for (int i = 0; i < indices.length; i++) {
+                            predictValue[indices[i]] -= values[i] * (modelOfV.values[fIdx] - oldValue);
+                        }
                     }
                 }
             }

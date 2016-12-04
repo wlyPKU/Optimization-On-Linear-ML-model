@@ -65,7 +65,7 @@ public class parallelLBFGS {
             //LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
-            if(iter > 2 && changesOfX(xx, xtmp) < 1e-5){
+            if(iter >= 2 && changesOfX(xx, xtmp) < 1e-5){
                 break;
             }
             System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
@@ -244,7 +244,6 @@ public class parallelLBFGS {
                 timesBy(dir, s.get(i), -alphas[i] - beta, localFeatureNum);
             }
         }
-
     }
 
     private static double linearSearch(double[] x,

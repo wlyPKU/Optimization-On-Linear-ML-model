@@ -35,6 +35,7 @@ public class LinearRegression extends model.LinearRegression{
             localList = list;
         }
         public void run() {
+            Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr) {

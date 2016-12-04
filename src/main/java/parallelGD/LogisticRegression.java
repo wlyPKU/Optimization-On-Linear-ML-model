@@ -6,10 +6,7 @@ import math.DenseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -47,15 +44,18 @@ public class LogisticRegression extends model.LogisticRegression{
 
         }
         public void run() {
+            Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
+            //http://aclweb.org/anthology/P/P09/P09-1054.pdf
             //double modelPenalty = - lr * lambda;
-            double modelPenalty = lr * lambda;
+            double modelPenalty = - lr * lambda / globalCorpusSize;
+            double predictValue, tmpValue, scala;
             for (LabeledData labeledData: list) {
-                double predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
-                double tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
-                double scala = tmpValue * labeledData.label;
+                predictValue = globalModelOfU.dot(labeledData.data) - globalModelOfV.dot(labeledData.data);
+                tmpValue = 1.0 / (1.0 + Math.exp(labeledData.label * predictValue));
+                scala = tmpValue * labeledData.label;
                 globalModelOfU.update(labeledData.data, modelPenalty, lr * scala);
                 globalModelOfV.update(labeledData.data, modelPenalty, - lr * scala);
             }
@@ -81,6 +81,11 @@ public class LogisticRegression extends model.LogisticRegression{
 
         globalModelOfU = new DenseVector(modelOfU.dim);
         globalModelOfV = new DenseVector(modelOfU.dim);
+
+        //Arrays.fill(globalModelOfU.values, 1000);
+        //Arrays.fill(globalModelOfV.values, 1000);
+
+
         long totalBegin = System.currentTimeMillis();
 
         int totalIterationTime = 0;

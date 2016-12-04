@@ -112,7 +112,7 @@ public class DenseVector {
   public void plusSparse(SparseVector other, double scala){
     for(int i = 0; i <  other.indices.length; i++){
       int idx = other.indices[i];
-      values[idx] += Math.abs(scala);
+      values[idx] += scala;
     }
   }
   public void multiplySparse(SparseVector other, double scala){
@@ -132,12 +132,13 @@ public class DenseVector {
   public void update(SparseVector other, double modelPenalty, double gradient) {
     for(int i = 0; i <  other.indices.length; i++){
         int idx = other.indices[i];
-        if(values[idx] >= 0) {
+        if(values[idx] > 0) {
             values[idx] = Math.max(values[idx] - Math.abs(modelPenalty) + gradient * (other.values==null? 1: other.values[i]), 0);
         }
         else {
-            values[idx] = Math.max(values[idx] + Math.abs(modelPenalty) + gradient * (other.values==null? 1: other.values[i]), 0);
+            values[idx] = Math.max(values[idx] + gradient * (other.values==null? 1: other.values[i]), 0);
         }
     }
   }
+
 }
