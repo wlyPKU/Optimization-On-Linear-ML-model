@@ -170,10 +170,11 @@ public class LogisticRegression extends model.LogisticRegression{
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
-
-            for(int idx = 0; idx < trainCorpus.size(); idx++){
-                LabeledData l = trainCorpus.get(idx);
-                predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
+            if(threadNum != 1 || i != 0){
+                for(int idx = 0; idx < trainCorpus.size(); idx++){
+                    LabeledData l = trainCorpus.get(idx);
+                    predictValue[idx] = modelOfU.dot(l.data) - modelOfV.dot(l.data);
+                }
             }
             long startTrain = System.currentTimeMillis();
             //Update w+

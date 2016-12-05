@@ -21,12 +21,6 @@ import java.lang.management.ManagementFactory;
  * Created by 王羚宇 on 2016/7/24.
  */
 //Reference:
-//https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
-//https://web.stanford.edu/~boyd/papers/pdf/admm_slides.pdf
-//https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf
-//https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
-//http://www.simonlucey.com/lasso-using-admm/
-//http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 public class Lasso extends model.Lasso {
     private static double lambda;
     private static int threadNum;

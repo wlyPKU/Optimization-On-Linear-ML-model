@@ -131,7 +131,9 @@ public class LinearRegression extends model.LinearRegression{
                     e.printStackTrace();
                 }
             }
-            adjustResidual(model, residual);
+            if(threadNum != 1){
+                adjustResidual(model, residual);
+            }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;

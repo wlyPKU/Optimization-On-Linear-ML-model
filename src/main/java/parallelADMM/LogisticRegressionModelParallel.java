@@ -45,7 +45,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression {
     private static ADMMFeatureState model;
     private ADMMFeatureState[] localADMMState;
 
-    private static double rho = 1;
+    private static double rho = 0.01;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
 

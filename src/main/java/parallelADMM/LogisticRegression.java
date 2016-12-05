@@ -39,7 +39,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
     private double x_hat[];
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
-    private static double rho = 0.1;
+    private static double rho = 0.01;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
     private double rel_par = 1.0;
