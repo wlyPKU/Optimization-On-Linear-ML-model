@@ -47,9 +47,6 @@ public class LogisticRegression extends model.LogisticRegression{
     private static double ABSTOL = 1e-4;
     private static double RELTOL = 1e-3;
 
-
-
-
     private double calculateRho(double rho){
         //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG23
         double miu = 10;

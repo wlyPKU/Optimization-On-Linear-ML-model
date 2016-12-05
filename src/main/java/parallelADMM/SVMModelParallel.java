@@ -44,11 +44,9 @@ public class SVMModelParallel extends model.SVM {
     private static ADMMFeatureState model;
     private ADMMFeatureState[] localADMMState;
 
-    private double x_hat[];
-    private static double rho = 0.001;
+    private static double rho = 2;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
-    double rel_par = 1.0;
 
     static double ABSTOL = 1e-3;
     static double RELTOL = 1e-3;

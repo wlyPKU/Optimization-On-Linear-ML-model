@@ -47,7 +47,7 @@ public class Lasso extends model.Lasso{
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
-            double modelPenalty = lr * lambda;
+            double modelPenalty = lr * lambda / globalCorpusSize;
             //double modelPenalty = - lr * lambda;
             for (LabeledData labeledData: list) {
                 double scala = labeledData.label - globalModelOfU.dot(labeledData.data)
