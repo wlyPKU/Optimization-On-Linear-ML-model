@@ -48,7 +48,7 @@ public class SVM extends model.SVM{
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
-            double modelPenalty = -2 * lr * lambda;
+            double modelPenalty = -2 * lr * lambda / globalCorpusSize;
             //double modelPenalty = - 2 * lr * lambda;
             for (LabeledData labeledData : list) {
                 //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.

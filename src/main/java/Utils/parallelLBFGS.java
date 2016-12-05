@@ -289,7 +289,8 @@ public class parallelLBFGS {
             loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm) ;
             String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
-                    + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv;
+                    + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv
+                    + " Change=" + (loss - (oldLoss + c1 * origDirDeriv * alpha));
             //LOG.info(infoMsg);
             alpha *= backoff;
             i ++;

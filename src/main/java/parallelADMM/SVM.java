@@ -29,7 +29,7 @@ public class SVM extends model.SVM {
 
     private double x_hat[];
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
-    private static double rho = 0.1;
+    private static double rho = 0.01;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
     private double rel_par = 1.0;
@@ -79,12 +79,11 @@ public class SVM extends model.SVM {
         long startTrain = System.currentTimeMillis();
         System.arraycopy(model.z.values, 0, oldModelZ.values, 0, featureDimension);
         for(int id = 0; id < featureDimension; id++){
-            x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
+            x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.u.values[id];
             //z=Soft_threshold(lambda/rho,x+u);
             model.z.values[id] = (rho / (1.0 / lambda + threadNum * rho)) * (x_hat[id] + model.u.values[id]);
         }
         System.out.println("Update Z costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
-
     }
     private void updateU(){
         long startTrain = System.currentTimeMillis();
