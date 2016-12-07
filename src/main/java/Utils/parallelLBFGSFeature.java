@@ -75,7 +75,7 @@ public class parallelLBFGSFeature {
             LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
-            if(iter >= 2 && reservedLoss - loss < 1 && changesOfX(xx, xtmp) < 1e-4){
+            if(Math.abs(reservedLoss - loss) < 1 && changesOfX(xx, xtmp) < 1e-4){
                 break;
             }
             reservedLoss = loss;

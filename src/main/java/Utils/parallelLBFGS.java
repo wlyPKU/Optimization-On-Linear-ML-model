@@ -67,7 +67,7 @@ public class parallelLBFGS {
             //LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
-            if(iter >= 2 && reservedLoss - loss < 1 && changesOfX(xx, xtmp) < 1e-3){
+            if(Math.abs(reservedLoss - loss) < 1 && changesOfX(xx, xtmp) < 1e-3){
                 break;
             }
             infoMsg = infoMsg + String.valueOf(reservedLoss - loss);
