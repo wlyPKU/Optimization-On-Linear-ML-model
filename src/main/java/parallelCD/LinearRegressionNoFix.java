@@ -2,15 +2,16 @@ package parallelCD;
 
 import Utils.LabeledData;
 import Utils.Utils;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
 import math.SparseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -18,17 +19,15 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
-
 //  model       每个线程共享
 //  residual    每个线程共享
 //  可能会发生冲突
-public class Lasso extends model.Lasso {
+public class LinearRegressionNoFix extends model.LinearRegression{
 
     private static double residual[];
     private static DenseVector model;
     private static double featureSquare[];
     private static SparseVector[] features;
-    private static double lambda;
     private static double trainRatio = 0.5;
     private static int threadNum;
     private static int featureDimension;
@@ -45,36 +44,29 @@ public class Lasso extends model.Lasso {
 
         }
         public void run() {
-            double oldValue, updateValue, xj;
-            int idx;
             for(int j = from; j < to; j++){
                 if(featureSquare[j] != 0) {
-                    int indices[] = features[j].indices;
-                    double values[] = features[j].values;
-                    oldValue = model.values[j];
-                    updateValue = 0;
-
+                    double oldValue = model.values[j];
+                    double updateValue = 0;
                     for(int i = 0; i < features[j].indices.length; i++){
-                        idx = indices[i];
-                        xj = values[i];
+                        int idx = features[j].indices[i];
+                        double xj = features[j].values[i];
                         updateValue += xj * residual[idx];
                     }
                     updateValue /= featureSquare[j];
                     model.values[j] += updateValue;
-                    model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
                     double deltaChange = model.values[j] - oldValue;
                     if (deltaChange != 0) {
                         for(int i = 0; i < features[j].indices.length; i++){
-                            idx = indices[i];
-                            xj = values[i];
-                            residual[idx] -= xj * deltaChange;
+                            int idx = features[j].indices[i];
+                            double value = features[j].values[i];
+                            residual[idx] -= value * deltaChange;
                         }
                     }
                 }
             }
         }
     }
-
     public class adjustResidualThread implements Runnable
     {
         int from, to;
@@ -145,10 +137,9 @@ public class Lasso extends model.Lasso {
         long totalBegin = System.currentTimeMillis();
 
         long totalIterationTime = 0;
-
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model);
             long startTrain = System.currentTimeMillis();
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -164,9 +155,6 @@ public class Lasso extends model.Lasso {
                     System.out.println("Waiting.");
                     e.printStackTrace();
                 }
-            }
-            if(threadNum != 1){
-                adjustResidual();
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
@@ -186,7 +174,7 @@ public class Lasso extends model.Lasso {
                     break;
                 }
             }
-            if(converge(oldModel, model, trainCorpus, lambda)){
+            if(converge(oldModel, model, trainCorpus)){
                 if (modelType == 2)
                     break;
             }
@@ -198,25 +186,25 @@ public class Lasso extends model.Lasso {
         }
     }
 
+
     public static void train(List<LabeledData> labeledData) {
-        Lasso lassoModelParallelCD = new Lasso();
+        LinearRegressionNoFix linearCD = new LinearRegressionNoFix();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);
         long start = System.currentTimeMillis();
-        lassoModelParallelCD.trainCore(labeledData);
+        linearCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.Lasso threadNum FeatureDimension train_path lambda trainRatio");
+        System.out.println("Usage: parallelCD.LinearRegression threadNum FeatureDim train_path trainRatio");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
-        lambda = Double.parseDouble(argv[3]);
         trainRatio = 0.5;
         for(int i = 0; i < argv.length - 1; i++){
             if(argv[i].equals("Model")){
@@ -244,7 +232,6 @@ public class Lasso extends model.Lasso {
         System.out.println("[Parameter]StopDelta " + stopDelta);
         System.out.println("[Parameter]FeatureDimension " + featureDimension);
         System.out.println("[Parameter]File Path " + path);
-        System.out.println("[Parameter]Lambda " + lambda);
         System.out.println("[Parameter]TrainRatio " + trainRatio);
         System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
         System.out.println("[Parameter]ModelType " + modelType);

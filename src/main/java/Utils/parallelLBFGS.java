@@ -17,9 +17,8 @@ public class parallelLBFGS {
     private static double changesOfX(double[] oldX, double [] newX){
         double result = 0.0D;
         for(int i = 0; i < oldX.length; i++){
-            result += (oldX[i] - newX[i]) * (oldX[i] - newX[i]);
+            result = Math.max(Math.abs(newX[i] - oldX[i]), result);
         }
-        result = Math.sqrt(result) / oldX.length;
         return result;
     }
 
@@ -51,24 +50,30 @@ public class parallelLBFGS {
         ArrayList<Double> rhoLBFGS = new ArrayList<Double>();
 
         int iter = 1;
-        double[] xtmp = new double[localFeatureNum];
 
-        double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm) ;
+        double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm);
+        double[] xtmp = new double[localFeatureNum];
+        System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
+
+        double reservedLoss = Double.MAX_VALUE;
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
             loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z.values, trainCorpus, algorithm) ;
 
             String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
-                    + " lbfgs iteration=" + iter + " loss=" + loss;
+                    + " lbfgs iteration=" + iter + " loss=" + loss + " ";
             //LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
-            if(iter >= 2 && changesOfX(xx, xtmp) < 1e-5){
+            if(iter >= 2 && reservedLoss - loss < 1 && changesOfX(xx, xtmp) < 1e-3){
                 break;
             }
+            infoMsg = infoMsg + String.valueOf(reservedLoss - loss);
             System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
+            reservedLoss = loss;
+            //LOG.info(infoMsg);
             iter ++;
         }
 
@@ -265,7 +270,7 @@ public class parallelLBFGS {
 
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
-        if (origDirDeriv >= 0) {
+        if (origDirDeriv > 0) {
             LOG.info("L-BFGS chose a non-descent direction, check your gradient!");
             return 0.0;
         }
@@ -295,6 +300,9 @@ public class parallelLBFGS {
             alpha *= backoff;
             i ++;
             step -= 1;
+        }
+        if(step <= 0){
+            timesBy(xNew, x, dir, 0, localFeatureNum);
         }
         getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
         return loss;

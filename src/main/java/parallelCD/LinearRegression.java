@@ -31,6 +31,9 @@ public class LinearRegression extends model.LinearRegression{
     private static int threadNum;
     private static int featureDimension;
 
+    private List<LabeledData> trainCorpus;
+    private List<LabeledData> testCorpus;
+
     public class executeRunnable implements Runnable
     {
         int from, to;
@@ -63,19 +66,40 @@ public class LinearRegression extends model.LinearRegression{
             }
         }
     }
-
-    private void adjustResidual(DenseVector model, double[] residual){
-        for (int i = 0; i < features[featureDimension].indices.length; i++) {
-            int idx = features[featureDimension].indices[i];
-            double value = features[featureDimension].values[i];
-            residual[idx] = value;
+    public class adjustResidualThread implements Runnable
+    {
+        int from, to;
+        adjustResidualThread(int from, int to){
+            this.from = from;
+            this.to = to;
         }
+        public void run() {
+            for(int j = from; j < to; j++){
+                LabeledData l = trainCorpus.get(j);
+                residual[j] = l.label;
+                for(int i = 0; i < l.data.indices.length; i++){
+                    int index = l.data.indices[i];
+                    double value = l.data.values == null? 1: l.data.values[i];
+                    residual[j] -= value * model.values[index];
+                }
+            }
+        }
+    }
 
-        for(int j = 0; j < featureDimension; j++) {
-            for (int i = 0; i < features[j].indices.length; i++) {
-                int idx = features[j].indices[i];
-                double value = features[j].values[i];
-                residual[idx] -= value * model.values[j];
+    private void adjustResidual(){
+        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
+        for (int threadID = 0; threadID < threadNum; threadID++) {
+            int from = trainCorpus.size() * threadID / threadNum;
+            int to = trainCorpus.size() * (threadID + 1) / threadNum;
+            threadPool.execute(new adjustResidualThread(from, to));
+        }
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()) {
+            try {
+                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -88,11 +112,11 @@ public class LinearRegression extends model.LinearRegression{
 
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
-        shuffle(labeledData);
+        //shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
-        List<LabeledData> trainCorpus = labeledData.subList(0, testBegin + 1);
-        List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
+        trainCorpus = labeledData.subList(0, testBegin + 1);
+        testCorpus = labeledData.subList(testBegin, testEnd);
         featureSquare = new double[featureDimension];
         residual = new double[trainCorpus.size()];
         for(int i = 0; i < featureDimension; i++){
@@ -132,7 +156,7 @@ public class LinearRegression extends model.LinearRegression{
                 }
             }
             if(threadNum != 1){
-                adjustResidual(model, residual);
+                adjustResidual();
             }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
@@ -152,7 +176,7 @@ public class LinearRegression extends model.LinearRegression{
                     break;
                 }
             }
-            if(converge(oldModel, model)){
+            if(converge(oldModel, model, trainCorpus)){
                 if (modelType == 2)
                     break;
             }

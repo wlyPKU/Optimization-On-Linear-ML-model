@@ -25,15 +25,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by 王羚宇 on 2016/7/24.
  */
-//Reference:
-//https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
-//https://web.stanford.edu/~boyd/papers/pdf/admm_slides.pdf
-//https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf
-//https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
-//http://www.simonlucey.com/lasso-using-admm/
-//http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 public class LassoModelParallel extends model.Lasso {
-    private static long start;
     private static double lambda;
     private static int threadNum;
     private static double trainRatio = 0.5;
@@ -135,6 +127,8 @@ public class LassoModelParallel extends model.Lasso {
         }
         System.out.println("[Information]Update X costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
     }
+
+
     private void updateZ(){
         long startTrain = System.currentTimeMillis();
         System.arraycopy(model.z.values, 0, oldModelZ.values, 0, model.z.dim);
@@ -153,9 +147,9 @@ public class LassoModelParallel extends model.Lasso {
             System.arraycopy(model.u.values, 0, localADMMState[i].u.values, 0, model.u.dim);
         }
         System.out.println("[Information]Update U costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
-
     }
 
+    @SuppressWarnings("unused")
     private boolean judgeConverge(){
         double R_Norm = 0;
         double S_Norm = 0;
@@ -232,7 +226,7 @@ public class LassoModelParallel extends model.Lasso {
     }
 
     private void trainCore() {
-        Collections.shuffle(labeledData);
+        //Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
@@ -300,7 +294,7 @@ public class LassoModelParallel extends model.Lasso {
                     break;
                 }
             }
-            if(converge(oldModel, model.x)) {
+            if(converge(oldModel, model.x, trainCorpus, lambda)) {
                 if (modelType == 2)
                     break;
             }
@@ -315,7 +309,7 @@ public class LassoModelParallel extends model.Lasso {
 
     private static void train() {
         LassoModelParallel lassoLBFGS = new LassoModelParallel();
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         lassoLBFGS.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");

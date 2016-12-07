@@ -192,7 +192,7 @@ public class Lasso extends model.Lasso {
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        Collections.shuffle(labeledData);
+        //Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
@@ -248,7 +248,7 @@ public class Lasso extends model.Lasso {
                     break;
                 }
             }
-            if(converge(oldModel, model.x)) {
+            if(converge(oldModel, model.x, trainCorpus, lambda)) {
                 if (modelType == 2)
                     break;
             }

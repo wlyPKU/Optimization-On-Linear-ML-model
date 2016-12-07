@@ -60,11 +60,11 @@ public class Lasso extends model.Lasso{
 
     public void train(List<LabeledData> corpus, int dimension) {
         double startCompute = System.currentTimeMillis();
-        Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
+        Collections.shuffle(trainCorpus);
         List<LabeledData> testCorpus = corpus.subList(end, size);
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;
@@ -126,7 +126,7 @@ public class Lasso extends model.Lasso{
                     break;
                 }
             }
-            if(converge(oldModel, model)){
+            if(converge(oldModel, model, trainCorpus, lambda)){
                 if (modelType == 2)
                     break;
             }

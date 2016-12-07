@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 //  model           每个线程共享
 //  predictValue    每个线程共享
 //  可能会发生冲突
-public class SVM extends model.SVM{
+public class SVMNoFix extends model.SVM{
 
     private static double trainRatio = 0.5;
     private static double lambda = 0.5;
@@ -189,9 +189,6 @@ public class SVM extends model.SVM{
                     e.printStackTrace();
                 }
             }
-            if(threadNum != 1) {
-                fixConflictError();
-            }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
@@ -223,7 +220,7 @@ public class SVM extends model.SVM{
     }
 
     public static void train(List<LabeledData> corpus) {
-        SVM svmCD = new SVM();
+        SVMNoFix svmCD = new SVMNoFix();
         model = new DenseVector(featureDimension);
         long start = System.currentTimeMillis();
         svmCD.trainCore(corpus);

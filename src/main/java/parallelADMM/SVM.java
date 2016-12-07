@@ -16,7 +16,6 @@ import java.lang.management.ManagementFactory;
 //https://web.stanford.edu/~boyd/papers/admm/
 
 public class SVM extends model.SVM {
-    private static long start;
     private static double lambda;
     private static int threadNum;
     private static double trainRatio = 0.5;
@@ -137,7 +136,7 @@ public class SVM extends model.SVM {
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        Collections.shuffle(labeledData);
+        //Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
@@ -193,7 +192,7 @@ public class SVM extends model.SVM {
                     break;
                 }
             }
-            if(converge(oldModel, model.x)) {
+            if(converge(oldModel, model.x, trainCorpus, lambda)) {
                 if (modelType == 2)
                     break;
             }
@@ -209,7 +208,7 @@ public class SVM extends model.SVM {
         SVM svmADMM = new SVM();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new ADMMState(featureDimension);
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         svmADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");

@@ -66,12 +66,12 @@ public class SVM extends model.SVM{
 
     public void train(List<LabeledData> corpus, DenseVector model) {
         double startCompute = System.currentTimeMillis();
-        Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
+        Collections.shuffle(trainCorpus);
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;
             int to = end * (threadID + 1) / threadNum;
@@ -127,7 +127,7 @@ public class SVM extends model.SVM{
                     break;
                 }
             }
-            if(converge(oldModel, model)){
+            if(converge(oldModel, model, trainCorpus, lambda)){
                 if (modelType == 2)
                     break;
             }

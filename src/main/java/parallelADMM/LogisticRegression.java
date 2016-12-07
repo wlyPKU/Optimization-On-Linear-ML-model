@@ -17,14 +17,6 @@ import java.lang.management.ManagementFactory;
 /**
  * Created by 王羚宇 on 2016/7/24.
  */
-//https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
-//https://web.stanford.edu/~boyd/papers/pdf/admm_slides.pdf
-//https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf
-//https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
-//http://www.simonlucey.com/lasso-using-admm/
-//http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
-
-//https://web.stanford.edu/~boyd/papers/admm/logreg-l1/logreg.html
 public class LogisticRegression extends model.LogisticRegression{
 
     private static double lambda;
@@ -202,7 +194,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        Collections.shuffle(labeledData);
+        //Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
@@ -256,7 +248,7 @@ public class LogisticRegression extends model.LogisticRegression{
                     break;
                 }
             }
-            if(converge(oldModel, model.x)) {
+            if(converge(oldModel, model.x, trainCorpus, lambda)) {
                 if (modelType == 2)
                     break;
             }

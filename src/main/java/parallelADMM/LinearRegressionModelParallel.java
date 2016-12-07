@@ -25,15 +25,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by 王羚宇 on 2016/7/24.
  */
-//Reference:
-//https://github.com/niangaotuantuan/LASSO-Regression/blob/8338930ca6017927efcb362c17a37a68a160290f/LASSO_ADMM.m
-//https://web.stanford.edu/~boyd/papers/pdf/admm_slides.pdf
-//https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf
-//https://web.stanford.edu/~boyd/papers/admm/lasso/lasso.html
-//http://www.simonlucey.com/lasso-using-admm/
-//http://users.ece.gatech.edu/~justin/CVXOPT-Spring-2015/resources/14-notes-admm.pdf
 public class LinearRegressionModelParallel extends model.LinearRegression {
-    private static long start;
     private static int threadNum;
     private static double trainRatio = 0.5;
     private static int featureDimension;
@@ -44,11 +36,9 @@ public class LinearRegressionModelParallel extends model.LinearRegression {
     private static ADMMFeatureState model;
     private ADMMFeatureState[] localADMMState;
 
-    private double x_hat[];
     private static double rho = 0.001;
     private int lbfgsNumIteration = 10;
     private int lbfgsHistory = 10;
-    double rel_par = 1.0;
 
     static double ABSTOL = 1e-3;
     static double RELTOL = 1e-3;
@@ -156,7 +146,7 @@ public class LinearRegressionModelParallel extends model.LinearRegression {
         System.out.println("[Information]Update U costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
 
     }
-
+    @SuppressWarnings("unused")
     private boolean judgeConverge(){
         double R_Norm = 0;
         double S_Norm = 0;
@@ -233,7 +223,7 @@ public class LinearRegressionModelParallel extends model.LinearRegression {
     }
 
     private void trainCore() {
-        Collections.shuffle(labeledData);
+        //Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
@@ -301,7 +291,7 @@ public class LinearRegressionModelParallel extends model.LinearRegression {
                     break;
                 }
             }
-            if(converge(oldModel, model.x)) {
+            if(converge(oldModel, model.x, trainCorpus)) {
                 if (modelType == 2)
                     break;
             }
@@ -316,7 +306,7 @@ public class LinearRegressionModelParallel extends model.LinearRegression {
 
     private static void train() {
         LinearRegressionModelParallel linearBFGS = new LinearRegressionModelParallel();
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         linearBFGS.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");

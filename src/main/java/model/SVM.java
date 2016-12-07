@@ -139,11 +139,15 @@ public class SVM {
         }
         return loss;
     }
-    public boolean converge(DenseVector oldModel, DenseVector newModel){
+    public boolean converge(DenseVector oldModel, DenseVector newModel, List<LabeledData> data, double lambda){
         double delta = 0;
         for(int i = 0; i < oldModel.values.length; i++){
             delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
         }
+        System.out.println("[Information]LossChanged " + (SVMLoss(data, oldModel, lambda)
+                - SVMLoss(data, newModel, lambda)));
+        System.out.println("[Information]LossAbsoluteChanged " + (Math.abs(SVMLoss(data, oldModel, lambda)
+                - SVMLoss(data, newModel, lambda))));
         System.out.println("[Information]ParameterChanged " + delta);
         System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
 

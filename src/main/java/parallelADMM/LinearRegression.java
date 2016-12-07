@@ -19,7 +19,6 @@ import java.lang.management.ManagementFactory;
 //https://web.stanford.edu/~boyd/papers/admm/
 
 public class LinearRegression extends model.LinearRegression{
-    private static long start;
     private static int threadNum;
     private static double trainRatio = 0.5;
     private static int featureDimension;
@@ -191,7 +190,7 @@ public class LinearRegression extends model.LinearRegression{
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        Collections.shuffle(labeledData);
+        //Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
@@ -246,7 +245,7 @@ public class LinearRegression extends model.LinearRegression{
                     break;
                 }
             }
-            if(converge(oldModel, model.x)) {
+            if(converge(oldModel, model.x, trainCorpus)) {
                 if (modelType == 2)
                     break;
             }
@@ -262,7 +261,7 @@ public class LinearRegression extends model.LinearRegression{
     private static void train() {
         LinearRegression lrADMM = new LinearRegression();
         model = new ADMMState(featureDimension);
-        start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         lrADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
         System.out.println("Training cost " + cost + " ms totally.");

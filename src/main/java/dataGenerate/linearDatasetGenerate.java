@@ -29,7 +29,7 @@ public class linearDatasetGenerate {
         for(int i = 0; i < sampleNumber; i++){
             tupleValue = 0;
             for(int j = 0; j < featureDimension; j++){
-                if(random.nextDouble() <= density){
+                if(random.nextDouble() <= density) {
                     tuple[j] = random.nextGaussian();
                     tupleValue += tuple[j] * realWeights[j];
                 }

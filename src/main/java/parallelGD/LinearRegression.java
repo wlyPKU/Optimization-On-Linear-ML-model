@@ -48,20 +48,18 @@ public class LinearRegression extends model.LinearRegression{
 
     public void train(List<LabeledData> corpus, DenseVector model) {
         double startCompute = System.currentTimeMillis();
-        Collections.shuffle(corpus);
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
         List<LabeledData> testCorpus = corpus.subList(end, size);
+        Collections.shuffle(trainCorpus);
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;
             int to = end * (threadID + 1) / threadNum;
             List<LabeledData> threadCorpus = corpus.subList(from, to);
             ThreadTrainCorpus.add(threadCorpus);
         }
-        DenseVector oldModel = new DenseVector(model.dim);
-
         globalModel = new DenseVector(model.dim);
 
         long totalBegin = System.currentTimeMillis();
@@ -69,7 +67,7 @@ public class LinearRegression extends model.LinearRegression{
         System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            boolean diverge = testAndSummary(trainCorpus, testCorpus, model);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, globalModel);
 
             long startTrain = System.currentTimeMillis();
             System.out.println("[Information]Learning rate " + learningRate);
@@ -98,7 +96,6 @@ public class LinearRegression extends model.LinearRegression{
             System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
                     / 1024 / 1024 + "M");
 
-            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -110,7 +107,7 @@ public class LinearRegression extends model.LinearRegression{
                     break;
                 }
             }
-            if(converge(oldModel, model)){
+            if(converge(globalModel, model, trainCorpus)){
                 if (modelType == 2)
                     break;
             }

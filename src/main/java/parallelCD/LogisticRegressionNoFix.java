@@ -2,15 +2,16 @@ package parallelCD;
 
 import Utils.LabeledData;
 import Utils.Utils;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
 import math.SparseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  predictValue    每个线程共享
 //  可能会发生冲突
-public class LogisticRegression extends model.LogisticRegression{
+public class LogisticRegressionNoFix extends model.LogisticRegression{
 
     private static double lambda;
     private static double trainRatio = 0.5;
@@ -203,9 +204,6 @@ public class LogisticRegression extends model.LogisticRegression{
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
-            if(threadNum != 1 || i != 0){
-                adjustPredictValue();
-            }
             long startTrain = System.currentTimeMillis();
             //Update w+
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
@@ -275,7 +273,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
 
     public static void train(List<LabeledData> labeledData) {
-        LogisticRegression lrSCD = new LogisticRegression();
+        LogisticRegressionNoFix lrSCD = new LogisticRegressionNoFix();
         //http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf 3197-3200+
         modelOfU = new DenseVector(featureDimension);
         modelOfV = new DenseVector(featureDimension);

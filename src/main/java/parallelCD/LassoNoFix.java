@@ -2,15 +2,16 @@ package parallelCD;
 
 import Utils.LabeledData;
 import Utils.Utils;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
 import math.SparseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  residual    每个线程共享
 //  可能会发生冲突
-public class Lasso extends model.Lasso {
+public class LassoNoFix extends model.Lasso {
 
     private static double residual[];
     private static DenseVector model;
@@ -165,9 +166,6 @@ public class Lasso extends model.Lasso {
                     e.printStackTrace();
                 }
             }
-            if(threadNum != 1){
-                adjustResidual();
-            }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
@@ -199,7 +197,7 @@ public class Lasso extends model.Lasso {
     }
 
     public static void train(List<LabeledData> labeledData) {
-        Lasso lassoModelParallelCD = new Lasso();
+        LassoNoFix lassoModelParallelCD = new LassoNoFix();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
         Arrays.fill(model.values, 0);

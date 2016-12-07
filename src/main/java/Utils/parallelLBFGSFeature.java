@@ -63,6 +63,8 @@ public class parallelLBFGSFeature {
         System.arraycopy(g, 0, gNew, 0, localFeatureNum);
 
         double[] xtmp = new double[localFeatureNum];
+        System.arraycopy(state.x.values, 0, xtmp, 0, localFeatureNum);
+        double reservedLoss = Double.MAX_VALUE;
         while (iter < maxIterNum) {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
@@ -70,14 +72,15 @@ public class parallelLBFGSFeature {
 
             String infoMsg = "state feature num=" + state.featureDimension + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss;
-            //LOG.info(infoMsg);
+            LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
-
-            iter ++;
-            if(iter > 2 && changesOfX(xx, xtmp) < 1e-4){
+            if(iter >= 2 && reservedLoss - loss < 1 && changesOfX(xx, xtmp) < 1e-4){
                 break;
             }
+            reservedLoss = loss;
+            iter ++;
+            //infoMsg += " xChange=" + changesOfX(xx, xtmp);
             System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
         }
 
@@ -221,11 +224,15 @@ public class parallelLBFGSFeature {
             String infoMsg = "state feature num=" + state.featureDimension + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv;
-            //LOG.info(infoMsg);
+            LOG.info(infoMsg);
             alpha *= backoff;
             i ++;
             step -= 1;
         }
+        if(step <= 0){
+            timesBy(xNew, x, dir, 0, localFeatureNum);
+        }
+
         getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
         return loss;
     }
