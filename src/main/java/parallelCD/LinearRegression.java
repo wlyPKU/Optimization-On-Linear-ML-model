@@ -32,7 +32,6 @@ public class LinearRegression extends model.LinearRegression{
     private static int featureDimension;
 
     private List<LabeledData> trainCorpus;
-    private List<LabeledData> testCorpus;
 
     public class executeRunnable implements Runnable
     {
@@ -104,19 +103,21 @@ public class LinearRegression extends model.LinearRegression{
         }
     }
 
+    @SuppressWarnings("unused")
     private void shuffle(List<LabeledData> labeledData) {
         Collections.shuffle(labeledData);
-        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
-        features = Utils.generateSpareVector(tmpFeatures);
+
     }
 
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
         //shuffle(labeledData);
+        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         trainCorpus = labeledData.subList(0, testBegin + 1);
-        testCorpus = labeledData.subList(testBegin, testEnd);
+        List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         featureSquare = new double[featureDimension];
         residual = new double[trainCorpus.size()];
         for(int i = 0; i < featureDimension; i++){
@@ -155,7 +156,7 @@ public class LinearRegression extends model.LinearRegression{
                     e.printStackTrace();
                 }
             }
-            if(threadNum != 1){
+            if(threadNum != 1 && i != 0){
                 adjustResidual();
             }
             long trainTime = System.currentTimeMillis() - startTrain;

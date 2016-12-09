@@ -89,7 +89,7 @@ public class SVM extends model.SVM{
     public class fixConflictThread implements Runnable
     {
         int from, to, threadID;
-        public fixConflictThread(int from, int to, int threadID){
+        fixConflictThread(int from, int to, int threadID){
             this.from = from;
             this.to= to;
             this.threadID = threadID;
@@ -138,7 +138,7 @@ public class SVM extends model.SVM{
 
     private void trainCore(List<LabeledData> corpus) {
         double startCompute = System.currentTimeMillis();
-        Collections.shuffle(corpus);
+        //Collections.shuffle(corpus);
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         trainCorpus = corpus.subList(0, end + 1);

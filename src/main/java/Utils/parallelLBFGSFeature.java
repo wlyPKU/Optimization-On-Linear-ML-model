@@ -72,7 +72,7 @@ public class parallelLBFGSFeature {
 
             String infoMsg = "state feature num=" + state.featureDimension + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss;
-            LOG.info(infoMsg);
+            //LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
             if(Math.abs(reservedLoss - loss) < 1 && changesOfX(xx, xtmp) < 1e-4){
@@ -201,11 +201,11 @@ public class parallelLBFGSFeature {
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
         if (origDirDeriv >= 0) {
-            LOG.info("L-BFGS chose a non-descent direction, check your gradient!");
+            //LOG.info("L-BFGS chose a non-descent direction, check your gradient!");
             return 0.0;
         }
         if(Double.isNaN(origDirDeriv)){
-            LOG.info("NaN happens!");
+            //LOG.info("NaN happens!");
         }
 
         double alpha = 1.0;
@@ -224,7 +224,7 @@ public class parallelLBFGSFeature {
             String infoMsg = "state feature num=" + state.featureDimension + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv;
-            LOG.info(infoMsg);
+            //LOG.info(infoMsg);
             alpha *= backoff;
             i ++;
             step -= 1;
@@ -274,13 +274,13 @@ public class parallelLBFGSFeature {
     private static void times(double [] a, double [] b, double x, int length) {
         for (int i = 0; i < length; i ++) {
             if(Double.isNaN(a[i]) || Double.isInfinite(a[i])){
-                LOG.info("NaN a[i] happens!");
+                //LOG.info("NaN a[i] happens!");
             }
             if(Double.isNaN(b[i]) || Double.isInfinite(b[i])){
-                LOG.info("NaN b[i] happens!");
+                //LOG.info("NaN b[i] happens!");
             }
             if(Double.isNaN(x) || Double.isInfinite(x)){
-                LOG.info("NaN b[i] happens!");
+                //LOG.info("NaN b[i] happens!");
             }
             a[i] = b[i] * x;
         }
@@ -289,13 +289,13 @@ public class parallelLBFGSFeature {
     private static void timesBy(double [] a, double [] b, double x, int length) {
         for (int i = 0; i < length; i ++){
             if(Double.isNaN(a[i]) || Double.isInfinite(a[i])){
-                LOG.info("NaN a[i] happens!");
+                //LOG.info("NaN a[i] happens!");
             }
             if(Double.isNaN(b[i]) || Double.isInfinite(b[i])){
-                LOG.info("NaN b[i] happens!");
+                //LOG.info("NaN b[i] happens!");
             }
             if(Double.isNaN(x) || Double.isInfinite(x)){
-                LOG.info("NaN b[i] happens!");
+                //LOG.info("NaN b[i] happens!");
             }
             a[i] += b[i] * x;
         }
@@ -305,13 +305,13 @@ public class parallelLBFGSFeature {
     private static void timesBy(double [] a, double [] b, double [] c, double x, int length) {
         for (int i = 0; i < length; i ++) {
             if(Double.isNaN(a[i]) || Double.isInfinite(a[i])){
-                LOG.info("NaN a[i] happens!");
+                //LOG.info("NaN a[i] happens!");
             }
             if(Double.isNaN(b[i]) || Double.isInfinite(b[i])){
-                LOG.info("NaN b[i] happens!");
+                //LOG.info("NaN b[i] happens!");
             }
             if(Double.isNaN(c[i]) || Double.isInfinite(c[i])){
-                LOG.info("NaN b[i] happens!");
+                //LOG.info("NaN b[i] happens!");
             }
             a[i] = b[i] + c[i] * x;
         }
@@ -326,10 +326,10 @@ public class parallelLBFGSFeature {
         double ret = 0.0;
         for (int i = 0; i < length; i ++){
             if(Double.isNaN(a[i]) || Double.isInfinite(a[i])){
-                LOG.info("NaN a[i] happens!");
+                //LOG.info("NaN a[i] happens!");
             }
             if(Double.isNaN(b[i]) || Double.isInfinite(b[i])){
-                LOG.info("NaN b[i] happens!");
+                //LOG.info("NaN b[i] happens!");
             }
             ret += a[i] * b[i];
         }

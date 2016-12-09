@@ -133,7 +133,8 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression {
         System.arraycopy(model.z.values, 0, oldModelZ.values, 0, model.z.dim);
         for(int id = 0; id < model.z.dim; id++){
             double ax_u = model.globalAX[id] + model.u.values[id];
-            while(true){
+            int x = 0;
+            while(x < 100){
                 double firstOrderDerivative = rho * (model.z.values[id] - ax_u)
                    - labeledData.get(id).label * threadNum / (1 + Math.exp(labeledData.get(id).label * threadNum * model.z.values[id]));
                 double deriOfDerivative = rho + threadNum * threadNum * labeledData.get(id).label * labeledData.get(id).label
@@ -145,6 +146,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression {
                 if(Math.abs(firstOrderDerivative / deriOfDerivative) < 1e-5){
                     break;
                 }
+                x++;
                 //System.out.println(" to " + model.z.values[id] );
 
             }

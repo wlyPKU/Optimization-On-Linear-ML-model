@@ -178,6 +178,8 @@ public class LogisticRegression extends model.LogisticRegression{
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
         //shuffle(labeledData);
+        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         trainCorpus = labeledData.subList(0, testBegin + 1);
@@ -203,7 +205,7 @@ public class LogisticRegression extends model.LogisticRegression{
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
-            if(threadNum != 1 || i != 0){
+            if(threadNum != 1 || i == 0){
                 adjustPredictValue();
             }
             long startTrain = System.currentTimeMillis();
@@ -286,11 +288,10 @@ public class LogisticRegression extends model.LogisticRegression{
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
-
+    @SuppressWarnings("unused")
     private void shuffle(List<LabeledData> labeledData) {
         Collections.shuffle(labeledData);
-        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
-        features = Utils.generateSpareVector(tmpFeatures);
+
     }
 
     public static void main(String[] argv) throws Exception {

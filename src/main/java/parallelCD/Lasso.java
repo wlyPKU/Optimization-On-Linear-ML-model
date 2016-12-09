@@ -34,7 +34,6 @@ public class Lasso extends model.Lasso {
     private static int featureDimension;
 
     private List<LabeledData> trainCorpus;
-    private List<LabeledData> testCorpus;
 
     public class executeRunnable implements Runnable
     {
@@ -47,6 +46,21 @@ public class Lasso extends model.Lasso {
         public void run() {
             double oldValue, updateValue, xj;
             int idx;
+            /*
+            int[] sequence = new int[to - from];
+            for(int i = 0; i < sequence.length; i++){
+                sequence[i] = i + from;
+            }
+            Random random = new Random();
+            for(int i = 0; i < sequence.length; i++){
+                int p = random.nextInt(to - from);
+                int tmp = sequence[i];
+                sequence[i] = sequence[p];
+                sequence[p] = tmp;
+            }
+
+            for(int j : sequence){
+            */
             for(int j = from; j < to; j++){
                 if(featureSquare[j] != 0) {
                     int indices[] = features[j].indices;
@@ -113,19 +127,20 @@ public class Lasso extends model.Lasso {
         }
     }
 
+    @SuppressWarnings("unused")
     private void shuffle(List<LabeledData> labeledData) {
         Collections.shuffle(labeledData);
-        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
-        features = Utils.generateSpareVector(tmpFeatures);
     }
 
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
         //shuffle(labeledData);
+        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         trainCorpus = labeledData.subList(0, testBegin + 1);
-        testCorpus = labeledData.subList(testBegin, testEnd);
+        List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         featureSquare = new double[featureDimension];
         residual = new double[trainCorpus.size()];
         for(int i = 0; i < featureDimension; i++){

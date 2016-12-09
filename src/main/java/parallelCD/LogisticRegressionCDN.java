@@ -126,6 +126,8 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
         //shuffle(labeledData);
+        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         trainCorpus = labeledData.subList(0, testBegin + 1);
@@ -215,10 +217,9 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 
+    @SuppressWarnings("unused")
     private void shuffle(List<LabeledData> labeledData) {
         Collections.shuffle(labeledData);
-        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
-        features = Utils.generateSpareVector(tmpFeatures);
     }
 
     public static void main(String[] argv) throws Exception {

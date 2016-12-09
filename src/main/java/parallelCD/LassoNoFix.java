@@ -96,6 +96,7 @@ public class LassoNoFix extends model.Lasso {
         }
     }
 
+    @SuppressWarnings("unused")
     private void adjustResidual(){
         ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
         for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -114,15 +115,17 @@ public class LassoNoFix extends model.Lasso {
         }
     }
 
+    @SuppressWarnings("unused")
     private void shuffle(List<LabeledData> labeledData) {
         Collections.shuffle(labeledData);
-        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
-        features = Utils.generateSpareVector(tmpFeatures);
+
     }
 
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
         //shuffle(labeledData);
+        SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
+        features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         trainCorpus = labeledData.subList(0, testBegin + 1);

@@ -17,76 +17,72 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by 王羚宇 on 2016/7/26.
+ * Created by WLY on 2016/9/4.
  */
-//Ref: http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf Pg. 7,14,18
 
 //  model       每个线程共享
-//  predictValue    每个线程共享
+//  residual    每个线程共享
 //  可能会发生冲突
-public class LogisticRegressionNoFix extends model.LogisticRegression{
+public class LassoShotGun extends model.Lasso {
 
+    private static double residual[];
+    private static DenseVector model;
+    private static double featureSquare[];
+    private static SparseVector[] features;
     private static double lambda;
     private static double trainRatio = 0.5;
     private static int threadNum;
     private static int featureDimension;
 
-    private static SparseVector[] features;
+    private List<LabeledData> trainCorpus;
 
-    private static DenseVector modelOfU;
-    private static DenseVector modelOfV;
-    private static DenseVector model;
-    private static double predictValue[];
-
-    private static double featureSquare[];
-
-    private static List<LabeledData> trainCorpus;
-
-    private class updateWPositive implements Runnable
+    public class executeRunnable implements Runnable
     {
         int from, to;
-        private updateWPositive(int from, int to){
+        public executeRunnable(int from, int to){
             this.from = from;
             this.to = to;
 
         }
         public void run() {
-            double C = Double.MAX_VALUE;
-            if(lambda != 0){
-                C = 1.0 / lambda;
-            }
-            int[] indices;
+            double oldValue, updateValue, xj;
             int idx;
-            double firstOrderL, oldValue, xj;
-            double[] values;
-            for(int fIdx = from; fIdx < to; fIdx++){
-                indices = features[fIdx].indices;
-                values = features[fIdx].values;
-                if(featureSquare[fIdx] != 0) {
-                    //First Order L:
-                    firstOrderL = 0;
-                    oldValue = modelOfV.values[fIdx];
-                    for (int i = 0; i < indices.length; i++) {
+            /*
+            int[] sequence = new int[to - from];
+            for(int i = 0; i < sequence.length; i++){
+                sequence[i] = i + from;
+            }
+            Random random = new Random();
+            for(int i = 0; i < sequence.length; i++){
+                int p = random.nextInt(to - from);
+                int tmp = sequence[i];
+                sequence[i] = sequence[p];
+                sequence[p] = tmp;
+            }
+
+            for(int j : sequence){
+            */
+            for(int j = from; j < to; j++){
+                if(featureSquare[j] != 0) {
+                    int indices[] = features[j].indices;
+                    double values[] = features[j].values;
+                    oldValue = model.values[j];
+                    updateValue = 0;
+
+                    for(int i = 0; i < features[j].indices.length; i++){
                         idx = indices[i];
                         xj = values[i];
-                        LabeledData l = trainCorpus.get(idx);
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
-                        firstOrderL += l.label * xj * (tao - 1);
+                        updateValue += xj * residual[idx];
                     }
-                    firstOrderL *= C;
-                    //误差的来源,0.25.
-                    double Uj = 0.25 * C * featureSquare[fIdx];
-                    double updateValue = (1 + firstOrderL) / Uj;
-                    if (updateValue > modelOfU.values[fIdx]) {
-                        modelOfU.values[fIdx] = 0;
-                    } else {
-                        modelOfU.values[fIdx] -= updateValue;
-                    }
-                    if(modelOfU.values[fIdx] - oldValue != 0) {
-                        //Update predictValue
-                        for (int i = 0; i < indices.length; i++) {
+                    updateValue /= featureSquare[j];
+                    model.values[j] += updateValue;
+                    model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
+                    double deltaChange = model.values[j] - oldValue;
+                    if (deltaChange != 0) {
+                        for(int i = 0; i < features[j].indices.length; i++){
                             idx = indices[i];
-                            predictValue[idx] += values[i] * (modelOfU.values[fIdx] - oldValue);
+                            xj = values[i];
+                            residual[idx] -= xj * deltaChange;
                         }
                     }
                 }
@@ -94,77 +90,32 @@ public class LogisticRegressionNoFix extends model.LogisticRegression{
         }
     }
 
-    private class updateWNegative implements Runnable
+    public class adjustResidualThread implements Runnable
     {
         int from, to;
-        private updateWNegative(int from, int to){
-            this.from = from;
-            this.to = to;
-
-        }
-        public void run() {
-            double C = Double.MAX_VALUE;
-            if(lambda != 0){
-                C = 1.0 / lambda;
-            }
-            int[] indices;
-            int idx;
-            double firstOrderL, oldValue, xj;
-            double[] values;
-            for(int fIdx = from; fIdx < to; fIdx++){
-                indices = features[fIdx].indices;
-                values = features[fIdx].values;
-                if(featureSquare[fIdx] != 0) {
-                    //First Order L:
-                    firstOrderL = 0;
-                    oldValue = modelOfV.values[fIdx];
-                    for (int i = 0; i < indices.length; i++) {
-                        idx = indices[i];
-                        xj = values[i];
-                        LabeledData l = trainCorpus.get(idx);
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
-                        firstOrderL += l.label * xj * (tao - 1);
-                    }
-                    firstOrderL *= C;
-                    double Uj = 0.25 * C * featureSquare[fIdx];
-                    double updateValue = (1 - firstOrderL) / Uj;
-                    if (updateValue > modelOfV.values[fIdx]) {
-                        modelOfV.values[fIdx] = 0;
-                    } else {
-                        modelOfV.values[fIdx] -= updateValue;
-                    }
-                    if(modelOfV.values[fIdx] - oldValue != 0){
-                        for (int i = 0; i < indices.length; i++) {
-                            predictValue[indices[i]] -= values[i] * (modelOfV.values[fIdx] - oldValue);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    public class adjustPredictValueThread implements Runnable
-    {
-        int from, to;
-        adjustPredictValueThread(int from, int to){
+        adjustResidualThread(int from, int to){
             this.from = from;
             this.to = to;
         }
         public void run() {
             for(int j = from; j < to; j++){
                 LabeledData l = trainCorpus.get(j);
-                predictValue[j] = model.dot(l.data);
+                residual[j] = l.label;
+                for(int i = 0; i < l.data.indices.length; i++){
+                    int index = l.data.indices[i];
+                    double value = l.data.values == null? 1: l.data.values[i];
+                    residual[j] -= value * model.values[index];
+                }
             }
         }
     }
 
-    @SuppressWarnings("unused")
-    private void adjustPredictValue(){
+    private void adjustResidual(){
         ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
         for (int threadID = 0; threadID < threadNum; threadID++) {
             int from = trainCorpus.size() * threadID / threadNum;
             int to = trainCorpus.size() * (threadID + 1) / threadNum;
-            threadPool.execute(new adjustPredictValueThread(from, to));
+            threadPool.execute(new adjustResidualThread(from, to));
         }
         threadPool.shutdown();
         while (!threadPool.isTerminated()) {
@@ -177,6 +128,18 @@ public class LogisticRegressionNoFix extends model.LogisticRegression{
         }
     }
 
+    @SuppressWarnings("unused")
+    private void shuffle(List<LabeledData> labeledData) {
+        Collections.shuffle(labeledData);
+    }
+
+    private double calculateMaxLambda(List<LabeledData> trainCorpus){
+        double lambdaMax = 0;
+        for(LabeledData l: trainCorpus){
+            lambdaMax = Math.max(lambdaMax, l.label);
+        }
+        return lambdaMax;
+    }
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
         //shuffle(labeledData);
@@ -186,40 +149,42 @@ public class LogisticRegressionNoFix extends model.LogisticRegression{
         int testEnd = labeledData.size();
         trainCorpus = labeledData.subList(0, testBegin + 1);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
+        featureSquare = new double[featureDimension];
+        residual = new double[trainCorpus.size()];
+        for(int i = 0; i < featureDimension; i++){
+            featureSquare[i] = 0;
+            for(Double v: features[i].values){
+                featureSquare[i] += v * v;
+            }
+        }
 
-        predictValue = new double[trainCorpus.size()];
-
-        model = new DenseVector(featureDimension);
+        for(int i = 0; i < features[featureDimension].indices.length; i++){
+            residual[features[featureDimension].indices[i]] = features[featureDimension].values[i];
+        }
         DenseVector oldModel = new DenseVector(featureDimension);
+
+        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
 
         long totalBegin = System.currentTimeMillis();
 
         long totalIterationTime = 0;
-        //Added according to the http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf Page 18.
-        featureSquare = new double[featureDimension];
-        Arrays.fill(featureSquare, 0);
-        for(int idx = 0; idx < featureDimension; idx++){
-            for (double xj: features[idx].values) {
-                featureSquare[idx] += xj * xj;
-            }
-        }
-        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+
+        double lambdaMax = calculateMaxLambda(trainCorpus);
+        double lambdaMin = lambda;
+        double alpha = Math.pow(lambdaMax/lambdaMin, 1.0/(1.0*maxIteration));
+
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
+            lambda = lambdaMin * Math.pow(alpha, maxIteration - i);
+            System.out.println("[Information]Lambda " + lambda);
+
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
-            if(i == 0){
-                for(int idx = 0; idx < trainCorpus.size(); idx++){
-                    LabeledData l = trainCorpus.get(idx);
-                    predictValue[idx] = model.dot(l.data);
-                }
-            }
             long startTrain = System.currentTimeMillis();
-            //Update w+
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 int from = featureDimension * threadID / threadNum;
                 int to = featureDimension * (threadID + 1) / threadNum;
-                threadPool.execute(new updateWPositive(from, to));
+                threadPool.execute(new executeRunnable(from, to));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -230,35 +195,18 @@ public class LogisticRegressionNoFix extends model.LogisticRegression{
                     e.printStackTrace();
                 }
             }
-            //Update w-
-            ExecutorService newThreadPool = Executors.newFixedThreadPool(threadNum);
-            for (int threadID = 0; threadID < threadNum; threadID++) {
-                int from = featureDimension * threadID / threadNum;
-                int to = featureDimension * (threadID + 1) / threadNum;
-                newThreadPool.execute(new updateWNegative(from, to));
-            }
-            newThreadPool.shutdown();
-            while (!newThreadPool.isTerminated()) {
-                try {
-                    newThreadPool.awaitTermination(1, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            for(int fIdx = 0; fIdx < featureDimension; fIdx ++){
-                model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
+            if(threadNum != 1){
+                adjustResidual();
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("[Information]trainTime " + trainTime + " ");
+            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);
-            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin) );
+            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
             System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
                     / 1024 / 1024 + "M");
             System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
                     / 1024 / 1024 + "M");
-
             if(modelType == 1) {
                 if (totalIterationTime > maxTimeLimit) {
                     break;
@@ -280,38 +228,26 @@ public class LogisticRegressionNoFix extends model.LogisticRegression{
         }
     }
 
-
     public static void train(List<LabeledData> labeledData) {
-        LogisticRegressionNoFix lrSCD = new LogisticRegressionNoFix();
-        //http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf 3197-3200+
-        modelOfU = new DenseVector(featureDimension);
-        modelOfV = new DenseVector(featureDimension);
-        Arrays.fill(modelOfU.values, 0);
-        Arrays.fill(modelOfV.values, 0);
+        LassoShotGun lassoModelParallelCD = new LassoShotGun();
+        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
+        model = new DenseVector(featureDimension);
+        Arrays.fill(model.values, 0);
         long start = System.currentTimeMillis();
-        lrSCD.trainCore(labeledData);
+        lassoModelParallelCD.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
 
-
-    @SuppressWarnings("unused")
-    private void shuffle(List<LabeledData> labeledData) {
-        Collections.shuffle(labeledData);
-    }
-
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelCD.LogisticRegression threadNum FeatureDim train_path lamda trainRatio");
+        System.out.println("Usage: parallelCD.Lasso threadNum FeatureDimension train_path lambda trainRatio");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
-        if(lambda <= 0){
-            System.out.println("Please input a correct lambda (>0)");
-            System.exit(2);
-        }
+        trainRatio = 0.5;
         for(int i = 0; i < argv.length - 1; i++){
             if(argv[i].equals("Model")){
                 //0: maxIteration  1: maxTime 2: earlyStop
@@ -344,6 +280,7 @@ public class LogisticRegressionNoFix extends model.LogisticRegression{
         System.out.println("[Parameter]ModelType " + modelType);
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
+
         long startLoad = System.currentTimeMillis();
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
