@@ -64,10 +64,10 @@ public class parallelLBFGS {
 
             String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss + " ";
-            //LOG.info(infoMsg);
+            ////LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
-            if(Math.abs(reservedLoss - loss) < 1 && changesOfX(xx, xtmp) < 1e-3){
+            if(iter >= 2 &&Math.abs(reservedLoss - loss) < 1 && changesOfX(xx, xtmp) < 1e-3){
                 break;
             }
             infoMsg = infoMsg + String.valueOf(reservedLoss - loss);
@@ -271,11 +271,11 @@ public class parallelLBFGS {
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
         if (origDirDeriv > 0) {
-            LOG.info("L-BFGS chose a non-descent direction, check your gradient!");
+            //LOG.info("L-BFGS chose a non-descent direction, check your gradient!");
             return 0.0;
         }
         if(Double.isNaN(origDirDeriv)){
-            LOG.info("NaN happens!");
+            //LOG.info("NaN happens!");
             return 0.0;
         }
 
@@ -303,6 +303,7 @@ public class parallelLBFGS {
         }
         if(step <= 0){
             timesBy(xNew, x, dir, 0, localFeatureNum);
+            loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm) ;
         }
         getGradientLoss(state, xNew, rhoADMM, gNew, z, trainCorpus, algorithm);
         return loss;

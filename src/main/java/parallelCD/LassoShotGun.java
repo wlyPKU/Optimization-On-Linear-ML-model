@@ -171,11 +171,15 @@ public class LassoShotGun extends model.Lasso {
 
         double lambdaMax = calculateMaxLambda(trainCorpus);
         double lambdaMin = lambda;
-        double alpha = Math.pow(lambdaMax/lambdaMin, 1.0/(1.0*maxIteration));
+        //double lambdaChangeIteration = Math.min(1 + trainCorpus.size()/ 2000, maxIteration);
+        double lambdaChangeIteration = maxIteration / 2;
+        double alpha = Math.pow(lambdaMax/lambdaMin, 1.0/(1.0*lambdaChangeIteration));
 
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            lambda = lambdaMin * Math.pow(alpha, maxIteration - i);
+            if(i < lambdaChangeIteration) {
+                lambda = lambdaMin * Math.pow(alpha, lambdaChangeIteration - i);
+            }
             System.out.println("[Information]Lambda " + lambda);
 
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);

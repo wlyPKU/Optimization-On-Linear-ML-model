@@ -140,20 +140,20 @@ public class SVMModelParallel extends model.SVM {
         for(int id = 0; id < model.z.dim; id++){
             double label = labeledData.get(id).label;
             if(label == 1){
-                if(model.AX[id] + model.u.values[id] > 1 / threadNum){
+                if(model.AX[id] + model.u.values[id] > 1.0 / threadNum){
                     model.z.values[id] = model.AX[id] + model.u.values[id];
-                }else if(model.AX[id] + model.u.values[id] < 1 / threadNum - threadNum / rho){
+                }else if(model.AX[id] + model.u.values[id] < 1.0 / threadNum - threadNum / rho){
                     model.z.values[id] = model.AX[id] + model.u.values[id] + threadNum / rho;
                 }else{
-                    model.z.values[id] = 1 / threadNum ;
+                    model.z.values[id] = 1.0 / threadNum ;
                 }
             }else if(label == -1){
-                if(model.AX[id] + model.u.values[id] < - 1 / threadNum){
+                if(model.AX[id] + model.u.values[id] < - 1.0 / threadNum){
                     model.z.values[id] = model.AX[id] + model.u.values[id];
-                }else if(model.AX[id] + model.u.values[id] > -1 / threadNum + threadNum / rho){
+                }else if(model.AX[id] + model.u.values[id] > -1.0 / threadNum + threadNum / rho){
                     model.z.values[id] = model.AX[id] + model.u.values[id] - threadNum / rho;
                 }else{
-                    model.z.values[id] = -1 / threadNum ;
+                    model.z.values[id] = -1.0 / threadNum ;
                 }
             }
 
@@ -262,7 +262,8 @@ public class SVMModelParallel extends model.SVM {
             int beginOffset = featureDimension * threadID / threadNum;
             int dimension = featureDimension / threadNum;
             localADMMState[threadID] = new ADMMFeatureState(dimension, trainCorpus.size(), beginOffset);
-            localLabeledData.add(processLocalCorpus(beginOffset, beginOffset + dimension));
+            List<LabeledData> tmp = processLocalCorpus(beginOffset, beginOffset + dimension);
+            localLabeledData.add(tmp);
         }
         long totalBegin = System.currentTimeMillis();
 
@@ -294,6 +295,7 @@ public class SVMModelParallel extends model.SVM {
             for(int id = 0; id < threadNum; id++){
                 System.arraycopy(model.AX, 0, localADMMState[id].globalAX, 0, model.AX.length);
             }
+
             //rho = Math.min(rho * 1.1, maxRho);
             if(!rhoFixed){
                 rho = calculateRho(rho);

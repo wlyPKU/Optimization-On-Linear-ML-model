@@ -38,7 +38,6 @@ public class parallelLBFGSFeature {
                              DenseVector z) {
 
         parallelLBFGSFeature.lambda = lambda;
-
         int localFeatureNum = state.featureDimension;
         parallelLBFGSFeature.threadNum = threadNum;
 
@@ -75,12 +74,13 @@ public class parallelLBFGSFeature {
             //LOG.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
-            if(Math.abs(reservedLoss - loss) < 1 && changesOfX(xx, xtmp) < 1e-4){
+            if(iter >= 2 && Math.abs(reservedLoss - loss) < 1 && changesOfX(xx, xtmp) < 1e-4){
                 break;
             }
             reservedLoss = loss;
             iter ++;
-            //infoMsg += " xChange=" + changesOfX(xx, xtmp);
+            infoMsg += " Change=" + changesOfX(xx, xtmp);
+            //System.out.println(infoMsg);
             System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
         }
 

@@ -129,6 +129,7 @@ public class SVM extends model.SVM{
                 e.printStackTrace();
             }
         }
+        Arrays.fill(model.values, 0);
         for(int i = 0; i < threadNum; i++){
             for(int j = 0; j < featureDimension; j++){
                 model.values[j] += partModel[i][j];
@@ -189,9 +190,9 @@ public class SVM extends model.SVM{
                     e.printStackTrace();
                 }
             }
-            if(threadNum != 1) {
+            //if(threadNum != 1) {
                 fixConflictError();
-            }
+           // }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;

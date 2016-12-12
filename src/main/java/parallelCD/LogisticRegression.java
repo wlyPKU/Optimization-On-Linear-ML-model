@@ -205,9 +205,9 @@ public class LogisticRegression extends model.LogisticRegression{
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
-            if(threadNum != 1 || i == 0){
+            //if(threadNum != 1 || i == 0){
                 adjustPredictValue();
-            }
+            //}
             long startTrain = System.currentTimeMillis();
             //Update w+
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
