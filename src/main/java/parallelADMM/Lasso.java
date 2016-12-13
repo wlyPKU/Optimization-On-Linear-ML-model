@@ -90,7 +90,6 @@ public class Lasso extends model.Lasso {
             //Update x;
             parallelLBFGS.train(localADMMState[threadID], lbfgsNumIteration, lbfgsHistory, threadNum,
                     rho, iteNum, localTrainCorpus.get(threadID), "Lasso", model.z);
-            model.x.plusDense(localADMMState[threadID].x);
         }
     }
 
@@ -100,10 +99,7 @@ public class Lasso extends model.Lasso {
             this.threadID = threadID;
         }
         public void run() {
-            for(int fID = 0; fID < featureDimension; fID++){
-                localADMMState[threadID].u.values[fID] += (localADMMState[threadID].x.values[fID] - model.z.values[fID]);
-                model.u.values[fID] += localADMMState[threadID].u.values[fID];
-            }
+
         }
     }
 
@@ -123,6 +119,9 @@ public class Lasso extends model.Lasso {
                 e.printStackTrace();
             }
         }
+        for(int i = 0; i < threadNum; i++){
+            model.x.plusDense(localADMMState[i].x);
+        }
         model.x.allDividedBy(threadNum);
         System.out.println("[Information]Update X costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
     }
@@ -141,19 +140,22 @@ public class Lasso extends model.Lasso {
     private void updateU(){
         long startTrain = System.currentTimeMillis();
         Arrays.fill(model.u.values, 0);
-        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
+        //ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
         for (int threadID = 0; threadID < threadNum; threadID++) {
-            threadPool.execute(new updateUThread(threadID));
-        }
-        threadPool.shutdown();
-        while (!threadPool.isTerminated()) {
-            try {
-                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            for(int fID = 0; fID < featureDimension; fID++){
+                localADMMState[threadID].u.values[fID] += (localADMMState[threadID].x.values[fID] - model.z.values[fID]);
+                model.u.values[fID] += localADMMState[threadID].u.values[fID];
             }
         }
+        //threadPool.shutdown();
+        //while (!threadPool.isTerminated()) {
+        //    try {
+        //        while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
+        //        }
+        //    } catch (InterruptedException e) {
+        //        e.printStackTrace();
+        //    }
+        //}
         model.u.allDividedBy(threadNum);
         System.out.println("[Information]Update U costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
 
@@ -203,10 +205,6 @@ public class Lasso extends model.Lasso {
         localADMMState = new ADMMState[threadNum];
         for (int threadID = 0; threadID < threadNum; threadID++) {
             localADMMState[threadID] = new ADMMState(featureDimension);
-            int from = trainCorpus.size() * threadID / threadNum;
-            int to = trainCorpus.size() * (threadID + 1) / threadNum;
-            List<LabeledData> localData = trainCorpus.subList(from, to);
-            localTrainCorpus.add(localData);
         }
         long totalBegin = System.currentTimeMillis();
 
@@ -215,6 +213,14 @@ public class Lasso extends model.Lasso {
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
+            Collections.shuffle(trainCorpus);
+            localTrainCorpus = new ArrayList<List<LabeledData>>();
+            for (int threadID = 0; threadID < threadNum; threadID++) {
+                int from = trainCorpus.size() * threadID / threadNum;
+                int to = trainCorpus.size() * (threadID + 1) / threadNum;
+                List<LabeledData> localData = trainCorpus.subList(from, to);
+                localTrainCorpus.add(localData);
+            }
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             long startTrain = System.currentTimeMillis();

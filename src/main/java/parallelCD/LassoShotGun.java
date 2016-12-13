@@ -136,7 +136,7 @@ public class LassoShotGun extends model.Lasso {
     private double calculateMaxLambda(List<LabeledData> trainCorpus){
         double lambdaMax = 0;
         for(LabeledData l: trainCorpus){
-            lambdaMax = Math.max(lambdaMax, l.label);
+            lambdaMax = Math.max(lambdaMax, Math.abs(l.label));
         }
         return lambdaMax;
     }
@@ -174,6 +174,7 @@ public class LassoShotGun extends model.Lasso {
         //double lambdaChangeIteration = Math.min(1 + trainCorpus.size()/ 2000, maxIteration);
         double lambdaChangeIteration = maxIteration / 2;
         double alpha = Math.pow(lambdaMax/lambdaMin, 1.0/(1.0*lambdaChangeIteration));
+        System.out.println("Alpha " + alpha);
 
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
@@ -199,9 +200,9 @@ public class LassoShotGun extends model.Lasso {
                     e.printStackTrace();
                 }
             }
-            if(threadNum != 1){
+            //if(threadNum != 1){
                 adjustResidual();
-            }
+            //}
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;

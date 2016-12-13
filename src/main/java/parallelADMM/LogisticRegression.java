@@ -205,10 +205,6 @@ public class LogisticRegression extends model.LogisticRegression{
         localADMMState = new ADMMState[threadNum];
         for (int threadID = 0; threadID < threadNum; threadID++) {
             localADMMState[threadID] = new ADMMState(featureDimension);
-            int from = trainCorpus.size() * threadID / threadNum;
-            int to = trainCorpus.size() * (threadID + 1) / threadNum;
-            List<LabeledData> localData = trainCorpus.subList(from, to);
-            localTrainCorpus.add(localData);
         }
         long totalBegin = System.currentTimeMillis();
 
@@ -218,6 +214,14 @@ public class LogisticRegression extends model.LogisticRegression{
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
+            Collections.shuffle(trainCorpus);
+            localTrainCorpus = new ArrayList<List<LabeledData>>();
+            for (int threadID = 0; threadID < threadNum; threadID++) {
+                int from = trainCorpus.size() * threadID / threadNum;
+                int to = trainCorpus.size() * (threadID + 1) / threadNum;
+                List<LabeledData> localData = trainCorpus.subList(from, to);
+                localTrainCorpus.add(localData);
+            }
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             long startTrain = System.currentTimeMillis();
             //Update x

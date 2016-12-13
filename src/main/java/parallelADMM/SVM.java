@@ -147,10 +147,6 @@ public class SVM extends model.SVM {
         localADMMState = new ADMMState[threadNum];
         for (int threadID = 0; threadID < threadNum; threadID++) {
             localADMMState[threadID] = new ADMMState(featureDimension);
-            int from = trainCorpus.size() * threadID / threadNum;
-            int to = trainCorpus.size() * (threadID + 1) / threadNum;
-            List<LabeledData> localData = trainCorpus.subList(from, to);
-            localTrainCorpus.add(localData);
         }
         long totalBegin = System.currentTimeMillis();
 
@@ -161,7 +157,14 @@ public class SVM extends model.SVM {
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
-
+            Collections.shuffle(trainCorpus);
+            localTrainCorpus = new ArrayList<List<LabeledData>>();
+            for (int threadID = 0; threadID < threadNum; threadID++) {
+                int from = trainCorpus.size() * threadID / threadNum;
+                int to = trainCorpus.size() * (threadID + 1) / threadNum;
+                List<LabeledData> localData = trainCorpus.subList(from, to);
+                localTrainCorpus.add(localData);
+            }
             long startTrain = System.currentTimeMillis();
             //Update z
             updateZ();
