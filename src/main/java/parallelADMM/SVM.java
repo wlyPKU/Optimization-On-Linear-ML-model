@@ -145,8 +145,14 @@ public class SVM extends model.SVM {
         DenseVector oldModel = new DenseVector(featureDimension);
 
         localADMMState = new ADMMState[threadNum];
+        localTrainCorpus = new ArrayList<List<LabeledData>>();
+
         for (int threadID = 0; threadID < threadNum; threadID++) {
             localADMMState[threadID] = new ADMMState(featureDimension);
+            int from = trainCorpus.size() * threadID / threadNum;
+            int to = trainCorpus.size() * (threadID + 1) / threadNum;
+            List<LabeledData> localData = trainCorpus.subList(from, to);
+            localTrainCorpus.add(localData);
         }
         long totalBegin = System.currentTimeMillis();
 
@@ -166,12 +172,13 @@ public class SVM extends model.SVM {
                 localTrainCorpus.add(localData);
             }
             long startTrain = System.currentTimeMillis();
+            //Update x;
+            updateX(i);
             //Update z
             updateZ();
             //Update u
             updateU();
-            //Update x;
-            updateX(i);
+
 
             if(!rhoFixed){
                 rho = calculateRho(rho);

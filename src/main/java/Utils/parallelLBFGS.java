@@ -61,10 +61,9 @@ public class parallelLBFGS {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
             loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z.values, trainCorpus, algorithm) ;
-
             String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
                     + " lbfgs iteration=" + iter + " loss=" + loss + " ";
-            ////LOG.info(infoMsg);
+            //////Log.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
             if(iter >= 2 &&Math.abs(reservedLoss - loss) < 1.0 && changesOfX(xx, xtmp) < 1e-3){
@@ -73,7 +72,7 @@ public class parallelLBFGS {
             infoMsg = infoMsg + String.valueOf(reservedLoss - loss);
             System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
             reservedLoss = loss;
-            //LOG.info(infoMsg);
+            //Log.info(infoMsg);
             iter ++;
         }
 
@@ -271,11 +270,11 @@ public class parallelLBFGS {
         // if a non-descent direction is chosen, the line search will break anyway, so throw here
         // The most likely reason for this is a bug in your function's gradient computation
         if (origDirDeriv > 0) {
-            //LOG.info("L-BFGS chose a non-descent direction, check your gradient!");
+            //Log.info("L-BFGS chose a non-descent direction, check your gradient!");
             return 0.0;
         }
         if(Double.isNaN(origDirDeriv)){
-            //LOG.info("NaN happens!");
+            //Log.info("NaN happens!");
             return 0.0;
         }
 
@@ -296,7 +295,7 @@ public class parallelLBFGS {
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
                     + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv
                     + " Change=" + (loss - (oldLoss + c1 * origDirDeriv * alpha));
-            //LOG.info(infoMsg);
+            ////Log.info(infoMsg);
             alpha *= backoff;
             i ++;
             step -= 1;
