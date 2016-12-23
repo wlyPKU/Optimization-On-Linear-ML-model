@@ -136,7 +136,7 @@ public class SVM extends model.SVM {
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        //Collections.shuffle(labeledData);
+        Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
@@ -163,7 +163,7 @@ public class SVM extends model.SVM {
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
-            Collections.shuffle(trainCorpus);
+            //Collections.shuffle(trainCorpus);
             localTrainCorpus = new ArrayList<List<LabeledData>>();
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 int from = trainCorpus.size() * threadID / threadNum;

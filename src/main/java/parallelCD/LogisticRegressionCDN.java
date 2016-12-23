@@ -125,7 +125,7 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
 
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
-        //shuffle(labeledData);
+        shuffle(labeledData);
         SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
         features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);

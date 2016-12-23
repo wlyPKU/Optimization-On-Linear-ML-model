@@ -6,10 +6,7 @@ import math.DenseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -17,10 +14,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by WLY on 2016/9/4.
  */
-public class SVM extends model.SVM{
+public class SVMPSGD extends model.SVM{
     public static long start;
 
     private DenseVector globalModel;
+    private static DenseVector[] localModel;
     public static double trainRatio = 0.5;
     public static int threadNum;
     public static double lambda = 0.1;
@@ -49,16 +47,15 @@ public class SVM extends model.SVM{
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
             double modelPenalty = -2 * lr * lambda / globalCorpusSize;
-            //double modelPenalty = - 2 * lr * lambda;
             for (LabeledData labeledData : list) {
                 //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
                 /* model pennalty */
                 //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
-                globalModel.multiplySparse(labeledData.data, modelPenalty);
-                double dotProd = globalModel.dot(labeledData.data);
+                localModel[threadID].multiplySparse(labeledData.data, modelPenalty);
+                double dotProd = localModel[threadID].dot(labeledData.data);
                 if (1 - dotProd * labeledData.label > 0) {
                     /* residual pennalty */
-                    globalModel.plusGradient(labeledData.data, lr * labeledData.label);
+                    localModel[threadID].plusGradient(labeledData.data, lr * labeledData.label);
                 }
             }
         }
@@ -81,6 +78,11 @@ public class SVM extends model.SVM{
 
         DenseVector oldModel = new DenseVector(model.values.length);
         globalModel = new DenseVector(model.dim);
+        localModel = new DenseVector[threadNum];
+
+        for(int i = 0; i < threadNum; i++){
+            localModel[i] = new DenseVector(model.dim);
+        }
 
         long totalBegin = System.currentTimeMillis();
         System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
@@ -106,7 +108,17 @@ public class SVM extends model.SVM{
                 }
             }
             long trainTime = System.currentTimeMillis() - startTrain;
+            Arrays.fill(globalModel.values, 0);
+            for(int id = 0; id < threadNum; id++){
+                for(int j = 0; j < model.dim; j++){
+                    globalModel.values[j] += localModel[id].values[j];
+                }
+            }
+            globalModel.allDividedBy(threadNum);
             System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
+            for(int id = 0; id < threadNum; id++){
+                System.arraycopy(model.values, 0, localModel[id].values, 0, model.dim);
+            }
 
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
@@ -186,7 +198,7 @@ public class SVM extends model.SVM{
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
 
-        SVM svm = new SVM();
+        SVMPSGD svm = new SVMPSGD();
         DenseVector model = new DenseVector(dim);
         start = System.currentTimeMillis();
         svm.train(corpus, model);

@@ -194,7 +194,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        //Collections.shuffle(labeledData);
+        Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
@@ -214,7 +214,7 @@ public class LogisticRegression extends model.LogisticRegression{
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            Collections.shuffle(trainCorpus);
+            //Collections.shuffle(trainCorpus);
             localTrainCorpus = new ArrayList<List<LabeledData>>();
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 int from = trainCorpus.size() * threadID / threadNum;
@@ -306,7 +306,7 @@ public class LogisticRegression extends model.LogisticRegression{
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
-                if(trainRatio >= 1 || trainRatio <= 0){
+                if(trainRatio > 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
                 }

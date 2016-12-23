@@ -31,6 +31,40 @@ public class Utils {
     return list;
   }
 
+    public static List<LabeledData> loadLibSVMLoss0_1(String path, int dim) throws IOException {
+        List<LabeledData> list = new ArrayList<LabeledData>();
+        BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+
+        String line;
+        int cnt = 0;
+        while ((line = reader.readLine()) != null) {
+            LabeledData labeledData = parseOneLineLibSVMLoss0_1(line, dim);
+            list.add(labeledData);
+            cnt ++;
+            if (cnt % 100000 == 0) {
+                System.out.println("Finishing load " + cnt + " lines.");
+            }
+        }
+        return list;
+    }
+
+  public static List<LabeledData> loadLibSVMWithBiase(String path, int dim) throws IOException {
+    List<LabeledData> list = new ArrayList<LabeledData>();
+    BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+
+    String line;
+    int cnt = 0;
+    while ((line = reader.readLine()) != null) {
+      LabeledData labeledData = parseOneLineLibSVMWithBiase(line, dim);
+      list.add(labeledData);
+      cnt ++;
+      if (cnt % 100000 == 0) {
+        System.out.println("Finishing load " + cnt + " lines.");
+      }
+    }
+    return list;
+  }
+
   //Divide the corpus into [threadNum] parts by features, the corpus' sample size is [size],
   // and the feature size is [dim].
   public static List<List<LabeledData>> loadLibSVMSplit(String path, int dim,
@@ -87,7 +121,23 @@ public class Utils {
     SparseVector data = new SparseVector(dim, indices, values);
     return new LabeledData(data, label);
   }
-
+  private static LabeledData parseOneLineLibSVMLoss0_1(String line, int dim) {
+        String[] parts = line.split(" ");
+        double label = Double.parseDouble(parts[0]);
+        int length = parts.length - 1;
+        int[] indices = new int[length];
+        double[] values = new double[length];
+        for (int i = 0; i < length; i ++) {
+            String kv = parts[i + 1];
+            String[] kvParts = kv.split(":");
+            int idx = Integer.parseInt(kvParts[0]);
+            double value = Double.parseDouble(kvParts[1]);
+            indices[i] = idx;
+            values[i]  = value;
+        }
+        SparseVector data = new SparseVector(dim, indices, values);
+        return new LabeledData(data, label);
+  }
   private static LabeledData parseOneLineLibSVM(String line, int dim) {
     String[] parts = line.split(" ");
     double label = Double.parseDouble(parts[0]);
@@ -104,10 +154,32 @@ public class Utils {
       indices[i] = idx;
       values[i]  = value;
     }
-
     SparseVector data = new SparseVector(dim, indices, values);
     return new LabeledData(data, label);
   }
+
+    private static LabeledData parseOneLineLibSVMWithBiase(String line, int dim) {
+        String[] parts = line.split(" ");
+        double label = Double.parseDouble(parts[0]);
+        if (label == 0)
+            label = -1;
+        int length = parts.length - 1;
+        int[] indices = new int[length + 1];
+        double[] values = new double[length + 1];
+        for (int i = 0; i < length; i ++) {
+            String kv = parts[i + 1];
+            String[] kvParts = kv.split(":");
+            int idx = Integer.parseInt(kvParts[0]);
+            double value = Double.parseDouble(kvParts[1]);
+            indices[i] = idx;
+            values[i]  = value;
+        }
+        //Add biase
+        indices[length] = dim - 1;
+        values[length] = 1;
+        SparseVector data = new SparseVector(dim, indices, values);
+        return new LabeledData(data, label);
+    }
 
   static int[] generateRandomPermutation(int size) {
     int[] array = new int[size];
@@ -171,6 +243,28 @@ public class Utils {
       features[i] = new SparseMap();
     }
     for(int i = 0; i < (int)(list.size() * trainRatio); i++){
+      LabeledData tmp = list.get(i);
+      for(int j = 0; j < tmp.data.indices.length; j++){
+        if(tmp.data.values == null){
+          features[tmp.data.indices[j]].add(i, 1);
+        }else{
+          features[tmp.data.indices[j]].add(i, tmp.data.values[j]);
+
+        }
+      }
+      features[featureDim].add(i, tmp.label);
+    }
+    return features;
+  }
+  public static SparseMap[] LoadLibSVMFromLabeledDataBySplit(List<LabeledData> list, int featureDim, double trainRatio,
+                                                             double threadNum, double threadID){
+    //Feature and Label(dimension: featureDim+1)
+    SparseMap[] features = new SparseMap[featureDim + 1];
+    for(int i = 0; i <= featureDim; i++){
+      features[i] = new SparseMap();
+    }
+    for(int i = (int)((int)(list.size() * trainRatio) * threadID / threadNum);
+       i < (int)((int)(list.size() * trainRatio) * (threadID + 1)/ threadNum); i++){
       LabeledData tmp = list.get(i);
       for(int j = 0; j < tmp.data.indices.length; j++){
         if(tmp.data.values == null){

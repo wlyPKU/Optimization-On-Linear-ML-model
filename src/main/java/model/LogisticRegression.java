@@ -35,6 +35,36 @@ public class LogisticRegression {
         return trainLoss > 1e100 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
 
     }
+    public boolean testAndSummaryLoss0_1(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+                                  DenseVector model, double lambda){
+        long startTest = System.currentTimeMillis();
+        double trainLoss = logLoss0_1(trainCorpus, model, lambda);
+        double testLoss = logLoss0_1(testCorpus, model, lambda);
+        double trainAuc = auc(trainCorpus, model);
+        double testAuc = auc(testCorpus, model);
+        long testTime = System.currentTimeMillis() - startTest;
+        System.out.println("[Information]TrainLoss=" + trainLoss + " TestLoss=" + testLoss +
+                " TrainAuc=" + trainAuc + " TestAuc=" + testAuc +
+                " TestTime=" + testTime);
+        System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size());
+        return trainLoss > 1e100 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
+
+    }
+
+    private double logLoss0_1(List<LabeledData> list, DenseVector model, double lambda) {
+        double loss = 0.0;
+        for (LabeledData labeledData: list) {
+            double p = model.dot(labeledData.data);
+            p = 1.0 / (1.0 + Math.exp(-p));
+            double z1 = Math.log(p) * labeledData.label;
+            double z2 = Math.log(1-p) * (1 - labeledData.label);
+            loss -= z1 + z2;
+        }
+        for(Double v : model.values){
+            loss += lambda * (v > 0? v : -v);
+        }
+        return loss;
+    }
 
     private double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;

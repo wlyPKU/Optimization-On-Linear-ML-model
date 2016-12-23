@@ -32,12 +32,12 @@ public class SVMSGD extends model.SVM {
     private double x_hat[];
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
     private static double rho = 0.01;
-    private int lbfgsNumIteration = 10;
-    private int lbfgsHistory = 10;
     private double rel_par = 1.0;
 
     private static double ABSTOL = 1e-4;
     private static double RELTOL = 1e-3;
+
+    private static int sgdIterations = 5;
 
     private class executeRunnable implements Runnable {
         int threadID;
@@ -53,20 +53,22 @@ public class SVMSGD extends model.SVM {
             double lr = 0.005;
             double modelPenalty = -lr * rho / (trainRatio * labeledData.size());
             //double modelPenalty = - 2 * lr * lambda;
-            for (LabeledData labeledData : localTrainCorpus.get(threadID)) {
-                //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
-                /* model pennalty */
-                //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
-                localADMMState[threadID].x.multiplySparse(labeledData.data, modelPenalty);
-                for(int i = 0; i <  labeledData.data.indices.length; i++){
-                    int idx = labeledData.data.indices[i];
-                    localADMMState[threadID].x.values[idx] += - lr * rho *
-                            (-model.z.values[idx] + localADMMState[threadID].u.values[idx]);
-                }
-                double dotProd = localADMMState[threadID].x.dot(labeledData.data);
-                if (1 - dotProd * labeledData.label > 0) {
-                    /* residual pennalty */
-                    localADMMState[threadID].x.plusGradient(labeledData.data, lr * labeledData.label);
+            for(int ite = 0; ite < sgdIterations; ite++) {
+                for (LabeledData labeledData : localTrainCorpus.get(threadID)) {
+                    //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
+                    /* model pennalty */
+                    //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
+                    localADMMState[threadID].x.multiplySparse(labeledData.data, modelPenalty);
+                    for (int i = 0; i < labeledData.data.indices.length; i++) {
+                        int idx = labeledData.data.indices[i];
+                        localADMMState[threadID].x.values[idx] += -lr * rho *
+                                (-model.z.values[idx] + localADMMState[threadID].u.values[idx]);
+                    }
+                    double dotProd = localADMMState[threadID].x.dot(labeledData.data);
+                    if (1 - dotProd * labeledData.label > 0) {
+                        /* residual pennalty */
+                        localADMMState[threadID].x.plusGradient(labeledData.data, lr * labeledData.label);
+                    }
                 }
             }
         }
@@ -156,7 +158,7 @@ public class SVMSGD extends model.SVM {
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        //Collections.shuffle(labeledData);
+        Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);

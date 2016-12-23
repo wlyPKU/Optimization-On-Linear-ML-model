@@ -93,15 +93,6 @@ public class Lasso extends model.Lasso {
         }
     }
 
-    private class updateUThread implements Runnable {
-        int threadID;
-        private updateUThread(int threadID){
-            this.threadID = threadID;
-        }
-        public void run() {
-
-        }
-    }
 
     private void updateX(int iteNumber){
         long startTrain = System.currentTimeMillis();
@@ -194,7 +185,7 @@ public class Lasso extends model.Lasso {
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        //Collections.shuffle(labeledData);
+        Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
@@ -213,7 +204,7 @@ public class Lasso extends model.Lasso {
 
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
-            Collections.shuffle(trainCorpus);
+            //Collections.shuffle(trainCorpus);
             localTrainCorpus = new ArrayList<List<LabeledData>>();
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 int from = trainCorpus.size() * threadID / threadNum;

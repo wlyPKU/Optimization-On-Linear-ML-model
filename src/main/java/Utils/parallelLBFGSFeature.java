@@ -181,6 +181,16 @@ public class parallelLBFGSFeature {
 
     }
 
+    private static void constrainXNew(double[] xNew, double[] x){
+        for(int i = 0; i < xNew.length; i++){
+            if(x[i] > 0 && xNew[i] < 0){
+                xNew[i] = 0;
+            }else if(x[i] < 0 && xNew[i] > 0){
+                xNew[i] = 0;
+            }
+        }
+    }
+
     private static double linearSearch(double[] x,
                                        double[] xNew,
                                        double[] dir,
@@ -220,6 +230,9 @@ public class parallelLBFGSFeature {
 
         while ((loss > oldLoss + c1 * origDirDeriv * alpha) && (step > 0)) {
             timesBy(xNew, x, dir, alpha, localFeatureNum);
+            if(algorithm.equals("Lasso") || algorithm.equals("LogisticRegression")){
+                constrainXNew(xNew, x);
+            }
             loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm) ;
             String infoMsg = "state feature num=" + state.featureDimension + " lbfgs iteration=" + iteration
                     + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha

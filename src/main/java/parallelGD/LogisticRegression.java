@@ -110,12 +110,12 @@ public class LogisticRegression extends model.LogisticRegression{
                     e.printStackTrace();
                 }
             }
+            long trainTime = System.currentTimeMillis() - startTrain;
             System.arraycopy(globalModelOfU.values, 0, modelOfU.values, 0, modelOfU.dim);
             System.arraycopy(globalModelOfV.values, 0, modelOfV.values, 0, modelOfV.dim);
             for(int j = 0; j < model.dim; j++){
                 model.values[j] = globalModelOfU.values[j] - globalModelOfV.values[j];
             }
-            long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);
@@ -177,7 +177,7 @@ public class LogisticRegression extends model.LogisticRegression{
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
-                if(trainRatio >= 1 || trainRatio <= 0){
+                if(trainRatio > 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
                 }

@@ -1,3 +1,4 @@
+
 package parallelGD;
 
 import Utils.LabeledData;
@@ -6,27 +7,28 @@ import math.DenseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by WLY on 2016/9/4.
+ * Created by 王羚宇 on 2016/7/20.
  */
-public class SVM extends model.SVM{
+public class LassoPSGD extends model.Lasso{
     public static long start;
 
-    private DenseVector globalModel;
-    public static double trainRatio = 0.5;
+    private static DenseVector[] localModelOfU;
+    private static DenseVector[] localModelOfV;
     public static int threadNum;
     public static double lambda = 0.1;
+    public static double trainRatio = 0.5;
 
-    private static double learningRate = 0.001;
+    private static double learningRate = 0.005;
     public int iteration = 0;
+
+    private static DenseVector modelOfU;
+    private static DenseVector modelOfV;
 
     private void setNewLearningRate(){
     }
@@ -34,7 +36,7 @@ public class SVM extends model.SVM{
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
-        double lambda;
+        public double lambda;
         int globalCorpusSize;
         int threadID;
         public executeRunnable(int threadID, List<LabeledData> list, double lambda, int globalCorpusSize){
@@ -48,49 +50,53 @@ public class SVM extends model.SVM{
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
-            double modelPenalty = -2 * lr * lambda / globalCorpusSize;
-            //double modelPenalty = - 2 * lr * lambda;
-            for (LabeledData labeledData : list) {
-                //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
-                /* model pennalty */
-                //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
-                globalModel.multiplySparse(labeledData.data, modelPenalty);
-                double dotProd = globalModel.dot(labeledData.data);
-                if (1 - dotProd * labeledData.label > 0) {
-                    /* residual pennalty */
-                    globalModel.plusGradient(labeledData.data, lr * labeledData.label);
-                }
+            double modelPenalty = lr * lambda / globalCorpusSize;
+            //double modelPenalty = - lr * lambda;
+            for (LabeledData labeledData: list) {
+                double scala = labeledData.label - localModelOfU[threadID].dot(labeledData.data)
+                        + localModelOfV[threadID].dot(labeledData.data);
+                localModelOfU[threadID].update(labeledData.data, modelPenalty, lr * scala);
+                localModelOfV[threadID].update(labeledData.data, modelPenalty, - lr * scala);
             }
         }
     }
 
-    public void train(List<LabeledData> corpus, DenseVector model) {
+    public void train(List<LabeledData> corpus, int dimension) {
         double startCompute = System.currentTimeMillis();
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
-        List<LabeledData> testCorpus = corpus.subList(end, size);
         Collections.shuffle(trainCorpus);
+        List<LabeledData> testCorpus = corpus.subList(end, size);
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;
             int to = end * (threadID + 1) / threadNum;
             List<LabeledData> threadCorpus = corpus.subList(from, to);
             ThreadTrainCorpus.add(threadCorpus);
         }
+        DenseVector model = new DenseVector(dimension);
+        DenseVector oldModel = new DenseVector(dimension);
 
-        DenseVector oldModel = new DenseVector(model.values.length);
-        globalModel = new DenseVector(model.dim);
+        localModelOfU = new DenseVector[threadNum];
+        localModelOfV = new DenseVector[threadNum];
+
+        for(int i = 0; i < threadNum; i++){
+            localModelOfU[i] = new DenseVector(dimension);
+            localModelOfV[i] = new DenseVector(dimension);
+        }
+        modelOfU = new DenseVector(dimension);
+        modelOfV = new DenseVector(dimension);
 
         long totalBegin = System.currentTimeMillis();
         System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
-        long totalIterationTime = 0;
+        int totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
 
-            System.out.println("[Information]Learning rate " + learningRate);
             long startTrain = System.currentTimeMillis();
+            System.out.println("[Information]Learning rate " + learningRate);
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -106,8 +112,25 @@ public class SVM extends model.SVM{
                 }
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
-
+            Arrays.fill(model.values, 0);
+            Arrays.fill(modelOfU.values, 0);
+            Arrays.fill(modelOfV.values, 0);
+            for(int id = 0; id < threadNum; id++){
+                for(int j = 0; j < model.dim; j++){
+                    model.values[j] += localModelOfU[id].values[j] - localModelOfV[id].values[j];
+                    modelOfU.values[j] += localModelOfU[id].values[j];
+                    modelOfV.values[j] += localModelOfV[id].values[j];
+                }
+            }
+            model.allDividedBy(threadNum);
+            modelOfU.allDividedBy(threadNum);
+            modelOfV.allDividedBy(threadNum);
+            for(int id = 0; id < threadNum; id++){
+                for(int j = 0; j < model.dim; j++){
+                    localModelOfU[id].values[j] = modelOfU.values[j];
+                    localModelOfV[id].values[j] = modelOfV.values[j];
+                }
+            }
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);
@@ -116,6 +139,7 @@ public class SVM extends model.SVM{
                     / 1024 / 1024 + "M");
             System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
                     / 1024 / 1024 + "M");
+
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -140,7 +164,7 @@ public class SVM extends model.SVM{
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.SVM threadNum dim train_path lambda learningRate [trainRatio]");
+        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda learningRate [trainRatio]");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
@@ -186,11 +210,10 @@ public class SVM extends model.SVM{
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
 
-        SVM svm = new SVM();
-        DenseVector model = new DenseVector(dim);
+        LassoPSGD lasso = new LassoPSGD();
+        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         start = System.currentTimeMillis();
-        svm.train(corpus, model);
-
+        lasso.train(corpus, dim);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }

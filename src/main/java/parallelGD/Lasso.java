@@ -101,11 +101,10 @@ public class Lasso extends model.Lasso{
                     e.printStackTrace();
                 }
             }
-
+            long trainTime = System.currentTimeMillis() - startTrain;
             for(int j = 0; j < dimension; j++){
                 model.values[j] = globalModelOfU.values[j] - globalModelOfV.values[j];
             }
-            long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);

@@ -177,12 +177,12 @@ public class LogisticRegression extends model.LogisticRegression{
 
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
-        //shuffle(labeledData);
+        shuffle(labeledData);
         SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
         features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
-        trainCorpus = labeledData.subList(0, testBegin + 1);
+        trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
 
         predictValue = new double[trainCorpus.size()];
@@ -240,11 +240,10 @@ public class LogisticRegression extends model.LogisticRegression{
                     e.printStackTrace();
                 }
             }
-
+            long trainTime = System.currentTimeMillis() - startTrain;
             for(int fIdx = 0; fIdx < featureDimension; fIdx ++){
                 model.values[fIdx] = modelOfU.values[fIdx] - modelOfV.values[fIdx];
             }
-            long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);
@@ -302,7 +301,7 @@ public class LogisticRegression extends model.LogisticRegression{
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
-        if(lambda <= 0){
+        if(lambda < 0){
             System.out.println("Please input a correct lambda (>0)");
             System.exit(2);
         }
@@ -322,7 +321,7 @@ public class LogisticRegression extends model.LogisticRegression{
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
-                if(trainRatio >= 1 || trainRatio <= 0){
+                if(trainRatio > 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
                 }

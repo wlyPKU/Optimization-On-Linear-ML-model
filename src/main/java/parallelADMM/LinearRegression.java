@@ -190,7 +190,7 @@ public class LinearRegression extends model.LinearRegression{
 
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
-        //Collections.shuffle(labeledData);
+        Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);

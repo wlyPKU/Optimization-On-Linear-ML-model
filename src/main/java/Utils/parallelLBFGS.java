@@ -61,15 +61,73 @@ public class parallelLBFGS {
             twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
 
             loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z.values, trainCorpus, algorithm) ;
-            String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
-                    + " lbfgs iteration=" + iter + " loss=" + loss + " ";
+            //String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
+            //        + " lbfgs iteration=" + iter + " loss=" + loss + " ";
             //////Log.info(infoMsg);
 
             shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
             if(iter >= 2 &&Math.abs(reservedLoss - loss) < 1.0 && changesOfX(xx, xtmp) < 1e-3){
                 break;
             }
-            infoMsg = infoMsg + String.valueOf(reservedLoss - loss);
+            //infoMsg = infoMsg + String.valueOf(reservedLoss - loss);
+            System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
+            reservedLoss = loss;
+            //Log.info(infoMsg);
+            iter ++;
+        }
+
+        System.out.println("[INFORMATION]L-BFGS uses " + iter + " iterations.");
+        System.arraycopy(xx, 0, state.x.values, 0, localFeatureNum);
+    }
+
+    public static void trainNoEarlyStop(ADMMState state,
+                             int maxIterNum,
+                             int lbfgshistory,
+                             int threadNum,
+                             double rhoADMM,
+                             int iterationADMM,
+                             List<LabeledData> trainCorpus,
+                             String algorithm,
+                             DenseVector z) {
+
+        int localFeatureNum = state.featureNum;
+        parallelLBFGS.threadNum = threadNum;
+
+        double[] xx    = new double[localFeatureNum];
+        double[] xNew  = new double[localFeatureNum];
+        System.arraycopy(state.x.values, 0, xx, 0, localFeatureNum);
+        System.arraycopy(xx, 0, xNew, 0, localFeatureNum);
+
+        double[] g     = new double[localFeatureNum];
+        double[] gNew  = new double[localFeatureNum];
+
+        double[] dir = new double[localFeatureNum];
+
+        ArrayList<double []> s = new ArrayList<double []>();
+        ArrayList<double []> y = new ArrayList<double []>();
+        ArrayList<Double> rhoLBFGS = new ArrayList<Double>();
+
+        int iter = 1;
+
+        double loss = getGradientLoss(state, xx, rhoADMM, g, z.values, trainCorpus, algorithm);
+        double[] xtmp = new double[localFeatureNum];
+        System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
+        System.arraycopy(g, 0, gNew, 0, localFeatureNum);
+
+        double reservedLoss = Double.MAX_VALUE;
+        while (iter < maxIterNum) {
+            twoLoop(s, y, rhoLBFGS, g, localFeatureNum, dir);
+
+            loss = linearSearch(xx, xNew, dir, gNew, loss, iter, state, rhoADMM, z.values, trainCorpus, algorithm) ;
+            //String infoMsg = "state feature num=" + state.featureNum + " admm iteration=" + iterationADMM
+            //        + " lbfgs iteration=" + iter + " loss=" + loss + " ";
+            //////Log.info(infoMsg);
+
+            shift(localFeatureNum, lbfgshistory, xx, xNew, g, gNew, s, y, rhoLBFGS);
+            //if(iter >= 2 &&Math.abs(reservedLoss - loss) < 1.0 && changesOfX(xx, xtmp) < 1e-3){
+            //    break;
+            //}
+            //infoMsg = infoMsg + String.valueOf(reservedLoss - loss);
             System.arraycopy(xx, 0, xtmp, 0, localFeatureNum);
             reservedLoss = loss;
             //Log.info(infoMsg);
@@ -291,10 +349,10 @@ public class parallelLBFGS {
         while ((loss > oldLoss + c1 * origDirDeriv * alpha) && (step > 0)) {
             timesBy(xNew, x, dir, alpha, localFeatureNum);
             loss = getLoss(state, xNew, rhoADMM, z, trainCorpus, algorithm) ;
-            String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
-                    + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
-                    + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv
-                    + " Change=" + (loss - (oldLoss + c1 * origDirDeriv * alpha));
+            //String infoMsg = "state feature num=" + state.featureNum + " lbfgs iteration=" + iteration
+            //        + " line search iteration=" + i + " end loss=" + loss + " alpha=" + alpha
+            //       + " oldloss=" + oldLoss + " delta=" + (c1*origDirDeriv*alpha) + " origDirDeriv=" + origDirDeriv
+             //       + " Change=" + (loss - (oldLoss + c1 * origDirDeriv * alpha));
             ////Log.info(infoMsg);
             alpha *= backoff;
             i ++;

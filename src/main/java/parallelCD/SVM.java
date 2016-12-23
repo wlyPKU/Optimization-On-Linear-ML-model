@@ -139,7 +139,7 @@ public class SVM extends model.SVM{
 
     private void trainCore(List<LabeledData> corpus) {
         double startCompute = System.currentTimeMillis();
-        //Collections.shuffle(corpus);
+        Collections.shuffle(corpus);
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         trainCorpus = corpus.subList(0, end + 1);

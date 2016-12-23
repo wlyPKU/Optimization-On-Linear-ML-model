@@ -242,7 +242,7 @@ public class LogisticRegressionModelParallel extends model.LogisticRegression {
     }
 
     private void trainCore() {
-        //Collections.shuffle(labeledData);
+        Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
         List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);

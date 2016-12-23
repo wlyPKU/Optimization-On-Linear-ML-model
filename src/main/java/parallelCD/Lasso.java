@@ -134,7 +134,7 @@ public class Lasso extends model.Lasso {
 
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
-        //shuffle(labeledData);
+        shuffle(labeledData);
         SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
         features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
@@ -180,9 +180,9 @@ public class Lasso extends model.Lasso {
                     e.printStackTrace();
                 }
             }
-            if(threadNum != 1){
+            //if(threadNum != 1){
                 adjustResidual();
-            }
+            //}
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
