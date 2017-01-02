@@ -46,28 +46,13 @@ public class Lasso extends model.Lasso {
         public void run() {
             double oldValue, updateValue, xj;
             int idx;
-            /*
-            int[] sequence = new int[to - from];
-            for(int i = 0; i < sequence.length; i++){
-                sequence[i] = i + from;
-            }
-            Random random = new Random();
-            for(int i = 0; i < sequence.length; i++){
-                int p = random.nextInt(to - from);
-                int tmp = sequence[i];
-                sequence[i] = sequence[p];
-                sequence[p] = tmp;
-            }
 
-            for(int j : sequence){
-            */
             for(int j = from; j < to; j++){
                 if(featureSquare[j] != 0) {
                     int indices[] = features[j].indices;
                     double values[] = features[j].values;
                     oldValue = model.values[j];
                     updateValue = 0;
-
                     for(int i = 0; i < features[j].indices.length; i++){
                         idx = indices[i];
                         xj = values[i];

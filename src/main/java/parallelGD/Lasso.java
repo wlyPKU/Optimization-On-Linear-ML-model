@@ -43,7 +43,7 @@ public class Lasso extends model.Lasso{
             this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
-            Collections.shuffle(localList);
+            //Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {
@@ -164,6 +164,9 @@ public class Lasso extends model.Lasso{
             if(argv[i].equals("MaxIteration")){
                 maxIteration = Integer.parseInt(argv[i + 1]);
             }
+            if(argv[i].equals("DoNormalize")){
+                doNormalize = Boolean.parseBoolean(argv[i + 1]);
+            }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
                 if(trainRatio >= 1 || trainRatio <= 0){
@@ -171,6 +174,9 @@ public class Lasso extends model.Lasso{
                     System.exit(1);
                 }
             }
+        }
+        if(doNormalize){
+            corpus = Utils.normalizeData(corpus, dim);
         }
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
@@ -182,6 +188,7 @@ public class Lasso extends model.Lasso{
         System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
         System.out.println("[Parameter]ModelType " + modelType);
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]DoNormalize " + doNormalize);
         System.out.println("------------------------------------");
 
         Lasso lasso = new Lasso();

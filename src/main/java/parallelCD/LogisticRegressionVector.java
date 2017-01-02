@@ -2,8 +2,6 @@ package parallelCD;
 
 import Utils.LabeledData;
 import Utils.Utils;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
 import math.SparseVector;
@@ -23,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  predictValue    每个线程共享
 //  可能会发生冲突
-public class LogisticRegression extends model.LogisticRegression{
+public class LogisticRegressionVector extends model.LogisticRegression{
 
     private static double lambda;
     private static double trainRatio = 0.5;
@@ -39,7 +37,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
     private static double featureSquare[];
 
-    private static List<LabeledData> trainCorpus;
+    private static Vector<LabeledData> trainCorpus = new Vector<LabeledData>();
 
     private class updateWPositive implements Runnable
     {
@@ -76,7 +74,11 @@ public class LogisticRegression extends model.LogisticRegression{
                     //误差的来源,0.25.
                     double Uj = 0.25 * C * featureSquare[fIdx];
                     double updateValue = (1 + firstOrderL) / Uj;
-                    modelOfU.values[fIdx] = Math.max(0, modelOfU.values[fIdx] - updateValue);
+                    if (updateValue > modelOfU.values[fIdx]) {
+                        modelOfU.values[fIdx] = 0;
+                    } else {
+                        modelOfU.values[fIdx] -= updateValue;
+                    }
                     if(modelOfU.values[fIdx] - oldValue != 0) {
                         //Update predictValue
                         for (int i = 0; i < indices.length; i++) {
@@ -95,7 +97,6 @@ public class LogisticRegression extends model.LogisticRegression{
         private updateWNegative(int from, int to){
             this.from = from;
             this.to = to;
-
         }
         public void run() {
             double C = Double.MAX_VALUE;
@@ -123,7 +124,11 @@ public class LogisticRegression extends model.LogisticRegression{
                     firstOrderL *= C;
                     double Uj = 0.25 * C * featureSquare[fIdx];
                     double updateValue = (1 - firstOrderL) / Uj;
-                    modelOfV.values[fIdx] = Math.max(0, modelOfV.values[fIdx] - updateValue);
+                    if (updateValue > modelOfV.values[fIdx]) {
+                        modelOfV.values[fIdx] = 0;
+                    } else {
+                        modelOfV.values[fIdx] -= updateValue;
+                    }
                     if(modelOfV.values[fIdx] - oldValue != 0){
                         for (int i = 0; i < indices.length; i++) {
                             predictValue[indices[i]] -= values[i] * (modelOfV.values[fIdx] - oldValue);
@@ -167,15 +172,22 @@ public class LogisticRegression extends model.LogisticRegression{
         }
     }
 
-    private void trainCore(List<LabeledData> labeledData) {
+    private void trainCore(Vector<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
-        //shuffle(labeledData);
+        shuffle(labeledData);
         SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
         features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
-        trainCorpus = labeledData.subList(0, testBegin);
-        List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
+        for(int i = 0; i < testBegin; i++){
+            LabeledData tmp = new LabeledData(labeledData.get(i).data, labeledData.get(i).label);
+            trainCorpus.add(tmp);
+        }
+        Vector<LabeledData> testCorpus = new Vector<LabeledData>();
+        for(int i = testBegin; i < testEnd; i++){
+            LabeledData tmp = new LabeledData(labeledData.get(i).data, labeledData.get(i).label);
+            testCorpus.add(tmp);
+        }
 
         predictValue = new double[trainCorpus.size()];
 
@@ -198,7 +210,7 @@ public class LogisticRegression extends model.LogisticRegression{
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
             //if(threadNum != 1 || i == 0){
-                adjustPredictValue();
+                //adjustPredictValue();
             //}
             long startTrain = System.currentTimeMillis();
             //Update w+
@@ -267,8 +279,8 @@ public class LogisticRegression extends model.LogisticRegression{
     }
 
 
-    public static void train(List<LabeledData> labeledData) {
-        LogisticRegression lrSCD = new LogisticRegression();
+    public static void train(Vector<LabeledData> labeledData) {
+        LogisticRegressionVector lrSCD = new LogisticRegressionVector();
         //http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf 3197-3200+
         modelOfU = new DenseVector(featureDimension);
         modelOfV = new DenseVector(featureDimension);
@@ -280,7 +292,7 @@ public class LogisticRegression extends model.LogisticRegression{
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
     @SuppressWarnings("unused")
-    private void shuffle(List<LabeledData> labeledData) {
+    private void shuffle(Vector<LabeledData> labeledData) {
         Collections.shuffle(labeledData);
 
     }
@@ -330,7 +342,7 @@ public class LogisticRegression extends model.LogisticRegression{
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
         long startLoad = System.currentTimeMillis();
-        List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
+        Vector<LabeledData> labeledData = Utils.loadLibSVMVector(path, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);

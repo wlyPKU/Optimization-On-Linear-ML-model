@@ -35,7 +35,7 @@ public class LinearRegression extends model.LinearRegression{
             localList = list;
         }
         public void run() {
-            Collections.shuffle(localList);
+            //Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr) {
@@ -145,6 +145,9 @@ public class LinearRegression extends model.LinearRegression{
             if(argv[i].equals("MaxIteration")){
                 maxIteration = Integer.parseInt(argv[i + 1]);
             }
+            if(argv[i].equals("DoNormalize")){
+                doNormalize = Boolean.parseBoolean(argv[i + 1]);
+            }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
                 if(trainRatio >= 1 || trainRatio <= 0){
@@ -152,6 +155,9 @@ public class LinearRegression extends model.LinearRegression{
                     System.exit(1);
                 }
             }
+        }
+        if(doNormalize){
+            corpus = Utils.normalizeData(corpus, dim);
         }
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
@@ -162,6 +168,8 @@ public class LinearRegression extends model.LinearRegression{
         System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
         System.out.println("[Parameter]ModelType " + modelType);
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]DoNormalize " + doNormalize);
+
         System.out.println("------------------------------------");
 
         LinearRegression linear = new LinearRegression();

@@ -191,7 +191,7 @@ public class SVM extends model.SVM{
                 }
             }
             //if(threadNum != 1) {
-                fixConflictError();
+                //fixConflictError();
            // }
             long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);

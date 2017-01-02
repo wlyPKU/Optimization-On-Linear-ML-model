@@ -147,7 +147,7 @@ public class LinearRegressionPSGD extends model.LinearRegression{
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
-        learningRate = Double.parseDouble(argv[4]);
+        learningRate = Double.parseDouble(argv[3]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
@@ -166,6 +166,9 @@ public class LinearRegressionPSGD extends model.LinearRegression{
             if(argv[i].equals("MaxIteration")){
                 maxIteration = Integer.parseInt(argv[i + 1]);
             }
+            if(argv[i].equals("DoNormalize")){
+                doNormalize = Boolean.parseBoolean(argv[i + 1]);
+            }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
                 if(trainRatio >= 1 || trainRatio <= 0){
@@ -173,6 +176,9 @@ public class LinearRegressionPSGD extends model.LinearRegression{
                     System.exit(1);
                 }
             }
+        }
+        if(doNormalize){
+            corpus = Utils.normalizeData(corpus, dim);
         }
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
@@ -183,6 +189,8 @@ public class LinearRegressionPSGD extends model.LinearRegression{
         System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
         System.out.println("[Parameter]ModelType " + modelType);
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
+        System.out.println("[Parameter]DoNormalize " + doNormalize);
+
         System.out.println("------------------------------------");
 
         LinearRegressionPSGD lasso = new LinearRegressionPSGD();

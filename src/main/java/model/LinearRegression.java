@@ -16,6 +16,7 @@ public class LinearRegression {
     public static int maxIteration = 100;
     public static boolean rhoFixed = true;
 
+    public static boolean doNormalize =true;
 
     public boolean testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
                                 DenseVector model){

@@ -31,7 +31,81 @@ public class Utils {
     return list;
   }
 
-    public static List<LabeledData> loadLibSVMLoss0_1(String path, int dim) throws IOException {
+  public static List<LabeledData> normalizeData(List<LabeledData> labeledData, int featureNum){
+    double minFeatureValue[] = new double[featureNum];
+    double maxFeatureValue[] = new double[featureNum];
+    double sumFeatureValue[] = new double[featureNum];
+    int nonZeroFeatures[] = new int[featureNum];
+    Arrays.fill(minFeatureValue, Double.MAX_VALUE);
+    Arrays.fill(maxFeatureValue, - Double.MAX_VALUE);
+    Arrays.fill(nonZeroFeatures, 0);
+    Arrays.fill(sumFeatureValue, 0);
+    for(LabeledData l: labeledData){
+      if(l.data.values != null){
+        for(int i = 0; i < l.data.indices.length; i++){
+            minFeatureValue[l.data.indices[i]] = Math.min(minFeatureValue[l.data.indices[i]], l.data.values[i]);
+            maxFeatureValue[l.data.indices[i]] = Math.max(maxFeatureValue[l.data.indices[i]], l.data.values[i]);
+            nonZeroFeatures[l.data.indices[i]] ++;
+            sumFeatureValue[l.data.indices[i]] += l.data.values[i];
+        }
+      }
+    }
+    for(LabeledData l: labeledData){
+      for(int i = 0; i < l.data.indices.length; i++){
+        /*
+        if(l.data.values != null && minFeatureValue[l.data.indices[i]] != maxFeatureValue[l.data.indices[i]]
+                && nonZeroFeatures[l.data.indices[i]]!= 0 ){
+          l.data.values[i] = (l.data.values[i] - sumFeatureValue[l.data.indices[i]] / nonZeroFeatures[l.data.indices[i]]) /
+                  (maxFeatureValue[l.data.indices[i]] - minFeatureValue[l.data.indices[i]]);
+        }
+        */
+        if(l.data.values != null && maxFeatureValue[l.data.indices[i]] != 0 &&nonZeroFeatures[l.data.indices[i]]!= 0 ){
+          l.data.values[i] /= Math.abs(maxFeatureValue[l.data.indices[i]]);
+        }
+      }
+    }
+    return labeledData;
+  }
+  public static Vector<LabeledData> loadLibSVMVector(String path, int dim) throws IOException {
+    Vector<LabeledData> list = new Vector<LabeledData>();
+    BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+
+    String line;
+    int cnt = 0;
+    while ((line = reader.readLine()) != null) {
+      LabeledData labeledData = parseOneLineLibSVM(line, dim);
+      list.add(labeledData);
+      cnt ++;
+      if (cnt % 100000 == 0) {
+        System.out.println("Finishing load " + cnt + " lines.");
+      }
+    }
+    return list;
+  }
+  public static LabeledData[] loadLibSVMArray(String path, int dim) throws IOException {
+    Vector<LabeledData> list = new Vector<LabeledData>();
+    BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+
+    String line;
+    int cnt = 0;
+    while ((line = reader.readLine()) != null) {
+      LabeledData labeledData = parseOneLineLibSVM(line, dim);
+      list.add(labeledData);
+      cnt ++;
+      if (cnt % 100000 == 0) {
+        System.out.println("Finishing load " + cnt + " lines.");
+      }
+    }
+    LabeledData[] result = new LabeledData[list.size()];
+    for(int i = 0; i < list.size(); i++){
+      result[i] = new LabeledData(list.get(i).data, list.get(i).label);
+
+    }
+    return result;
+  }
+
+
+  public static List<LabeledData> loadLibSVMLoss0_1(String path, int dim) throws IOException {
         List<LabeledData> list = new ArrayList<LabeledData>();
         BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
 
@@ -244,6 +318,26 @@ public class Utils {
     }
     for(int i = 0; i < (int)(list.size() * trainRatio); i++){
       LabeledData tmp = list.get(i);
+      for(int j = 0; j < tmp.data.indices.length; j++){
+        if(tmp.data.values == null){
+          features[tmp.data.indices[j]].add(i, 1);
+        }else{
+          features[tmp.data.indices[j]].add(i, tmp.data.values[j]);
+
+        }
+      }
+      features[featureDim].add(i, tmp.label);
+    }
+    return features;
+  }
+  public static SparseMap[] LoadLibSVMFromLabeledData(LabeledData[] list, int featureDim, double trainRatio){
+    //Feature and Label(dimension: featureDim+1)
+    SparseMap[] features = new SparseMap[featureDim + 1];
+    for(int i = 0; i <= featureDim; i++){
+      features[i] = new SparseMap();
+    }
+    for(int i = 0; i < (int)(list.length * trainRatio); i++){
+      LabeledData tmp = list[i];
       for(int j = 0; j < tmp.data.indices.length; j++){
         if(tmp.data.values == null){
           features[tmp.data.indices[j]].add(i, 1);

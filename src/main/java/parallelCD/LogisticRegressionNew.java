@@ -2,15 +2,16 @@ package parallelCD;
 
 import Utils.LabeledData;
 import Utils.Utils;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import math.DenseVector;
 import math.SparseMap;
 import math.SparseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  predictValue    每个线程共享
 //  可能会发生冲突
-public class LogisticRegression extends model.LogisticRegression{
+public class LogisticRegressionNew extends model.LogisticRegression{
 
     private static double lambda;
     private static double trainRatio = 0.5;
@@ -38,6 +39,8 @@ public class LogisticRegression extends model.LogisticRegression{
     private static double predictValue[];
 
     private static double featureSquare[];
+
+    private static double labelValue[];
 
     private static List<LabeledData> trainCorpus;
 
@@ -68,15 +71,18 @@ public class LogisticRegression extends model.LogisticRegression{
                     for (int i = 0; i < indices.length; i++) {
                         idx = indices[i];
                         xj = values[i];
-                        LabeledData l = trainCorpus.get(idx);
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
-                        firstOrderL += l.label * xj * (tao - 1);
+                        double tao = 1 / (1 + Math.exp(-labelValue[idx] * predictValue[idx]));
+                        firstOrderL += labelValue[idx] * xj * (tao - 1);
                     }
                     firstOrderL *= C;
                     //误差的来源,0.25.
                     double Uj = 0.25 * C * featureSquare[fIdx];
                     double updateValue = (1 + firstOrderL) / Uj;
-                    modelOfU.values[fIdx] = Math.max(0, modelOfU.values[fIdx] - updateValue);
+                    if (updateValue > modelOfU.values[fIdx]) {
+                        modelOfU.values[fIdx] = 0;
+                    } else {
+                        modelOfU.values[fIdx] -= updateValue;
+                    }
                     if(modelOfU.values[fIdx] - oldValue != 0) {
                         //Update predictValue
                         for (int i = 0; i < indices.length; i++) {
@@ -95,7 +101,6 @@ public class LogisticRegression extends model.LogisticRegression{
         private updateWNegative(int from, int to){
             this.from = from;
             this.to = to;
-
         }
         public void run() {
             double C = Double.MAX_VALUE;
@@ -116,14 +121,17 @@ public class LogisticRegression extends model.LogisticRegression{
                     for (int i = 0; i < indices.length; i++) {
                         idx = indices[i];
                         xj = values[i];
-                        LabeledData l = trainCorpus.get(idx);
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
-                        firstOrderL += l.label * xj * (tao - 1);
+                        double tao = 1 / (1 + Math.exp(-labelValue[idx] * predictValue[idx]));
+                        firstOrderL += labelValue[idx] * xj * (tao - 1);
                     }
                     firstOrderL *= C;
                     double Uj = 0.25 * C * featureSquare[fIdx];
                     double updateValue = (1 - firstOrderL) / Uj;
-                    modelOfV.values[fIdx] = Math.max(0, modelOfV.values[fIdx] - updateValue);
+                    if (updateValue > modelOfV.values[fIdx]) {
+                        modelOfV.values[fIdx] = 0;
+                    } else {
+                        modelOfV.values[fIdx] -= updateValue;
+                    }
                     if(modelOfV.values[fIdx] - oldValue != 0){
                         for (int i = 0; i < indices.length; i++) {
                             predictValue[indices[i]] -= values[i] * (modelOfV.values[fIdx] - oldValue);
@@ -169,7 +177,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
-        //shuffle(labeledData);
+        shuffle(labeledData);
         SparseMap[] tmpFeatures = Utils.LoadLibSVMFromLabeledData(labeledData, featureDimension, trainRatio);
         features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
@@ -192,6 +200,10 @@ public class LogisticRegression extends model.LogisticRegression{
             for (double xj: features[idx].values) {
                 featureSquare[idx] += xj * xj;
             }
+        }
+        labelValue = new double[trainCorpus.size()];
+        for(int i = 0; i < labelValue.length; i++){
+            labelValue[i] = trainCorpus.get(i).label;
         }
         System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
         for (int i = 0; ; i ++) {
@@ -268,7 +280,7 @@ public class LogisticRegression extends model.LogisticRegression{
 
 
     public static void train(List<LabeledData> labeledData) {
-        LogisticRegression lrSCD = new LogisticRegression();
+        LogisticRegressionNew lrSCD = new LogisticRegressionNew();
         //http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf 3197-3200+
         modelOfU = new DenseVector(featureDimension);
         modelOfV = new DenseVector(featureDimension);

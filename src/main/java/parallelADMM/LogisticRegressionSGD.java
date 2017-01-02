@@ -13,12 +13,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by 王羚宇 on 2016/7/26.
- */
+//TODO: To be checked...
+//According to the angel ADMM logistic regression
 //https://web.stanford.edu/~boyd/papers/admm/
 
-public class SVMSGD extends model.SVM {
+/**
+ * Created by 王羚宇 on 2016/7/24.
+ */
+public class LogisticRegressionSGD extends model.LogisticRegression{
+
     private static double lambda;
     private static int threadNum;
     private static double trainRatio = 0.5;
@@ -29,95 +32,18 @@ public class SVMSGD extends model.SVM {
     private static ADMMState model;
     private ADMMState[] localADMMState;
 
+    private static int sgdIterations = 3;
+    private static double lr = 0.005;
+
     private double x_hat[];
     private List<List<LabeledData>> localTrainCorpus = new ArrayList<List<LabeledData>>();
     private static double rho = 0.01;
+    private int lbfgsNumIteration = 10;
+    private int lbfgsHistory = 10;
     private double rel_par = 1.0;
 
     private static double ABSTOL = 1e-4;
     private static double RELTOL = 1e-3;
-
-    private static int sgdIterations = 3;
-    private static double lr = 0.005;
-    private class executeRunnable implements Runnable {
-        int threadID;
-        int iteNum;
-
-        private executeRunnable(int threadID, int iteNum) {
-            this.threadID = threadID;
-            this.iteNum = iteNum;
-        }
-
-        public void run() {
-            //Update x;
-            double modelPenalty = -lr * rho / (trainRatio * labeledData.size());
-            //double modelPenalty = - 2 * lr * lambda;
-            for(int ite = 0; ite < sgdIterations; ite++) {
-                for (LabeledData tuple : localTrainCorpus.get(threadID)) {
-                    //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
-                    /* model pennalty */
-                    //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
-                    localADMMState[threadID].x.multiplySparse(tuple.data, modelPenalty);
-                    for (int i = 0; i < tuple.data.indices.length; i++) {
-                        int idx = tuple.data.indices[i];
-                        localADMMState[threadID].x.values[idx] += -lr * rho / (trainRatio * labeledData.size()) *
-                                (-model.z.values[idx] + localADMMState[threadID].u.values[idx]);
-                    }
-                    double dotProd = localADMMState[threadID].x.dot(tuple.data);
-                    if (1 - dotProd * tuple.label > 0) {
-                        /* residual pennalty */
-                        localADMMState[threadID].x.plusGradient(tuple.data, lr * tuple.label);
-                    }
-                }
-            }
-        }
-    }
-
-    private void updateX(int iteNumber){
-        long startTrain = System.currentTimeMillis();
-        Arrays.fill(model.x.values, 0);
-        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
-        for (int threadID = 0; threadID < threadNum; threadID++) {
-            threadPool.execute(new executeRunnable(threadID, iteNumber));
-        }
-        threadPool.shutdown();
-        while (!threadPool.isTerminated()) {
-            try {
-                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        for(int threadID = 0; threadID < threadNum; threadID++) {
-            model.x.plusDense(localADMMState[threadID].x);
-        }
-        model.x.allDividedBy(threadNum);
-        System.out.println("[Information]Update X costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
-    }
-    private void updateZ(){
-        long startTrain = System.currentTimeMillis();
-        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, featureDimension);
-        for(int id = 0; id < featureDimension; id++){
-            x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.u.values[id];
-            //z=Soft_threshold(lambda/rho,x+u);
-            model.z.values[id] = (rho / (1.0 / lambda + threadNum * rho)) * (x_hat[id] + model.u.values[id]);
-        }
-        System.out.println("Update Z costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
-    }
-    private void updateU(){
-        long startTrain = System.currentTimeMillis();
-        Arrays.fill(model.u.values, 0);
-        for (int threadID = 0; threadID < threadNum; threadID++) {
-            for(int fID = 0; fID < featureDimension; fID++){
-                localADMMState[threadID].u.values[fID] += (localADMMState[threadID].x.values[fID] - model.z.values[fID]);
-                model.u.values[fID] += localADMMState[threadID].u.values[fID];
-            }
-        }
-        model.u.allDividedBy(threadNum);
-        System.out.println("[Information]Update U costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
-
-    }
 
     private double calculateRho(double rho){
         //https://web.stanford.edu/~boyd/papers/pdf/admm_distr_stats.pdf PG23
@@ -155,25 +81,154 @@ public class SVMSGD extends model.SVM {
         return rho;
     }
 
+    private class executeRunnable implements Runnable {
+        int threadID;
+        int iteNum;
+
+        private executeRunnable(int threadID, int iteNum) {
+            this.threadID = threadID;
+            this.iteNum = iteNum;
+        }
+
+        public void run() {
+            //Update x;
+            //Update x;
+            double modelPenalty = -lr * rho / (trainRatio * labeledData.size());
+            //double modelPenalty = - 2 * lr * lambda;
+            double predictValue, tmpValue, scala;
+            for(int ite = 0; ite < sgdIterations; ite++) {
+                for (LabeledData tuple : localTrainCorpus.get(threadID)) {
+                    //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf Pg 3.
+                    /* model pennalty */
+                    //model.value[i] -= model.value[i] * 2 * lr * lambda / N;
+                    localADMMState[threadID].x.multiplySparse(tuple.data, modelPenalty);
+                    for (int i = 0; i < tuple.data.indices.length; i++) {
+                        int idx = tuple.data.indices[i];
+                        localADMMState[threadID].x.values[idx] += -lr * rho / (trainRatio * labeledData.size()) *
+                                (-model.z.values[idx] + localADMMState[threadID].u.values[idx]);
+                    }
+                    predictValue = localADMMState[threadID].x.dot(tuple.data);
+                    tmpValue = 1.0 / (1.0 + Math.exp(tuple.label * predictValue));
+                    scala = tmpValue * tuple.label;
+                    localADMMState[threadID].x.plusGradient(tuple.data,  lr * scala);
+                }
+            }
+            model.x.plusDense(localADMMState[threadID].x);
+        }
+    }
+    private class updateUThread implements Runnable
+    {
+        int threadID;
+        private updateUThread(int threadID){
+            this.threadID = threadID;
+        }
+        public void run() {
+            for(int fID = 0; fID < featureDimension; fID++){
+                localADMMState[threadID].u.values[fID] += (localADMMState[threadID].x.values[fID] - model.z.values[fID]);
+                model.u.values[fID] += localADMMState[threadID].u.values[fID];
+            }
+        }
+    }
+
+    private void updateX(int iteNumber){
+        long startTrain = System.currentTimeMillis();
+
+        Arrays.fill(model.x.values, 0);
+        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
+        for (int threadID = 0; threadID < threadNum; threadID++) {
+            threadPool.execute(new executeRunnable(threadID, iteNumber));
+        }
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()) {
+            try {
+                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        model.x.allDividedBy(threadNum);
+        System.out.println("[Information]Update X costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
+    }
+
+    private void updateZ(){
+        long startTrain = System.currentTimeMillis();
+
+        System.arraycopy(model.z.values, 0, oldModelZ.values, 0, featureDimension);
+        for(int id = 0; id < featureDimension; id++){
+            x_hat[id] = rel_par * model.x.values[id] + (1 - rel_par) * model.z.values[id];
+            //z=Soft_threshold(lambda/rho,x+u);
+            model.z.values[id] = Utils.soft_threshold(lambda / (rho * threadNum), x_hat[id] + model.u.values[id]);
+        }
+        System.out.println("[Information]Update Z costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
+
+    }
+
+    private void updateU(){
+        long startTrain = System.currentTimeMillis();
+        Arrays.fill(model.u.values, 0);
+        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
+        for (int threadID = 0; threadID < threadNum; threadID++) {
+            threadPool.execute(new updateUThread(threadID));
+        }
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()) {
+            try {
+                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        model.u.allDividedBy(threadNum);
+        System.out.println("[Information]Update U costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
+
+    }
+
+    private boolean judgeConverge(){
+        double R_Norm = 0;
+        double S_Norm = 0;
+        for(int i = 0; i < threadNum; i++){
+            for(int j = 0; j < featureDimension; j++) {
+                R_Norm += (localADMMState[i].x.values[j] - model.z.values[j])
+                        * (localADMMState[i].x.values[j] - model.z.values[j]);
+                S_Norm += (model.z.values[j] - oldModelZ.values[j]) * rho
+                        * (model.z.values[j] - oldModelZ.values[j]) * rho;
+            }
+        }
+        R_Norm = Math.sqrt(R_Norm);
+        S_Norm = Math.sqrt(S_Norm);
+        double tmpNormX = 0, tmpNormZ = 0, tmpNormU = 0;
+        for(int i = 0; i < threadNum; i++){
+            for(int j = 0; j < featureDimension; j++) {
+                tmpNormX += localADMMState[i].x.values[j] * localADMMState[i].x.values[j];
+                tmpNormZ += model.z.values[j] * model.z.values[j];
+                tmpNormU += localADMMState[i].u.values[j] * localADMMState[i].u.values[j];
+            }
+        }
+        tmpNormX = Math.sqrt(tmpNormX);
+        tmpNormZ = Math.sqrt(tmpNormZ);
+        tmpNormU = Math.sqrt(tmpNormU);
+        double EPS_PRI = Math.sqrt(threadNum) * ABSTOL +RELTOL * Math.max(tmpNormX, tmpNormZ);
+        double EPS_DUAL = Math.sqrt(threadNum) * ABSTOL + RELTOL * rho * tmpNormU;
+        System.out.println("[Information]AbsoluteErrorDelta " + (EPS_PRI - R_Norm));
+        System.out.println("[Information]RelativeErrorDelta " + (EPS_DUAL - S_Norm));
+        return R_Norm < EPS_PRI && S_Norm < EPS_DUAL;
+    }
+
     private void trainCore() {
         double startCompute = System.currentTimeMillis();
         Collections.shuffle(labeledData);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
-        List<LabeledData> trainCorpus = labeledData.subList(0, testBegin);
+        List<LabeledData>trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
         x_hat = new double[model.featureNum];
         DenseVector oldModel = new DenseVector(featureDimension);
 
         localADMMState = new ADMMState[threadNum];
-        localTrainCorpus = new ArrayList<List<LabeledData>>();
-
         for (int threadID = 0; threadID < threadNum; threadID++) {
             localADMMState[threadID] = new ADMMState(featureDimension);
-            int from = trainCorpus.size() * threadID / threadNum;
-            int to = trainCorpus.size() * (threadID + 1) / threadNum;
-            List<LabeledData> localData = trainCorpus.subList(from, to);
-            localTrainCorpus.add(localData);
         }
         long totalBegin = System.currentTimeMillis();
 
@@ -183,8 +238,7 @@ public class SVMSGD extends model.SVM {
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
-            Collections.shuffle(localTrainCorpus);
+            //Collections.shuffle(trainCorpus);
             localTrainCorpus = new ArrayList<List<LabeledData>>();
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 int from = trainCorpus.size() * threadID / threadNum;
@@ -192,15 +246,14 @@ public class SVMSGD extends model.SVM {
                 List<LabeledData> localData = trainCorpus.subList(from, to);
                 localTrainCorpus.add(localData);
             }
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model.x, lambda);
             long startTrain = System.currentTimeMillis();
-            //Update x;
+            //Update x
             updateX(i);
             //Update z
             updateZ();
             //Update u
             updateU();
-
-
             if(!rhoFixed){
                 rho = calculateRho(rho);
             }
@@ -235,55 +288,26 @@ public class SVMSGD extends model.SVM {
             }
         }
     }
+
+
     private static void train() {
-        SVMSGD svmADMM = new SVMSGD();
+        LogisticRegressionSGD lrADMM = new LogisticRegressionSGD();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new ADMMState(featureDimension);
         long start = System.currentTimeMillis();
-        svmADMM.trainCore();
+        lrADMM.trainCore();
         long cost = System.currentTimeMillis() - start;
-        System.out.println("[Information]Training cost " + cost + " ms totally.");
+        System.out.println("Training cost " + cost + " ms totally.");
     }
-
-
-    private boolean judgeConverge(){
-        double R_Norm = 0;
-        double S_Norm = 0;
-        for(int i = 0; i < threadNum; i++){
-            for(int j = 0; j < featureDimension; j++) {
-                R_Norm += (localADMMState[i].x.values[j] - model.z.values[j])
-                        * (localADMMState[i].x.values[j] - model.z.values[j]);
-                S_Norm += (model.z.values[j] - oldModelZ.values[j]) * rho
-                        * (model.z.values[j] - oldModelZ.values[j]) * rho;
-            }
-        }
-        R_Norm = Math.sqrt(R_Norm);
-        S_Norm = Math.sqrt(S_Norm);
-        double tmpNormX = 0, tmpNormZ = 0, tmpNormU = 0;
-        for(int i = 0; i < threadNum; i++){
-            for(int j = 0; j < featureDimension; j++) {
-                tmpNormX += localADMMState[i].x.values[j] * localADMMState[i].x.values[j];
-                tmpNormZ += model.z.values[j] * model.z.values[j];
-                tmpNormU += localADMMState[i].u.values[j] * localADMMState[i].u.values[j];
-            }
-        }
-        tmpNormX = Math.sqrt(tmpNormX);
-        tmpNormZ = Math.sqrt(tmpNormZ);
-        tmpNormU = Math.sqrt(tmpNormU);
-        double EPS_PRI = Math.sqrt(threadNum) * ABSTOL +RELTOL * Math.max(tmpNormX, tmpNormZ);
-        double EPS_DUAL = Math.sqrt(threadNum) * ABSTOL + RELTOL * rho * tmpNormU;
-        System.out.println("AbsoluteErrorDelta " + (EPS_PRI - R_Norm) + " RelativeErrorDelta " + (EPS_DUAL - S_Norm));
-        return R_Norm < EPS_PRI && S_Norm < EPS_DUAL;
-    }
-
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelADMM.SVM threadNum featureDimension train_path lambda trainRatio");
+        System.out.println("Usage: parallelADMM.LogisticRegression threadNum FeatureDim train_path lambda trainRatio");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         featureDimension = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
+
         for(int i = 0; i < argv.length - 1; i++){
             if(argv[i].equals("Model")){
                 //0: maxIteration  1: maxTime 2: earlyStop
@@ -304,18 +328,21 @@ public class SVMSGD extends model.SVM {
             if(argv[i].equals("RhoFixed")){
                 rhoFixed = Boolean.parseBoolean(argv[i + 1]);
             }
-            if(argv[i].equals("TrainRatio")){
-                trainRatio = Double.parseDouble(argv[i+1]);
-                if(trainRatio >= 1 || trainRatio <= 0){
-                    System.out.println("Error Train Ratio!");
-                    System.exit(1);
-                }
-            }
             if(argv[i].equals("LR")){
                 lr = Double.parseDouble(argv[i + 1]);
             }
             if(argv[i].equals("SGDIterations")){
                 sgdIterations = Integer.parseInt(argv[i + 1]);
+            }
+            if(argv[i].equals("RhoFixed")){
+                rhoFixed = Boolean.parseBoolean(argv[i + 1]);
+            }
+            if(argv[i].equals("TrainRatio")){
+                trainRatio = Double.parseDouble(argv[i+1]);
+                if(trainRatio > 1 || trainRatio <= 0){
+                    System.out.println("Error Train Ratio!");
+                    System.exit(1);
+                }
             }
             if(argv[i].equals("DoNormalize")){
                 doNormalize = Boolean.parseBoolean(argv[i + 1]);
