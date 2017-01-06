@@ -156,10 +156,10 @@ public class LinearRegression extends model.LinearRegression{
                     e.printStackTrace();
                 }
             }
-            //if(threadNum != 1 && i != 0){
-                adjustResidual();
-            //}
             long trainTime = System.currentTimeMillis() - startTrain;
+            //if(threadNum != 1 && i != 0){
+            adjustResidual();
+            //}
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);

@@ -200,10 +200,10 @@ public class LassoShotGun extends model.Lasso {
                     e.printStackTrace();
                 }
             }
+            long trainTime = System.currentTimeMillis() - startTrain;
             //if(threadNum != 1){
                 adjustResidual();
             //}
-            long trainTime = System.currentTimeMillis() - startTrain;
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);

@@ -139,6 +139,9 @@ public class LinearRegressionSGD extends model.LinearRegression{
                 e.printStackTrace();
             }
         }
+        for(int i = 0; i < threadNum; i++){
+            model.x.plusDense(localADMMState[i].x);
+        }
         model.x.allDividedBy(threadNum);
         System.out.println("[Information]Update X costs " + String.valueOf(System.currentTimeMillis() - startTrain) + " ms");
     }

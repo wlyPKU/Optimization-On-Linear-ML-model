@@ -48,17 +48,17 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
             this.to = to;
 
         }
-
+        public double exp(double val) {
+            final long tmp = (long) (1512775 * val + (1072693248 - 60801));
+            return Double.longBitsToDouble(tmp << 32);
+        }
         double Ldiff(int x_i, double diff){
             double result = 0;
             int []indices = features[x_i].indices;
             double []values = features[x_i].values;
             for(int i = 0; i < indices.length; i++){
                 LabeledData l = trainCorpus.get(indices[i]);
-                double Ldiff = Math.log(1 + Math.exp(-l.label * predictValue[i])
-                        * Math.exp(-l.label * values[i] * diff));
-                Ldiff -= Math.log(1 + Math.exp(- l.label * predictValue[i]));
-                result += Ldiff;
+                result += Math.log(1 + exp(- l.label * predictValue[i])) * (exp(-l.label * values[i] * diff) - 1);
             }
             return 1 / lambda * result;
         }
@@ -75,6 +75,7 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
             if(lambda != 0){
                 C = 1.0 / lambda;
             }
+            long costTime = 0;
             int[] indices;
             int idx;
             double firstOrderL, secondOrderL, xj;
@@ -91,7 +92,7 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
                         idx = indices[i];
                         xj = values[i];
                         LabeledData l = trainCorpus.get(idx);
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
+                        double tao = 1 / (1 + exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                         secondOrderL += xj * xj * tao * (1 - tao);
                     }
@@ -104,22 +105,27 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
                     }
                     double delta = (firstOrderL * d + Math.abs(model.values[fIdx] + d))
                             - Math.abs(model.values[fIdx]);
-                    double gamma = 1.0;
+                    double gamma = 1;
                     double rhs_c = 0.01 * delta;
-                    for(int i = 0; i < 20; i++){
+
+                    long startTime = System.currentTimeMillis();
+
+                    for(int i = 0; i < 5; i++){
                         double change_in_obj = g_xi(d, fIdx);
                         if(change_in_obj <= gamma * rhs_c){
                             model.values[fIdx] += d;
                             for (int id = 0; id < indices.length; id++) {
-                                predictValue[indices[id]] -= values[id] * d;
+                                predictValue[indices[id]] += values[id] * d;
                             }
                             break;
                         }
-                        gamma *= 0.5;
-                        d *= 0.5;
+                        gamma *= 0.1;
+                        d *= 0.1;
                     }
+                    costTime += System.currentTimeMillis() - startTime;
                 }
             }
+            System.out.println(costTime);
         }
     }
 
@@ -153,7 +159,8 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
-            if(threadNum != 1 || i != 0){
+            //if(threadNum != 1 || i != 0)
+            {
                 for(int idx = 0; idx < trainCorpus.size(); idx++){
                     LabeledData l = trainCorpus.get(idx);
                     predictValue[idx] = model.dot(l.data);

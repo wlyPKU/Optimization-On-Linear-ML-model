@@ -50,7 +50,9 @@ public class LogisticRegression extends model.LogisticRegression{
 
         }
         public void run() {
-            double C = Double.MAX_VALUE;
+            long startTrain = System.currentTimeMillis();
+
+            double C = 1000000;
             if(lambda != 0){
                 C = 1.0 / lambda;
             }
@@ -86,6 +88,7 @@ public class LogisticRegression extends model.LogisticRegression{
                     }
                 }
             }
+            System.out.println((System.currentTimeMillis() - startTrain));
         }
     }
 
@@ -98,7 +101,9 @@ public class LogisticRegression extends model.LogisticRegression{
 
         }
         public void run() {
-            double C = Double.MAX_VALUE;
+            long startTrain = System.currentTimeMillis();
+            long costTime = 0;
+            double C = 1000000;
             if(lambda != 0){
                 C = 1.0 / lambda;
             }
@@ -111,6 +116,7 @@ public class LogisticRegression extends model.LogisticRegression{
                 values = features[fIdx].values;
                 if(featureSquare[fIdx] != 0) {
                     //First Order L:
+
                     firstOrderL = 0;
                     oldValue = modelOfV.values[fIdx];
                     for (int i = 0; i < indices.length; i++) {
@@ -120,6 +126,7 @@ public class LogisticRegression extends model.LogisticRegression{
                         double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
+
                     firstOrderL *= C;
                     double Uj = 0.25 * C * featureSquare[fIdx];
                     double updateValue = (1 - firstOrderL) / Uj;
@@ -129,8 +136,12 @@ public class LogisticRegression extends model.LogisticRegression{
                             predictValue[indices[i]] -= values[i] * (modelOfV.values[fIdx] - oldValue);
                         }
                     }
+
+
                 }
             }
+            System.out.println("inner" + costTime);
+            System.out.println((System.currentTimeMillis() - startTrain));
         }
     }
 
@@ -218,16 +229,16 @@ public class LogisticRegression extends model.LogisticRegression{
                 }
             }
             //Update w-
-            ExecutorService newThreadPool = Executors.newFixedThreadPool(threadNum);
+            threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 int from = featureDimension * threadID / threadNum;
                 int to = featureDimension * (threadID + 1) / threadNum;
-                newThreadPool.execute(new updateWNegative(from, to));
+                threadPool.execute(new updateWNegative(from, to));
             }
-            newThreadPool.shutdown();
-            while (!newThreadPool.isTerminated()) {
+            threadPool.shutdown();
+            while (!threadPool.isTerminated()) {
                 try {
-                    newThreadPool.awaitTermination(1, TimeUnit.MILLISECONDS);
+                    threadPool.awaitTermination(1, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -331,6 +342,7 @@ public class LogisticRegression extends model.LogisticRegression{
         System.out.println("------------------------------------");
         long startLoad = System.currentTimeMillis();
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
+        labeledData = Utils.normalizeData(labeledData, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);

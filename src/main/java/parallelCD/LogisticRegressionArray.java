@@ -45,7 +45,19 @@ public class LogisticRegressionArray extends model.LogisticRegression{
         private updateWPositive(int from, int to){
             this.from = from;
             this.to = to;
-
+        }
+        public double exp(double val) {
+            final long tmp = (long) (1512775 * val + (1072693248 - 60801));
+            return Double.longBitsToDouble(tmp << 32);
+        }
+        public double EXP(double x){
+            if(x > 10){
+                return 0;
+            }else if(x < -10){
+                return 1;
+            }else{
+                return 1.0 / (1 + Math.exp(x));
+            }
         }
         public void run() {
             double C = Double.MAX_VALUE;
@@ -67,7 +79,9 @@ public class LogisticRegressionArray extends model.LogisticRegression{
                         idx = indices[i];
                         xj = values[i];
                         LabeledData l = trainCorpus[idx];
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
+                        //double tao = EXP(-l.label * predictValue[idx]);
+                        double tao = 1.0 / (1.0 + Math.exp(-l.label * predictValue[idx]));
+                        //double tao = 1.0 / (1.0 + exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
                     firstOrderL *= C;
@@ -79,7 +93,8 @@ public class LogisticRegressionArray extends model.LogisticRegression{
                     } else {
                         modelOfU.values[fIdx] -= updateValue;
                     }
-                    if(modelOfU.values[fIdx] - oldValue != 0) {
+                    if(modelOfU.values[fIdx] - oldValue != 0)
+                    {
                         //Update predictValue
                         for (int i = 0; i < indices.length; i++) {
                             idx = indices[i];
@@ -98,6 +113,19 @@ public class LogisticRegressionArray extends model.LogisticRegression{
             this.from = from;
             this.to = to;
         }
+        public double exp(double val) {
+            final long tmp = (long) (1512775 * val + (1072693248 - 60801));
+            return Double.longBitsToDouble(tmp << 32);
+        }
+        public double EXP(double x){
+            if(x > 10){
+                return 0;
+            }else if(x < 10){
+                return 1;
+            }else{
+                return 1 / (1 + Math.exp(x));
+            }
+        }
         public void run() {
             double C = Double.MAX_VALUE;
             if(lambda != 0){
@@ -118,7 +146,9 @@ public class LogisticRegressionArray extends model.LogisticRegression{
                         idx = indices[i];
                         xj = values[i];
                         LabeledData l = trainCorpus[idx];
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
+                        double tao = 1.0 / (1.0 + Math.exp(-l.label * predictValue[idx]));
+                        //double tao = EXP(-l.label * predictValue[idx]);
+                        //double tao = 1.0 / (1.0 + exp(-l.label * predictValue[idx]));
                         firstOrderL += l.label * xj * (tao - 1);
                     }
                     firstOrderL *= C;
@@ -129,7 +159,8 @@ public class LogisticRegressionArray extends model.LogisticRegression{
                     } else {
                         modelOfV.values[fIdx] -= updateValue;
                     }
-                    if(modelOfV.values[fIdx] - oldValue != 0){
+                    if(modelOfV.values[fIdx] - oldValue != 0)
+                    {
                         for (int i = 0; i < indices.length; i++) {
                             predictValue[indices[i]] -= values[i] * (modelOfV.values[fIdx] - oldValue);
                         }
