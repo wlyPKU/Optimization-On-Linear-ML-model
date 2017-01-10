@@ -52,6 +52,9 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
             final long tmp = (long) (1512775 * val + (1072693248 - 60801));
             return Double.longBitsToDouble(tmp << 32);
         }
+        public double log(double x) {
+            return 6 * (x - 1) / (x + 1 + 4 * (Math.sqrt(x)));
+        }
         double Ldiff(int x_i, double diff){
             double result = 0;
             int []indices = features[x_i].indices;

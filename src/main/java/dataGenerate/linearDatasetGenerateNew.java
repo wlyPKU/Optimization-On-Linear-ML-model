@@ -30,11 +30,11 @@ public class linearDatasetGenerateNew {
             tupleValue = 0;
             for(int j = 0; j < featureDimension; j++){
                 if(random.nextDouble() <= density) {
-                    tuple[j] = random.nextDouble() % 50;
-                    tupleValue += (tuple[j] + random.nextGaussian())* realWeights[j];
+                    tuple[j] = random.nextInt(50);
+                    tupleValue += tuple[j]* realWeights[j];
                 }
             }
-            tupleValue += random.nextGaussian();
+            //tupleValue += random.nextGaussian();
             System.out.print(tupleValue);
             for(int j = 0; j < featureDimension; j++){
                 if(tuple[j] != 0){

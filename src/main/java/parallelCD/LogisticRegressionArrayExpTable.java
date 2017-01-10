@@ -8,7 +8,8 @@ import math.SparseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  predictValue    每个线程共享
 //  可能会发生冲突
-public class LogisticRegressionArrayNew extends model.LogisticRegression{
+public class LogisticRegressionArrayExpTable extends model.LogisticRegression{
 
     private static double lambda;
     private static double trainRatio = 0.5;
@@ -39,16 +40,40 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
 
     private static LabeledData[] trainCorpus;
 
+    private static double[][] expTable = new double[5][100];
+
     private class updateWPositive implements Runnable
     {
         int from, to;
         private updateWPositive(int from, int to){
             this.from = from;
             this.to = to;
-
+        }
+        public double exp(double val) {
+            double result = 1.0;
+            int bitNum = 0;
+            for(int i = 0; i < 3; i++){
+                bitNum = (int)val % 100;
+                if(bitNum >= 0) {
+                    result *= expTable[i][bitNum];
+                }else{
+                    result /= expTable[i][-bitNum];
+                }
+                val*= 10;
+            }
+            return result;
+        }
+        public double EXP(double x){
+            if(x > 10){
+                return 0;
+            }else if(x < -10){
+                return 1;
+            }else{
+                return 1.0 / (1 + exp(x));
+            }
         }
         public void run() {
-            double C = Double.MAX_VALUE;
+            double C = 1000000;
             if(lambda != 0){
                 C = 1.0 / lambda;
             }
@@ -67,7 +92,9 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
                         idx = indices[i];
                         xj = values[i];
                         LabeledData l = trainCorpus[idx];
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
+                        //double tao = EXP(-l.label * predictValue[idx]);
+                        //double tao = 1.0 / (1.0 + Math.exp(-l.label * predictValue[idx]));
+                        double tao = EXP(-l.label * predictValue[idx]);
                         firstOrderL += l.label * xj * (tao - 1);
                     }
                     firstOrderL *= C;
@@ -79,7 +106,8 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
                     } else {
                         modelOfU.values[fIdx] -= updateValue;
                     }
-                    if(modelOfU.values[fIdx] - oldValue != 0) {
+                    if(Math.abs(modelOfU.values[fIdx] - oldValue) > 1e-5)
+                    {
                         //Update predictValue
                         for (int i = 0; i < indices.length; i++) {
                             idx = indices[i];
@@ -98,8 +126,31 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
             this.from = from;
             this.to = to;
         }
+        public double exp(double val) {
+            double result = 1.0;
+            int bitNum = 0;
+            for(int i = 0; i < 3; i++){
+                bitNum = ((int)val) % 100;
+                if(bitNum >= 0) {
+                    result *= expTable[i][bitNum];
+                }else{
+                    result /= expTable[i][-bitNum];
+                }
+                val*= 100;
+            }
+            return result;
+        }
+        double EXP(double x){
+            if(x > 10){
+                return 0;
+            }else if(x < -10){
+                return 1;
+            }else{
+                return 1 / (1 + exp(x));
+            }
+        }
         public void run() {
-            double C = Double.MAX_VALUE;
+            double C = 1000000;
             if(lambda != 0){
                 C = 1.0 / lambda;
             }
@@ -118,7 +169,9 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
                         idx = indices[i];
                         xj = values[i];
                         LabeledData l = trainCorpus[idx];
-                        double tao = 1 / (1 + Math.exp(-l.label * predictValue[idx]));
+                        //double tao = 1.0 / (1.0 + Math.exp(-l.label * predictValue[idx]));
+                        //double tao = EXP(-l.label * predictValue[idx]);
+                        double tao = EXP(-l.label * predictValue[idx]);
                         firstOrderL += l.label * xj * (tao - 1);
                     }
                     firstOrderL *= C;
@@ -129,7 +182,8 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
                     } else {
                         modelOfV.values[fIdx] -= updateValue;
                     }
-                    if(modelOfV.values[fIdx] - oldValue != 0){
+                    if(Math.abs(modelOfV.values[fIdx] - oldValue) > 1e-5)
+                    {
                         for (int i = 0; i < indices.length; i++) {
                             predictValue[indices[i]] -= values[i] * (modelOfV.values[fIdx] - oldValue);
                         }
@@ -205,7 +259,7 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
             System.out.println("[Information]Iteration " + i + " ---------------");
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
             //if(threadNum != 1 || i == 0){
-            adjustPredictValue();
+                adjustPredictValue();
             //}
             long startTrain = System.currentTimeMillis();
             //Update w+
@@ -275,7 +329,7 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
 
 
     public static void train(LabeledData[] labeledData) {
-        LogisticRegressionArrayNew lrSCD = new LogisticRegressionArrayNew();
+        LogisticRegressionArrayExpTable lrSCD = new LogisticRegressionArrayExpTable();
         //http://www.csie.ntu.edu.tw/~cjlin/papers/l1.pdf 3197-3200+
         modelOfU = new DenseVector(featureDimension);
         modelOfV = new DenseVector(featureDimension);
@@ -293,6 +347,12 @@ public class LogisticRegressionArrayNew extends model.LogisticRegression{
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelCD.LogisticRegression threadNum FeatureDim train_path lamda trainRatio");
+        for(int i = 0; i < 5; i++){
+            double l = Math.pow(10, -2*i);
+            for(int j = 0; j < 100; j++){
+                expTable[i][j] = Math.exp(j * l);
+            }
+        }
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
