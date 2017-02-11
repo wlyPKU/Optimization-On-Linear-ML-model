@@ -82,7 +82,7 @@ public class Utils {
     }
     return list;
   }
-  public static LabeledData[] loadLibSVMArray(String path, int dim) throws IOException {
+  public static LabeledData[] loadLibSVMArray(String path, int dim, boolean doShuffle) throws IOException {
     Vector<LabeledData> list = new Vector<LabeledData>();
     BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
 
@@ -96,14 +96,15 @@ public class Utils {
         System.out.println("Finishing load " + cnt + " lines.");
       }
     }
+    if(doShuffle == true){
+      Collections.shuffle(list);
+    }
     LabeledData[] result = new LabeledData[list.size()];
     for(int i = 0; i < list.size(); i++){
       result[i] = new LabeledData(list.get(i).data, list.get(i).label);
-
     }
     return result;
   }
-
 
   public static List<LabeledData> loadLibSVMLoss0_1(String path, int dim) throws IOException {
         List<LabeledData> list = new ArrayList<LabeledData>();

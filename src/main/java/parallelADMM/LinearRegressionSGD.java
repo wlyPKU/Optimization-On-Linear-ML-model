@@ -232,7 +232,7 @@ public class LinearRegressionSGD extends model.LinearRegression{
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            Collections.shuffle(trainCorpus);
+            //Collections.shuffle(trainCorpus);
             localTrainCorpus = new ArrayList<List<LabeledData>>();
             for (int threadID = 0; threadID < threadNum; threadID++) {
                 int from = trainCorpus.size() * threadID / threadNum;

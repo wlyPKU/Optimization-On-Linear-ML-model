@@ -582,7 +582,6 @@ public class LogisticRegressionArray extends model.LogisticRegression{
 
     public static void main(String[] argv) throws Exception {
         System.out.println("Usage: parallelCD.LogisticRegression threadNum FeatureDim train_path lamda trainRatio");
-
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
@@ -626,7 +625,8 @@ public class LogisticRegressionArray extends model.LogisticRegression{
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
         long startLoad = System.currentTimeMillis();
-        LabeledData[] labeledData = Utils.loadLibSVMArray(path, featureDimension);
+        //Shuffle
+        LabeledData[] labeledData = Utils.loadLibSVMArray(path, featureDimension, true);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);

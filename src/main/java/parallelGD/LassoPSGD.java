@@ -46,7 +46,7 @@ public class LassoPSGD extends model.Lasso{
             this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
-            Collections.shuffle(localList);
+            //Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {

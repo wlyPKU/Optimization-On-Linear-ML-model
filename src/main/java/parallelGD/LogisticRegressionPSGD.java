@@ -45,7 +45,7 @@ public class LogisticRegressionPSGD extends model.LogisticRegression{
 
         }
         public void run() {
-            Collections.shuffle(localList);
+            //Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate, lambda);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr, double lambda) {

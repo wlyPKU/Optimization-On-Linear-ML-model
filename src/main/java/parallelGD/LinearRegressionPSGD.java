@@ -39,7 +39,7 @@ public class LinearRegressionPSGD extends model.LinearRegression{
             this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
-            Collections.shuffle(localList);
+            //Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr) {

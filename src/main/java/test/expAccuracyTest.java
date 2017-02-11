@@ -10,7 +10,7 @@ public class expAccuracyTest {
     public static double exp(double val) {
         double result = 1.0;
         int bitNum = 0;
-        for(int i = 0; i < 2; i++){
+        for(int i = 0; i < 3; i++){
             bitNum = ((int)val) % 100;
             if(bitNum >= 0) {
                 result *= expTable[i][bitNum];
@@ -34,20 +34,20 @@ public class expAccuracyTest {
             }
         }
         if(args.length < 1 || args[0].equals("1")){
-            for(double i = -10; i < 10; i+= 0.01){
+            for(double i = -1; i < 1; i+= 0.0001){
                 double exp1 = expMethod(i);
                 double exp2 = Math.exp(i);
                 System.out.println(i + " " + exp1 / exp2);
             }
         }else{
-            for(double i = -10; i < 10; i+= 0.01){
+            for(double i = -1; i < 1; i+= 0.0001){
                 double exp1 = exp(i);
                 double exp2 = Math.exp(i);
                 System.out.println(i + " " + exp1 / exp2);
             }
         }
     }
-    static double ExpAdjustment[] = {
+    private static double ExpAdjustment[] = {
             1.040389835,
             1.039159306,
             1.037945888,

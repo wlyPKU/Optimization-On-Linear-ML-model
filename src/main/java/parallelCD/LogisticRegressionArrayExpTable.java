@@ -396,7 +396,7 @@ public class LogisticRegressionArrayExpTable extends model.LogisticRegression{
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("------------------------------------");
         long startLoad = System.currentTimeMillis();
-        LabeledData[] labeledData = Utils.loadLibSVMArray(path, featureDimension);
+        LabeledData[] labeledData = Utils.loadLibSVMArray(path, featureDimension, true);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);
