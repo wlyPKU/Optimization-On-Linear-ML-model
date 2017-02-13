@@ -251,6 +251,7 @@ public class LogisticRegressionVector extends model.LogisticRegression{
             System.out.println("[Information]trainTime " + trainTime + " ");
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);
+
             System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin) );
             System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
                     / 1024 / 1024 + "M");

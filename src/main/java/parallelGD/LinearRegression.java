@@ -1,3 +1,4 @@
+
 package parallelGD;
 
 import Utils.LabeledData;
@@ -6,75 +7,85 @@ import math.DenseVector;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Created by 王羚宇 on 2016/7/20.
+ */
 public class LinearRegression extends model.LinearRegression{
     public static long start;
 
     private DenseVector globalModel;
-    public static double trainRatio = 0.5;
     public static int threadNum;
+    public static double trainRatio = 0.5;
 
     private static double learningRate = 0.005;
     public int iteration = 0;
 
     private void setNewLearningRate(){
     }
+
     public class executeRunnable implements Runnable
     {
         List<LabeledData> localList;
+        int globalCorpusSize;
         int threadID;
-        public executeRunnable(int threadID, List<LabeledData> list){
+        public executeRunnable(int threadID, List<LabeledData> list, int globalCorpusSize){
             this.threadID = threadID;
             localList = list;
+            this.globalCorpusSize = globalCorpusSize;
         }
         public void run() {
             //Collections.shuffle(localList);
             sgdOneEpoch(localList, learningRate);
         }
         void sgdOneEpoch(List<LabeledData> list, double lr) {
+            //double modelPenalty = - lr * lambda;
             for (LabeledData labeledData: list) {
                 double scala = labeledData.label - globalModel.dot(labeledData.data);
-                globalModel.plusGradient(labeledData.data, scala * lr);
+                globalModel.update(labeledData.data, 0, lr * scala);
             }
         }
     }
 
-    public void train(List<LabeledData> corpus, DenseVector model) {
+    public double train(List<LabeledData> corpus, int dimension, boolean verbose) {
         double startCompute = System.currentTimeMillis();
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
         int end = (int) (size * trainRatio);
         List<LabeledData> trainCorpus = corpus.subList(0, end);
-        List<LabeledData> testCorpus = corpus.subList(end, size);
         Collections.shuffle(trainCorpus);
+        List<LabeledData> testCorpus = corpus.subList(end, size);
         for(int threadID = 0; threadID < threadNum; threadID++){
             int from = end * threadID / threadNum;
             int to = end * (threadID + 1) / threadNum;
             List<LabeledData> threadCorpus = corpus.subList(from, to);
             ThreadTrainCorpus.add(threadCorpus);
         }
-        globalModel = new DenseVector(model.dim);
+        DenseVector model = new DenseVector(dimension);
+        DenseVector oldModel = new DenseVector(dimension);
+
+        globalModel = new DenseVector(dimension);
 
         long totalBegin = System.currentTimeMillis();
-        long totalIterationTime = 0;
-        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+        if(verbose) {
+            System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+        }
+        int totalIterationTime = 0;
         for (int i = 0; ; i ++) {
-            System.out.println("[Information]Iteration " + i + " ---------------");
-            boolean diverge = testAndSummary(trainCorpus, testCorpus, globalModel);
-
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, verbose);
             long startTrain = System.currentTimeMillis();
-            System.out.println("[Information]Learning rate " + learningRate);
+            if(verbose) {
+                System.out.println("[Information]Iteration " + i + " ---------------");
+                System.out.println("[Information]Learning rate " + learningRate);
+            }
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
-                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID)));
+                threadPool.execute(new executeRunnable(threadID, ThreadTrainCorpus.get(threadID), trainCorpus.size()));
             }
             threadPool.shutdown();
             while (!threadPool.isTerminated()) {
@@ -85,17 +96,20 @@ public class LinearRegression extends model.LinearRegression{
                     e.printStackTrace();
                 }
             }
-
             long trainTime = System.currentTimeMillis() - startTrain;
-            System.out.println("[Information]trainTime " + trainTime);
+            for(int j = 0; j < dimension; j++){
+                model.values[j] = globalModel.values[j];
+            }
             totalIterationTime += trainTime;
-            System.out.println("[Information]totalTrainTime " + totalIterationTime);
-            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
-            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
-                    / 1024 / 1024 + "M");
-            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    / 1024 / 1024 + "M");
-
+            if(verbose) {
+                System.out.println("[Information]trainTime " + trainTime);
+                System.out.println("[Information]totalTrainTime " + totalIterationTime);
+                System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+                System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                        / 1024 / 1024 + "M");
+                System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                        / 1024 / 1024 + "M");
+            }
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -107,26 +121,26 @@ public class LinearRegression extends model.LinearRegression{
                     break;
                 }
             }
-            if(converge(globalModel, model, trainCorpus)){
+            if(converge(oldModel, model, trainCorpus, verbose)){
                 if (modelType == 2)
                     break;
             }
-            System.arraycopy(globalModel.values, 0, model.values, 0, model.dim);
+            System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             if(diverge){
                 System.out.println("[Warning]Diverge happens!");
                 break;
             }
         }
+        return test(trainCorpus, model);
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LinearRegression threadNum dim train_path learningRate[trainRatio]");
+        System.out.println("Usage: parallelGD.LinearRegression threadNum dim train_path [trainRatio]");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
-        learningRate = Double.parseDouble(argv[3]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
@@ -162,21 +176,37 @@ public class LinearRegression extends model.LinearRegression{
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
         System.out.println("[Parameter]FeatureDimension " + dim);
-        System.out.println("[Parameter]LearningRate " + learningRate);
         System.out.println("[Parameter]File Path " + path);
         System.out.println("[Parameter]TrainRatio " + trainRatio);
         System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
         System.out.println("[Parameter]ModelType " + modelType);
         System.out.println("[Parameter]Iteration Limit " + maxIteration);
         System.out.println("[Parameter]DoNormalize " + doNormalize);
-
         System.out.println("------------------------------------");
 
         LinearRegression linear = new LinearRegression();
-        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
-        DenseVector model = new DenseVector(dim);
+
+        /* choose a good learning rate */
+        List<LabeledData> miniCorpus = corpus.subList(0, Math.min(corpus.size(), Math.max(corpus.size() / 10, 10000)));
+        Collections.shuffle(miniCorpus);
+        double learningRates[] = {1, 0.1, 0.01, 0.001, 0.0001, 0.00001};
+        double lowestObjectValue = 1e300;
+        int minLearningRateIndex = 0;
+        for(int i = 0; i < learningRates.length; i++){
+            learningRate = learningRates[i];
+            double currentObjectValue = linear.train(miniCorpus, dim, false);
+            System.out.println("[Learning rate test]Learning rate " + learningRates[i] + " objective value "
+                    + currentObjectValue + " on " + miniCorpus.size() + " samples.");
+            if(lowestObjectValue >  currentObjectValue){
+                minLearningRateIndex = i;
+                lowestObjectValue = currentObjectValue;
+            }
+        }
+        learningRate = learningRates[minLearningRateIndex];
+        System.out.println("[Parameter]LearningRate " + learningRate);
         start = System.currentTimeMillis();
-        linear.train(corpus, model);
+
+        linear.train(corpus, dim, true);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }

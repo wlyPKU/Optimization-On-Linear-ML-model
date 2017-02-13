@@ -22,7 +22,7 @@ public class Lasso {
     public static boolean doNormalize = true;
 
     public boolean testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
-                                DenseVector x, double lambda){
+                                  DenseVector x, double lambda){
         long startTest = System.currentTimeMillis();
         double trainLoss = lassoLoss(trainCorpus, x, lambda);
         double testLoss = lassoLoss(testCorpus, x, lambda);
@@ -30,10 +30,33 @@ public class Lasso {
         double testResidual = test(testCorpus, x);
         long testTime = System.currentTimeMillis() - startTest;
         System.out.println("[Information]TrainLoss=" + trainLoss + " TestLoss=" + testLoss +
-                " TrainResidual=" + trainResidual + " TestResidual=" + testResidual +
-                " TestTime=" + testTime);
+                    " TrainResidual=" + trainResidual + " TestResidual=" + testResidual +
+                    " TestTime=" + testTime);
         System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size() +
-                " AverageTrainResidual=" + trainResidual / trainCorpus.size() + " AverageTestResidual=" + testResidual / testCorpus.size());
+                    " AverageTrainResidual=" + trainResidual / trainCorpus.size() + " AverageTestResidual=" + testResidual / testCorpus.size());
+        double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, x);
+        double []testAccuracy = Utils.LinearAccuracy(testCorpus, x);
+        //System.out.println("trainAccuracy:");
+        //Utils.printAccuracy(trainAccuracy);
+        //System.out.println("testAccuracy:");
+        //Utils.printAccuracy(testAccuracy);
+        return (trainResidual > 1e100) || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
+    }
+    public boolean testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+                                DenseVector x, double lambda, boolean verbose){
+        long startTest = System.currentTimeMillis();
+        double trainLoss = lassoLoss(trainCorpus, x, lambda);
+        double testLoss = lassoLoss(testCorpus, x, lambda);
+        double trainResidual = test(trainCorpus, x);
+        double testResidual = test(testCorpus, x);
+        long testTime = System.currentTimeMillis() - startTest;
+        if(verbose) {
+            System.out.println("[Information]TrainLoss=" + trainLoss + " TestLoss=" + testLoss +
+                    " TrainResidual=" + trainResidual + " TestResidual=" + testResidual +
+                    " TestTime=" + testTime);
+            System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size() +
+                    " AverageTrainResidual=" + trainResidual / trainCorpus.size() + " AverageTestResidual=" + testResidual / testCorpus.size());
+        }
         double []trainAccuracy = Utils.LinearAccuracy(trainCorpus, x);
         double []testAccuracy = Utils.LinearAccuracy(testCorpus, x);
         //System.out.println("trainAccuracy:");
@@ -62,7 +85,7 @@ public class Lasso {
         }
         return residual;
     }
-    private double lassoLoss(List<LabeledData> list, DenseVector model, double lambda) {
+    public double lassoLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double predictValue = model.dot(labeledData.data);
@@ -84,6 +107,21 @@ public class Lasso {
                 - lassoLoss(data, newModel, lambda))));
         System.out.println("[Information]ParameterChanged " + delta);
         System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
+        return delta < stopDelta;
+    }
+    public boolean converge(DenseVector oldModel, DenseVector newModel, List<LabeledData> data, double lambda, boolean verbose){
+        double delta = 0;
+        for(int i = 0; i < oldModel.values.length; i++){
+            delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
+        }
+        if(verbose) {
+            System.out.println("[Information]LossChanged " + (lassoLoss(data, oldModel, lambda)
+                    - lassoLoss(data, newModel, lambda)));
+            System.out.println("[Information]LossAbsoluteChanged " + (Math.abs(lassoLoss(data, oldModel, lambda)
+                    - lassoLoss(data, newModel, lambda))));
+            System.out.println("[Information]ParameterChanged " + delta);
+            System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
+        }
         return delta < stopDelta;
     }
 }

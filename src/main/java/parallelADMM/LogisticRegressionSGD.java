@@ -32,7 +32,7 @@ public class LogisticRegressionSGD extends model.LogisticRegression{
     private static ADMMState model;
     private ADMMState[] localADMMState;
 
-    private static int sgdIterations = 3;
+    private static int sgdIterations = 1;
     private static double lr = 0.005;
 
     private double x_hat[];

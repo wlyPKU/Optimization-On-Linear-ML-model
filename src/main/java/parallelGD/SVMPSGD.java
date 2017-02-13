@@ -61,7 +61,7 @@ public class SVMPSGD extends model.SVM{
         }
     }
 
-    public void train(List<LabeledData> corpus, DenseVector model) {
+    public double train(List<LabeledData> corpus, DenseVector model, boolean verbose) {
         double startCompute = System.currentTimeMillis();
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -85,13 +85,17 @@ public class SVMPSGD extends model.SVM{
         }
 
         long totalBegin = System.currentTimeMillis();
-        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+        if(verbose) {
+            System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+        }
         long totalIterationTime = 0;
         for (int i = 0; ; i ++) {
-            System.out.println("[Information]Iteration " + i + " ---------------");
-            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
+            if(verbose) {
+                System.out.println("[Information]Iteration " + i + " ---------------");
+                System.out.println("[Information]Learning rate " + learningRate);
+            }
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda, verbose);
 
-            System.out.println("[Information]Learning rate " + learningRate);
             long startTrain = System.currentTimeMillis();
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
@@ -119,15 +123,16 @@ public class SVMPSGD extends model.SVM{
             for(int id = 0; id < threadNum; id++){
                 System.arraycopy(model.values, 0, localModel[id].values, 0, model.dim);
             }
-
-            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
-            System.out.println("[Information]totalTrainTime " + totalIterationTime);
-            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
-            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
-                    / 1024 / 1024 + "M");
-            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    / 1024 / 1024 + "M");
+            if(verbose) {
+                System.out.println("[Information]trainTime " + trainTime);
+                System.out.println("[Information]totalTrainTime " + totalIterationTime);
+                System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+                System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                        / 1024 / 1024 + "M");
+                System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                        / 1024 / 1024 + "M");
+            }
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -139,27 +144,29 @@ public class SVMPSGD extends model.SVM{
                     break;
                 }
             }
-            if(converge(oldModel, model, trainCorpus, lambda)){
+            if(converge(oldModel, model, trainCorpus, lambda, verbose)){
                 if (modelType == 2)
                     break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             if(diverge){
-                System.out.println("[Warning]Diverge happens!");
+                if(verbose) {
+                    System.out.println("[Warning]Diverge happens!");
+                }
                 break;
             }
         }
+        return SVMLoss(trainCorpus, model, lambda);
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.SVM threadNum dim train_path lambda learningRate [trainRatio]");
+        System.out.println("Usage: parallelGD.SVM threadNum dim train_path lambda [trainRatio]");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
-        learningRate = Double.parseDouble(argv[4]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         corpus = Utils.normalizeData(corpus, dim);
@@ -184,7 +191,7 @@ public class SVMPSGD extends model.SVM{
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
-                if(trainRatio >= 1 || trainRatio <= 0){
+                if(trainRatio > 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
                 }
@@ -196,7 +203,6 @@ public class SVMPSGD extends model.SVM{
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
         System.out.println("[Parameter]FeatureDimension " + dim);
-        System.out.println("[Parameter]LearningRate " + learningRate);
         System.out.println("[Parameter]File Path " + path);
         System.out.println("[Parameter]Lambda " + lambda);
         System.out.println("[Parameter]TrainRatio " + trainRatio);
@@ -208,9 +214,30 @@ public class SVMPSGD extends model.SVM{
         System.out.println("------------------------------------");
 
         SVMPSGD svm = new SVMPSGD();
+
+        /* choose a good learning rate */
+        List<LabeledData> miniCorpus = corpus.subList(0, Math.min(corpus.size(), Math.max(corpus.size() / 10, 10000)));
+        Collections.shuffle(miniCorpus);
+        double learningRates[] = {1, 0.1, 0.01, 0.001, 0.0001, 0.00001};
+        double lowestObjectValue = 1e300;
+        int minLearningRateIndex = 0;
+        for(int i = 0; i < learningRates.length; i++){
+            learningRate = learningRates[i];
+            DenseVector model = new DenseVector(dim);
+            double currentObjectValue = svm.train(miniCorpus, model, false);
+            System.out.println("[Learning rate test]Learning rate " + learningRates[i] + " objective value "
+                    + currentObjectValue + " on " + miniCorpus.size() + " samples.");
+            if(lowestObjectValue >  currentObjectValue){
+                minLearningRateIndex = i;
+                lowestObjectValue = currentObjectValue;
+            }
+        }
+        learningRate = learningRates[minLearningRateIndex];
+        System.out.println("[Parameter]LearningRate " + learningRate);
+
         DenseVector model = new DenseVector(dim);
         start = System.currentTimeMillis();
-        svm.train(corpus, model);
+        svm.train(corpus, model, true);
 
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");

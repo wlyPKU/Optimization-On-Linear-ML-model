@@ -58,7 +58,7 @@ public class Lasso extends model.Lasso{
         }
     }
 
-    public void train(List<LabeledData> corpus, int dimension) {
+    public double train(List<LabeledData> corpus, int dimension, boolean verbose) {
         double startCompute = System.currentTimeMillis();
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -79,14 +79,17 @@ public class Lasso extends model.Lasso{
         globalModelOfV = new DenseVector(dimension);
 
         long totalBegin = System.currentTimeMillis();
-        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+        if(verbose) {
+            System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+        }
         int totalIterationTime = 0;
         for (int i = 0; ; i ++) {
-            System.out.println("[Information]Iteration " + i + " ---------------");
-            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
-
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda, verbose);
             long startTrain = System.currentTimeMillis();
-            System.out.println("[Information]Learning rate " + learningRate);
+            if(verbose) {
+                System.out.println("[Information]Iteration " + i + " ---------------");
+                System.out.println("[Information]Learning rate " + learningRate);
+            }
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -105,15 +108,16 @@ public class Lasso extends model.Lasso{
             for(int j = 0; j < dimension; j++){
                 model.values[j] = globalModelOfU.values[j] - globalModelOfV.values[j];
             }
-            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
-            System.out.println("[Information]totalTrainTime " + totalIterationTime);
-            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
-            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
-                    / 1024 / 1024 + "M");
-            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    / 1024 / 1024 + "M");
-
+            if(verbose) {
+                System.out.println("[Information]trainTime " + trainTime);
+                System.out.println("[Information]totalTrainTime " + totalIterationTime);
+                System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+                System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                        / 1024 / 1024 + "M");
+                System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                        / 1024 / 1024 + "M");
+            }
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -125,7 +129,7 @@ public class Lasso extends model.Lasso{
                     break;
                 }
             }
-            if(converge(oldModel, model, trainCorpus, lambda)){
+            if(converge(oldModel, model, trainCorpus, lambda, verbose)){
                 if (modelType == 2)
                     break;
             }
@@ -135,17 +139,17 @@ public class Lasso extends model.Lasso{
                 break;
             }
         }
+        return lassoLoss(trainCorpus, model, lambda);
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda learningRate [trainRatio]");
+        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path lambda [trainRatio]");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
         lambda = Double.parseDouble(argv[3]);
-        learningRate = Double.parseDouble(argv[4]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
@@ -181,7 +185,6 @@ public class Lasso extends model.Lasso{
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
         System.out.println("[Parameter]FeatureDimension " + dim);
-        System.out.println("[Parameter]LearningRate " + learningRate);
         System.out.println("[Parameter]File Path " + path);
         System.out.println("[Parameter]Lambda " + lambda);
         System.out.println("[Parameter]TrainRatio " + trainRatio);
@@ -192,9 +195,28 @@ public class Lasso extends model.Lasso{
         System.out.println("------------------------------------");
 
         Lasso lasso = new Lasso();
-        //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
+
+        /* choose a good learning rate */
+        List<LabeledData> miniCorpus = corpus.subList(0, Math.min(corpus.size(), Math.max(corpus.size() / 10, 10000)));
+        Collections.shuffle(miniCorpus);
+        double learningRates[] = {1, 0.1, 0.01, 0.001, 0.0001, 0.00001};
+        double lowestObjectValue = 1e300;
+        int minLearningRateIndex = 0;
+        for(int i = 0; i < learningRates.length; i++){
+            learningRate = learningRates[i];
+            double currentObjectValue = lasso.train(miniCorpus, dim, false);
+            System.out.println("[Learning rate test]Learning rate " + learningRates[i] + " objective value "
+                    + currentObjectValue + " on " + miniCorpus.size() + " samples.");
+            if(lowestObjectValue >  currentObjectValue){
+                minLearningRateIndex = i;
+                lowestObjectValue = currentObjectValue;
+            }
+        }
+        learningRate = learningRates[minLearningRateIndex];
+        System.out.println("[Parameter]LearningRate " + learningRate);
         start = System.currentTimeMillis();
-        lasso.train(corpus, dim);
+
+        lasso.train(corpus, dim, true);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }

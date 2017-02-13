@@ -4,6 +4,7 @@ package parallelGD;
 import Utils.LabeledData;
 import Utils.Utils;
 import math.DenseVector;
+import model.*;
 
 import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
@@ -24,6 +25,7 @@ public class LinearRegressionPSGD extends model.LinearRegression{
 
     private static double learningRate = 0.005;
     public int iteration = 0;
+
 
     private void setNewLearningRate(){
     }
@@ -51,7 +53,7 @@ public class LinearRegressionPSGD extends model.LinearRegression{
         }
     }
 
-    public void train(List<LabeledData> corpus, int dimension) {
+    public double train(List<LabeledData> corpus, int dimension, boolean verbose) {
         double startCompute = System.currentTimeMillis();
         List<List<LabeledData>> ThreadTrainCorpus = new ArrayList<List<LabeledData>>();
         int size = corpus.size();
@@ -75,14 +77,18 @@ public class LinearRegressionPSGD extends model.LinearRegression{
         }
 
         long totalBegin = System.currentTimeMillis();
-        System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+        if(verbose) {
+            System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
+        }
         int totalIterationTime = 0;
         for (int i = 0; ; i ++) {
-            System.out.println("[Information]Iteration " + i + " ---------------");
-            boolean diverge = testAndSummary(trainCorpus, testCorpus, model);
+            boolean diverge = testAndSummary(trainCorpus, testCorpus, model, verbose);
 
             long startTrain = System.currentTimeMillis();
-            System.out.println("[Information]Learning rate " + learningRate);
+            if(verbose) {
+                System.out.println("[Information]Iteration " + i + " ---------------");
+                System.out.println("[Information]Learning rate " + learningRate);
+            }
             //TODO StepSize tuning:  c/k(k=0,1,2...) or backtracking line search
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
             for (int threadID = 0; threadID < threadNum; threadID++) {
@@ -108,15 +114,16 @@ public class LinearRegressionPSGD extends model.LinearRegression{
             for(int id = 0; id < threadNum; id++){
                 System.arraycopy(model.values, 0, localModel[id].values, 0, model.dim);
             }
-            System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
-            System.out.println("[Information]totalTrainTime " + totalIterationTime);
-            System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
-            System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
-                    / 1024 / 1024 + "M");
-            System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    / 1024 / 1024 + "M");
-
+            if(verbose) {
+                System.out.println("[Information]trainTime " + trainTime);
+                System.out.println("[Information]totalTrainTime " + totalIterationTime);
+                System.out.println("[Information]totalTime " + (System.currentTimeMillis() - totalBegin));
+                System.out.println("[Information]HeapUsed " + ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed()
+                        / 1024 / 1024 + "M");
+                System.out.println("[Information]MemoryUsed " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
+                        / 1024 / 1024 + "M");
+            }
             iteration++;
             setNewLearningRate();
             if(modelType == 1) {
@@ -128,26 +135,28 @@ public class LinearRegressionPSGD extends model.LinearRegression{
                     break;
                 }
             }
-            if(converge(oldModel, model, trainCorpus)){
+            if(converge(oldModel, model, trainCorpus, verbose)){
                 if (modelType == 2)
                     break;
             }
             System.arraycopy(model.values, 0, oldModel.values, 0, oldModel.values.length);
             if(diverge){
-                System.out.println("[Warning]Diverge happens!");
+                if(verbose) {
+                    System.out.println("[Warning]Diverge happens!");
+                }
                 break;
             }
         }
+        return test(trainCorpus, model);
     }
 
     public static void main(String[] argv) throws Exception {
-        System.out.println("Usage: parallelGD.LinearRegression threadNum dim train_path learningRate [trainRatio]");
+        System.out.println("Usage: parallelGD.Lasso threadNum dim train_path [trainRatio]");
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
         System.out.println(df.format(new Date()));// new Date()为获取当前系统时间
         threadNum = Integer.parseInt(argv[0]);
         int dim = Integer.parseInt(argv[1]);
         String path = argv[2];
-        learningRate = Double.parseDouble(argv[3]);
         long startLoad = System.currentTimeMillis();
         List<LabeledData> corpus = Utils.loadLibSVM(path, dim);
         long loadTime = System.currentTimeMillis() - startLoad;
@@ -183,7 +192,6 @@ public class LinearRegressionPSGD extends model.LinearRegression{
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
         System.out.println("[Parameter]FeatureDimension " + dim);
-        System.out.println("[Parameter]LearningRate " + learningRate);
         System.out.println("[Parameter]File Path " + path);
         System.out.println("[Parameter]TrainRatio " + trainRatio);
         System.out.println("[Parameter]TimeLimit " + maxTimeLimit);
@@ -192,11 +200,30 @@ public class LinearRegressionPSGD extends model.LinearRegression{
         System.out.println("[Parameter]DoNormalize " + doNormalize);
 
         System.out.println("------------------------------------");
+        LinearRegressionPSGD linaer = new LinearRegressionPSGD();
 
-        LinearRegressionPSGD lasso = new LinearRegressionPSGD();
+        /* choose a good learning rate */
+        List<LabeledData> miniCorpus = corpus.subList(0, Math.min(corpus.size(), Math.max(corpus.size() / 10, 10000)));
+        Collections.shuffle(miniCorpus);
+        double learningRates[] = {1, 0.1, 0.01, 0.001, 0.0001, 0.00001};
+        double lowestObjectValue = 1e300;
+        int minLearningRateIndex = 0;
+        for(int i = 0; i < learningRates.length; i++){
+            learningRate = learningRates[i];
+            double currentObjectValue = linaer.train(miniCorpus, dim, false);
+            System.out.println("[Learning rate test]Learning rate " + learningRates[i] + " objective value "
+                    + currentObjectValue + " on " + miniCorpus.size() + " samples.");
+            if(lowestObjectValue >  currentObjectValue){
+                minLearningRateIndex = i;
+                lowestObjectValue = currentObjectValue;
+            }
+        }
+        learningRate = learningRates[minLearningRateIndex];
+        System.out.println("[Parameter]LearningRate " + learningRate);
+
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         start = System.currentTimeMillis();
-        lasso.train(corpus, dim);
+        linaer.train(corpus, dim, true);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }

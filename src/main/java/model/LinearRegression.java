@@ -36,6 +36,25 @@ public class LinearRegression {
         return loss > 1e100 || Double.isInfinite(loss) || Double.isNaN(loss);
     }
 
+    public boolean testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+                                  DenseVector model, boolean verbose){
+        long startTest = System.currentTimeMillis();
+        double loss = test(trainCorpus, model);
+        double accuracy = test(testCorpus, model);
+        long testTime = System.currentTimeMillis() - startTest;
+        if(verbose) {
+            System.out.println("[Information]TrainLoss=" + loss + " TestLoss=" + accuracy +
+                    " TestTime=" + testTime);
+            System.out.println("[Information]AverageTrainLoss=" + loss / trainCorpus.size() + " AverageTestLoss=" + accuracy / testCorpus.size());
+            double[] trainAccuracy = Utils.LinearAccuracy(trainCorpus, model);
+            double[] testAccuracy = Utils.LinearAccuracy(testCorpus, model);
+            //System.out.println("trainAccuracy:");
+            //Utils.printAccuracy(trainAccuracy);
+            //System.out.println("testAccuracy:");
+            //Utils.printAccuracy(testAccuracy);
+        }
+        return loss > 1e100 || Double.isInfinite(loss) || Double.isNaN(loss);
+    }
 
     public double test(List<LabeledData> list, DenseVector model) {
         double residual = 0;
@@ -57,6 +76,21 @@ public class LinearRegression {
         System.out.println("[Information]ParameterChanged " + delta);
         System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
 
+        return delta < stopDelta;
+    }
+    public boolean converge(DenseVector oldModel, DenseVector newModel, List<LabeledData> data, boolean verbose){
+        double delta = 0;
+        for(int i = 0; i < oldModel.values.length; i++){
+            delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
+        }
+        if(verbose) {
+            System.out.println("[Information]LossChanged " + (test(data, oldModel)
+                    - test(data, newModel)));
+            System.out.println("[Information]LossAbsoluteChanged " + (Math.abs(test(data, oldModel)
+                    - test(data, newModel))));
+            System.out.println("[Information]ParameterChanged " + delta);
+            System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
+        }
         return delta < stopDelta;
     }
 }

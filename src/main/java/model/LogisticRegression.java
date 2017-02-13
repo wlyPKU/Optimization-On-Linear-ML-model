@@ -35,6 +35,21 @@ public class LogisticRegression {
         System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size());
         return trainLoss > 1e100 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
     }
+    public boolean testAndSummary(List<LabeledData>trainCorpus, List<LabeledData> testCorpus,
+                                  DenseVector model, double lambda, boolean verbose){
+        long startTest = System.currentTimeMillis();
+        double trainLoss = logLoss(trainCorpus, model, lambda);
+        double testLoss = logLoss(testCorpus, model, lambda);
+        double trainAuc = auc(trainCorpus, model, verbose);
+        double testAuc = auc(testCorpus, model, verbose);
+        long testTime = System.currentTimeMillis() - startTest;
+        if(verbose) {
+            System.out.println("[Information]TrainLoss=" + trainLoss + " TestLoss=" + testLoss +
+                    " TrainAuc=" + trainAuc + " TestAuc=" + testAuc +
+                    " TestTime=" + testTime);
+            System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.size() + " AverageTestLoss=" + testLoss / testCorpus.size());
+        }return trainLoss > 1e100 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
+    }
     public boolean testAndSummary(LabeledData[] trainCorpus, LabeledData[] testCorpus,
                                   DenseVector model, double lambda){
         long startTest = System.currentTimeMillis();
@@ -47,6 +62,22 @@ public class LogisticRegression {
                 " TrainAuc=" + trainAuc + " TestAuc=" + testAuc +
                 " TestTime=" + testTime);
         System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.length + " AverageTestLoss=" + testLoss / testCorpus.length);
+        return trainLoss > 1e100 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
+    }
+    public boolean testAndSummary(LabeledData[] trainCorpus, LabeledData[] testCorpus,
+                                  DenseVector model, double lambda, boolean verbose){
+        long startTest = System.currentTimeMillis();
+        double trainLoss = logLoss(trainCorpus, model, lambda);
+        double testLoss = logLoss(testCorpus, model, lambda);
+        double trainAuc = auc(trainCorpus, model, verbose);
+        double testAuc = auc(testCorpus, model, verbose);
+        long testTime = System.currentTimeMillis() - startTest;
+        if(verbose) {
+            System.out.println("[Information]TrainLoss=" + trainLoss + " TestLoss=" + testLoss +
+                    " TrainAuc=" + trainAuc + " TestAuc=" + testAuc +
+                    " TestTime=" + testTime);
+            System.out.println("[Information]AverageTrainLoss=" + trainLoss / trainCorpus.length + " AverageTestLoss=" + testLoss / testCorpus.length);
+        }
         return trainLoss > 1e100 || Double.isInfinite(trainLoss) || Double.isNaN(trainLoss);
     }
 
@@ -81,7 +112,7 @@ public class LogisticRegression {
         return loss;
     }
 
-    private double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
+    public double logLoss(List<LabeledData> list, DenseVector model, double lambda) {
         double loss = 0.0;
         for (LabeledData labeledData: list) {
             double p = model.dot(labeledData.data);
@@ -172,6 +203,62 @@ public class LogisticRegression {
         System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
         return auc;
     }
+
+    private double auc(LabeledData[] list, DenseVector model, boolean verbose) {
+        int length = list.length;
+        double[] scores = new double[length];
+        double[] labels = new double[length];
+
+        int cnt = 0;
+        for (LabeledData labeledData: list) {
+            double z = model.dot(labeledData.data);
+            double score = 1.0 / (1.0 + Math.exp(-z));
+
+            scores[cnt] = score;
+            labels[cnt] = labeledData.label;
+            cnt ++;
+        }
+
+        Sort.quickSort(scores, labels, 0, length, new DoubleComparator() {
+
+            public int compare(double i, double i1) {
+                if (Math.abs(i - i1) < 10e-12) {
+                    return 0;
+                } else {
+                    return i - i1 > 10e-12 ? 1 : -1;
+                }
+            }
+
+            public int compare(Double o1, Double o2) {
+                if (Math.abs(o1 - o2) < 10e-12) {
+                    return 0;
+                } else {
+                    return o1 - o2 > 10e-12 ? 1 : -1;
+                }
+            }
+        });
+
+        long M = 0, N = 0;
+        for (int i = 0; i < scores.length; i ++) {
+            if (labels[i] == 1.0)
+                M ++;
+            else
+                N ++;
+        }
+
+        double sigma = 0.0;
+        for (long i = M + N - 1; i >= 0; i --) {
+            if (labels[(int) i] == 1.0) {
+                sigma += i;
+            }
+        }
+
+        double auc = (sigma - (M + 1) * M / 2) / (M * N);
+        if(verbose) {
+            System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
+        }
+        return auc;
+    }
     private double auc(List<LabeledData> list, DenseVector model) {
         int length = list.size();
         double[] scores = new double[length];
@@ -225,6 +312,61 @@ public class LogisticRegression {
         System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
         return auc;
     }
+    private double auc(List<LabeledData> list, DenseVector model, boolean verbose) {
+        int length = list.size();
+        double[] scores = new double[length];
+        double[] labels = new double[length];
+
+        int cnt = 0;
+        for (LabeledData labeledData: list) {
+            double z = model.dot(labeledData.data);
+            double score = 1.0 / (1.0 + Math.exp(-z));
+
+            scores[cnt] = score;
+            labels[cnt] = labeledData.label;
+            cnt ++;
+        }
+
+        Sort.quickSort(scores, labels, 0, length, new DoubleComparator() {
+
+            public int compare(double i, double i1) {
+                if (Math.abs(i - i1) < 10e-12) {
+                    return 0;
+                } else {
+                    return i - i1 > 10e-12 ? 1 : -1;
+                }
+            }
+
+            public int compare(Double o1, Double o2) {
+                if (Math.abs(o1 - o2) < 10e-12) {
+                    return 0;
+                } else {
+                    return o1 - o2 > 10e-12 ? 1 : -1;
+                }
+            }
+        });
+
+        long M = 0, N = 0;
+        for (int i = 0; i < scores.length; i ++) {
+            if (labels[i] == 1.0)
+                M ++;
+            else
+                N ++;
+        }
+
+        double sigma = 0.0;
+        for (long i = M + N - 1; i >= 0; i --) {
+            if (labels[(int) i] == 1.0) {
+                sigma += i;
+            }
+        }
+
+        double auc = (sigma - (M + 1) * M / 2) / (M * N);
+        if(verbose) {
+            System.out.println("sigma=" + sigma + " M=" + M + " N=" + N);
+        }
+        return auc;
+    }
     @SuppressWarnings("unused")
     public double lossFunctionValue(List<LabeledData> labeledData,
                                     DenseVector model, double lambda){
@@ -275,6 +417,21 @@ public class LogisticRegression {
 
         return delta < stopDelta;
     }
+    public boolean converge(DenseVector oldModel, DenseVector newModel, List<LabeledData> data, double lambda, boolean verbose){
+        double delta = 0;
+        for(int i = 0; i < oldModel.values.length; i++){
+            delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
+        }
+        if(verbose) {
+            System.out.println("[Information]LossChanged " + (logLoss(data, oldModel, lambda)
+                    - logLoss(data, newModel, lambda)));
+            System.out.println("[Information]LossAbsoluteChanged " + (Math.abs(logLoss(data, oldModel, lambda)
+                    - logLoss(data, newModel, lambda))));
+            System.out.println("[Information]ParameterChanged " + delta);
+            System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
+        }
+        return delta < stopDelta;
+    }
     public boolean converge(DenseVector oldModel, DenseVector newModel, LabeledData[] data, double lambda){
         double delta = 0;
         for(int i = 0; i < oldModel.values.length; i++){
@@ -287,6 +444,22 @@ public class LogisticRegression {
         System.out.println("[Information]ParameterChanged " + delta);
         System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
 
+        return delta < stopDelta;
+    }
+
+    public boolean converge(DenseVector oldModel, DenseVector newModel, LabeledData[] data, double lambda, boolean verbose){
+        double delta = 0;
+        for(int i = 0; i < oldModel.values.length; i++){
+            delta += Math.pow(oldModel.values[i] - newModel.values[i], 2);
+        }
+        if(verbose) {
+            System.out.println("[Information]LossChanged " + (logLoss(data, oldModel, lambda)
+                    - logLoss(data, newModel, lambda)));
+            System.out.println("[Information]LossAbsoluteChanged " + (Math.abs(logLoss(data, oldModel, lambda)
+                    - logLoss(data, newModel, lambda))));
+            System.out.println("[Information]ParameterChanged " + delta);
+            System.out.println("[Information]AverageParameterChanged " + Math.sqrt(delta) / oldModel.values.length);
+        }
         return delta < stopDelta;
     }
 }

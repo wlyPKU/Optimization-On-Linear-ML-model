@@ -37,7 +37,7 @@ public class SVMSGD extends model.SVM {
     private static double ABSTOL = 1e-4;
     private static double RELTOL = 1e-3;
 
-    private static int sgdIterations = 3;
+    private static int sgdIterations = 1;
     private static double lr = 0.005;
     private class executeRunnable implements Runnable {
         int threadID;
@@ -306,7 +306,7 @@ public class SVMSGD extends model.SVM {
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
-                if(trainRatio >= 1 || trainRatio <= 0){
+                if(trainRatio > 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
                 }
