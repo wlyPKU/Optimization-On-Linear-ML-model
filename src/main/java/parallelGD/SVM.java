@@ -201,9 +201,9 @@ public class SVM extends model.SVM{
 
         SVM svm = new SVM();
         /* choose a good learning rate */
-        List<LabeledData> miniCorpus = corpus.subList(0, Math.min(corpus.size(), Math.max(corpus.size() / 10, 10000)));
+        List<LabeledData> miniCorpus = corpus.subList(0, Math.min(corpus.size(), Math.min(corpus.size() / 10, 10000)));
         Collections.shuffle(miniCorpus);
-        double learningRates[] = {1, 0.1, 0.01, 0.001, 0.0001, 0.00001};
+        double learningRates[] = {1, 0.33, 0.1, 0.033, 0.01, 0.0033, 0.001, 0.00033, 0.0001, 0.00033, 0.00001};
         double lowestObjectValue = 1e300;
         int minLearningRateIndex = 0;
         for(int i = 0; i < learningRates.length; i++){
