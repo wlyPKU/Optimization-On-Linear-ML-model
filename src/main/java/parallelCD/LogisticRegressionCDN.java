@@ -260,7 +260,7 @@ public class LogisticRegressionCDN extends model.LogisticRegression{
             }
             if(argv[i].equals("TrainRatio")){
                 trainRatio = Double.parseDouble(argv[i+1]);
-                if(trainRatio >= 1 || trainRatio <= 0){
+                if(trainRatio > 1 || trainRatio <= 0){
                     System.out.println("Error Train Ratio!");
                     System.exit(1);
                 }

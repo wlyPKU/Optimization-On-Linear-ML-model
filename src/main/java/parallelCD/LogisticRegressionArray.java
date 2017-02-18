@@ -603,7 +603,7 @@ public class LogisticRegressionArray extends model.LogisticRegression{
             if(argv[i].equals("StopDelta")){
                 stopDelta = Double.parseDouble(argv[i + 1]);
             }
-            if(argv[i].equals("MaxIt eration")){
+            if(argv[i].equals("MaxIteration")){
                 maxIteration = Integer.parseInt(argv[i + 1]);
             }
             if(argv[i].equals("TrainRatio")){

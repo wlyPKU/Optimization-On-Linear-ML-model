@@ -85,7 +85,7 @@ public class libSVMTest {
         double trainRatio = 0.5D;
         if(argv.length >= 3){
             trainRatio = Double.parseDouble(argv[2]);
-            if(trainRatio >= 1|| trainRatio <= 0){
+            if(trainRatio > 1|| trainRatio <= 0){
                 System.out.println("[ERROR] A trainRatio belongs to (0,1) needed!");
                 System.exit(1);
             }
