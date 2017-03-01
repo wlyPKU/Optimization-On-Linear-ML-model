@@ -387,7 +387,7 @@ public class LogisticRegressionSGDTest extends model.LogisticRegression{
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
 
         /* choose a good learning rate */
-        labeledData = reservedCorpus.subList(0, Math.min(reservedCorpus.size(), Math.max(reservedCorpus.size() / 10, 10000)));
+        labeledData = reservedCorpus.subList(0, Math.min(reservedCorpus.size(), Math.min(reservedCorpus.size() / 10, 10000)));
         Collections.shuffle(labeledData);
         double learningRates[] = {1, 0.33, 0.1, 0.033, 0.01, 0.0033, 0.001, 0.00033, 0.0001, 0.00033, 0.00001};
         double lowestObjectValue = 1e300;

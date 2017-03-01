@@ -11,8 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.*;
-import java.math.*;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -24,16 +23,20 @@ import java.util.concurrent.TimeUnit;
 //  model       每个线程共享
 //  residual    每个线程共享
 //  可能会发生冲突
-public class LassoShotGun extends model.Lasso {
-
-    private static double residual[];
+public class LogisticRegressionHydra extends model.LogisticRegression {
     private static DenseVector model;
     private static double featureSquare[];
+
     private static SparseVector[] features;
     private static double lambda;
     private static double trainRatio = 0.5;
     private static int threadNum;
     private static int featureDimension;
+
+    private static double beta = 4000;
+    private static double allReducedGradient[];
+    private static double nextIterationAllReducedGradient[];
+    private static double partialDeltaSolution[];
 
     private List<LabeledData> trainCorpus;
 
@@ -45,86 +48,28 @@ public class LassoShotGun extends model.Lasso {
             this.to = to;
 
         }
+        public final double exp(double val) {
+            final long tmp = (long) (1512775 * val + (1072693248 - 60801));
+            return Double.longBitsToDouble(tmp << 32);
+        }
         public void run() {
-            double oldValue, updateValue, xj;
-            int idx;
-            /*
-            int[] sequence = new int[to - from];
-            for(int i = 0; i < sequence.length; i++){
-                sequence[i] = i + from;
-            }
-            Random random = new Random();
-            for(int i = 0; i < sequence.length; i++){
-                int p = random.nextInt(to - from);
-                int tmp = sequence[i];
-                sequence[i] = sequence[p];
-                sequence[p] = tmp;
-            }
-
-            for(int j : sequence){
-            */
             for(int j = from; j < to; j++){
+                double deltaF = 0;
                 if(featureSquare[j] != 0) {
-                    int indices[] = features[j].indices;
-                    double values[] = features[j].values;
-                    oldValue = model.values[j];
-                    updateValue = 0;
-
                     for(int i = 0; i < features[j].indices.length; i++){
-                        idx = indices[i];
-                        xj = values[i];
-                        updateValue += xj * residual[idx];
+                        deltaF += trainCorpus.get(features[j].indices[i]).label * features[j].values[i]
+                                * Math.exp(allReducedGradient[features[j].indices[i]])
+                                / (1.0 + Math.exp(allReducedGradient[features[j].indices[i]]));
                     }
-                    updateValue /= featureSquare[j];
-                    model.values[j] += updateValue;
-                    model.values[j] = Utils.soft_threshold(lambda / featureSquare[j], model.values[j]);
-                    double deltaChange = model.values[j] - oldValue;
-                    if (deltaChange != 0) {
-                        for(int i = 0; i < features[j].indices.length; i++){
-                            idx = indices[i];
-                            xj = values[i];
-                            residual[idx] -= xj * deltaChange;
-                        }
+                    double h = - (deltaF + lambda * model.values[j] * 2.0) / (featureSquare[j] / 4 * beta + lambda * 2.0);
+                    partialDeltaSolution[j] = h;
+                    model.values[j] += partialDeltaSolution[j];
+                    //Things are different when distributed.
+                    for(int i = 0; i < features[j].indices.length; i++){
+                        nextIterationAllReducedGradient[features[j].indices[i]] -= features[j].values[i]
+                                * partialDeltaSolution[j] * trainCorpus.get(features[j].indices[i]).label;
                     }
                 }
-            }
-        }
-    }
-
-    public class adjustResidualThread implements Runnable
-    {
-        int from, to;
-        adjustResidualThread(int from, int to){
-            this.from = from;
-            this.to = to;
-        }
-        public void run() {
-            for(int j = from; j < to; j++){
-                LabeledData l = trainCorpus.get(j);
-                residual[j] = l.label;
-                for(int i = 0; i < l.data.indices.length; i++){
-                    int index = l.data.indices[i];
-                    double value = l.data.values == null? 1: l.data.values[i];
-                    residual[j] -= value * model.values[index];
-                }
-            }
-        }
-    }
-
-    private void adjustResidual(){
-        ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
-        for (int threadID = 0; threadID < threadNum; threadID++) {
-            int from = trainCorpus.size() * threadID / threadNum;
-            int to = trainCorpus.size() * (threadID + 1) / threadNum;
-            threadPool.execute(new adjustResidualThread(from, to));
-        }
-        threadPool.shutdown();
-        while (!threadPool.isTerminated()) {
-            try {
-                while (!threadPool.awaitTermination(1, TimeUnit.MILLISECONDS)) {
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
     }
@@ -134,15 +79,6 @@ public class LassoShotGun extends model.Lasso {
         Collections.shuffle(labeledData);
     }
 
-    private double calculateMaxLambda(List<LabeledData> trainCorpus){
-        double lambdaMax = 0;
-        for(LabeledData l: trainCorpus){
-            lambdaMax = Math.max(lambdaMax, Math.abs(l.label));
-        }
-        return lambdaMax;
-    }
-
-
     private void trainCore(List<LabeledData> labeledData) {
         double startCompute = System.currentTimeMillis();
         shuffle(labeledData);
@@ -150,42 +86,35 @@ public class LassoShotGun extends model.Lasso {
         features = Utils.generateSpareVector(tmpFeatures);
         int testBegin = (int)(labeledData.size() * trainRatio);
         int testEnd = labeledData.size();
-        trainCorpus = labeledData.subList(0, testBegin + 1);
+        trainCorpus = labeledData.subList(0, testBegin);
         List<LabeledData> testCorpus = labeledData.subList(testBegin, testEnd);
+
+        allReducedGradient = new double[trainCorpus.size()];
+        nextIterationAllReducedGradient = new double[trainCorpus.size()];
+        Arrays.fill(allReducedGradient, 0);
+        Arrays.fill(model.values, 0);
         featureSquare = new double[featureDimension];
-        residual = new double[trainCorpus.size()];
         for(int i = 0; i < featureDimension; i++){
             featureSquare[i] = 0;
             for(Double v: features[i].values){
                 featureSquare[i] += v * v;
             }
         }
-
-        for(int i = 0; i < features[featureDimension].indices.length; i++){
-            residual[features[featureDimension].indices[i]] = features[featureDimension].values[i];
-        }
         DenseVector oldModel = new DenseVector(featureDimension);
-
         System.out.println("[Prepare]Pre-computation takes " + (System.currentTimeMillis() - startCompute) + " ms totally");
-
         long totalBegin = System.currentTimeMillis();
 
         long totalIterationTime = 0;
 
-        double lambdaMax = calculateMaxLambda(trainCorpus);
-        double lambdaMin = lambda;
-        //double lambdaChangeIteration = Math.min(1 + trainCorpus.size()/ 2000, maxIteration);
-        double lambdaChangeIteration = maxIteration / 2;
-        double alpha = Math.pow(lambdaMax/lambdaMin, 1.0/(1.0*lambdaChangeIteration));
-        System.out.println("Alpha " + alpha);
+        for(int i = 0; i < trainCorpus.size(); i++){
+            allReducedGradient[i] = 0;
+        }
 
+        //beta = getBeta(trainCorpus);
+        System.out.println("[Information]Beta " + beta );
         for (int i = 0; ; i ++) {
             System.out.println("[Information]Iteration " + i + " ---------------");
-            if(i < lambdaChangeIteration) {
-                lambda = lambdaMin * Math.pow(alpha, lambdaChangeIteration - i);
-            }
-            System.out.println("[Information]Lambda " + lambda);
-
+            System.arraycopy(allReducedGradient, 0, nextIterationAllReducedGradient, 0, allReducedGradient.length);
             boolean diverge = testAndSummary(trainCorpus, testCorpus, model, lambda);
             long startTrain = System.currentTimeMillis();
             ExecutorService threadPool = Executors.newFixedThreadPool(threadNum);
@@ -204,9 +133,6 @@ public class LassoShotGun extends model.Lasso {
                 }
             }
             long trainTime = System.currentTimeMillis() - startTrain;
-            //if(threadNum != 1){
-                adjustResidual();
-            //}
             System.out.println("[Information]trainTime " + trainTime);
             totalIterationTime += trainTime;
             System.out.println("[Information]totalTrainTime " + totalIterationTime);
@@ -228,21 +154,32 @@ public class LassoShotGun extends model.Lasso {
                 if (modelType == 2)
                     break;
             }
-            System.arraycopy(model.values, 0, oldModel.values, 0, featureDimension);
+            System.arraycopy(model.values, 0, oldModel.values,0, featureDimension);
             if(diverge){
                 System.out.println("[Warning]Diverge happens!");
                 break;
             }
+            System.arraycopy(nextIterationAllReducedGradient, 0, allReducedGradient, 0, allReducedGradient.length);
         }
     }
 
+    private static double getBeta(List<LabeledData> labeledData){
+        int nonZeroNumber = 0;
+        for (LabeledData aLabeledData : labeledData) {
+            if (aLabeledData.data.values.length > nonZeroNumber) {
+                nonZeroNumber = aLabeledData.data.values.length;
+            }
+        }
+        return 2 * (1 + (labeledData.size() / threadNum - 1) * (nonZeroNumber - 1) / Math.max(threadNum - 1, 1));
+    }
+
     public static void train(List<LabeledData> labeledData) {
-        LassoShotGun lassoModelParallelCD = new LassoShotGun();
+        LogisticRegressionHydra lrHydra = new LogisticRegressionHydra();
         //https://www.microsoft.com/en-us/research/wp-content/uploads/2012/01/tricks-2012.pdf  Pg 3.
         model = new DenseVector(featureDimension);
-        Arrays.fill(model.values, 0);
+        partialDeltaSolution = new double[featureDimension];
         long start = System.currentTimeMillis();
-        lassoModelParallelCD.trainCore(labeledData);
+        lrHydra.trainCore(labeledData);
         long cost = System.currentTimeMillis() - start;
         System.out.println("[Information]Training cost " + cost + " ms totally.");
     }
@@ -277,6 +214,9 @@ public class LassoShotGun extends model.Lasso {
                     System.exit(1);
                 }
             }
+            if(argv[i].equals("Beta")){
+                beta = Double.parseDouble(argv[i + 1]);
+            }
         }
         System.out.println("[Parameter]ThreadNum " + threadNum);
         System.out.println("[Parameter]StopDelta " + stopDelta);
@@ -291,6 +231,7 @@ public class LassoShotGun extends model.Lasso {
 
         long startLoad = System.currentTimeMillis();
         List<LabeledData> labeledData = Utils.loadLibSVM(path, featureDimension);
+        labeledData = Utils.normalizeData(labeledData, featureDimension);
         long loadTime = System.currentTimeMillis() - startLoad;
         System.out.println("[Prepare]Loading corpus completed, takes " + loadTime + " ms");
         train(labeledData);
